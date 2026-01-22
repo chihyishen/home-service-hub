@@ -1,0 +1,36 @@
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:                           # 設定接收器
+    otlp:                              # 啟用 OTLP (給 Spring Boot 用)
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+ingester:
+  trace_idle_period: 10s               # 為了練習，讓 Trace 更快寫入 Block
+  max_block_bytes: 1_000_000
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    compaction_window: 1h
+    max_block_bytes: 100_000_000
+    block_retention: 1h
+    compacted_block_retention: 10m
+
+storage:
+  trace:
+    backend: local                     # 使用本地儲存 (不需 S3)
+    wal:
+      path: /var/tempo/wal             # 暫存路徑
+    local:
+      path: /var/tempo/blocks          # 封存路徑
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics] # (選用) 啟用服務關聯圖

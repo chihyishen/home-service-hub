@@ -1,0 +1,55 @@
+server:
+  port: 1031
+
+spring:
+  application:
+    name: item-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/inventory_db
+    username: user
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update # 開發階段自動建表
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  loki:
+    url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
+  tracing:
+    sampling:
+      probability: 1.0
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+  otlp:
+    tracing:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+    metrics:
+      export:
+        # Metrics 也要記得指 (雖然通常會共用 Base URL，但明確指定比較保險)
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/metrics}
+
+logging:
+  level:
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    org.hibernate.SQL: DEBUG # 讓 SQL 變成 Debug 層級的 Log
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html # 瀏覽器進入點
+    enabled: true

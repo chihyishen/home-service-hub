@@ -1,0 +1,31 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlp: # 轉發 Traces 給 Tempo
+    endpoint: tempo:4317 # Docker 內部 DNS
+    tls:
+      insecure: true
+  
+  prometheus: # 暴露 Metrics 給 Prometheus 抓
+    endpoint: "0.0.0.0:8889"
+    namespace: "spring_boot_4" # 選填，幫指標加前綴
+
+processors:
+  batch:
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp] # 送去 Tempo
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus] # 送去 Prometheus exporter

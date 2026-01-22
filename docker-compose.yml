@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # --- 1. 資料庫 ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: inventory-postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inventory-net
+
+  # --- 2. 訊息佇列 ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: inventory-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - inventory-net
+
+  # --- 3. OpenTelemetry Collector (負責接收與分流) ---
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: inventory-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # App 的 Traces/Metrics 送這裡 (gRPC)
+      - "4318:4318" # App 的 Traces/Metrics 送這裡 (HTTP)
+      - "8889:8889" # Prometheus exporter port
+    networks:
+      - inventory-net
+
+  # --- 4. 鏈路追蹤 (Grafana Tempo) ---
+  # Spring Boot 4.0 原生 OTel 會送資料來這裡
+  tempo:
+    image: grafana/tempo:latest
+    container_name: inventory-tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    ports:
+      - "3200:3200"
+    volumes:
+      # 1. 掛載設定檔
+      - ./infra/config/tempo.yaml:/etc/tempo.yaml
+      # 2. 掛載資料儲存區 (避免重啟後資料消失，也解決權限問題)
+      - ./infra/tempo-data:/var/tempo
+    networks:
+      - inventory-net
+
+  # --- 5. 監控指標 (Prometheus) ---
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: inventory-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/config/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - inventory-net
+
+  # --- 6. 日誌 (Loki) ---
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: inventory-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/config/loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - inventory-net
+
+  # --- 7. 視覺化 (Grafana) ---
+  grafana:
+    image: grafana/grafana:latest
+    container_name: inventory-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/config/grafana-config.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    networks:
+      - inventory-net
+
+  # --- 8. 物件儲存 (MinIO) ---
+  minio:
+    image: minio/minio
+    container_name: inventory-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./infra/minio-data:/data
+    networks:
+      - inventory-net
+
+networks:
+  inventory-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  grafana_data:
