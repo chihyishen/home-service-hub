@@ -1,6 +1,5 @@
 plugins {
     id("java")
-    // 設定為您想要的最新穩定版 3.5.9
     id("org.springframework.boot") version "4.0.1" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
 }
