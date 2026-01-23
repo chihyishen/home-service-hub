@@ -3,7 +3,7 @@ package com.inventory.item;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.inventory")
 public class ItemServiceApplication {
 
     public static void main(String[] args) {

@@ -39,6 +39,8 @@ dependencies {
     // === 4. 測試依賴 (Test) ===
     // 讓所有服務都自動擁有測試能力
     api("org.springframework.boot:spring-boot-starter-test")
+
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 }
 
 tasks.test {

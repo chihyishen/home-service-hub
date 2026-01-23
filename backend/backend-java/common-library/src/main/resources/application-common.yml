@@ -1,0 +1,51 @@
+# 這裡是所有微服務共用的設定
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+management:
+  observations:
+    annotations:
+      enabled: true
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+        step: 10s # Metrics 上報頻率
+  # Loki Logback Appender 的全域設定
+  loki:
+    url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  tracing:
+    sampling:
+      probability: 1.0 # 全域採樣率 100%
+  metrics:
+    tags:
+      # 自動將該服務的 spring.application.name 加入每個指標中，這非常重要！
+      application: ${spring.application.name}
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true
+      export:
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+        step: 10s # Metrics 上報頻率
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+          compression: gzip
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    # 這是您剛剛搬到 common 的 LoggingConfig 所需的設定
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
