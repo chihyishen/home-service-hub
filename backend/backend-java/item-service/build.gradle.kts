@@ -1,24 +1,37 @@
 plugins {
-    java
-    id("org.springframework.boot") version "4.0.1"
-    id("io.spring.dependency-management") version "1.1.7"
+    id("java")
+    id("org.springframework.boot")
+    id("io.spring.dependency-management")
 }
 
 description = "item-service"
 
 dependencies {
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
     // === 1. 引入共用庫 ===
     implementation(project(":common-library"))
 
-    // === 2. 編譯時期處理器 (Annotation Processors) ===
-    // 處理器不會透過 'api' 傳遞，必須在每個服務中顯式宣告
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    // 2. Lombok
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+
+    // 3. MapStruct (DTO 轉換)
+    implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 
-    // (Lombok 已在 Root build.gradle.kts 定義，此處無需重複)
+    // 4. 資料庫相關
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa:4.0.1")
+    runtimeOnly("org.postgresql:postgresql")
 
-    // === 3. 開發工具 (僅開發時使用) ===
+    // 5. 開發工具 (熱重載等)
+    // 這行確保 DevTools 不會被打包進 Production
     developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+    // 6. 測試 (僅測試時使用)
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {

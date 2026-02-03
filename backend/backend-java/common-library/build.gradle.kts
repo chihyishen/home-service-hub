@@ -17,30 +17,23 @@ dependencies {
     // Web 基礎 (MVC, Validation...)
     api("org.springframework.boot:spring-boot-starter-webmvc")
 
-    // 監控與追蹤 (Actuator, OTel)
+    // === 2. 監控與可觀測性 (Observability) ===
     api("org.springframework.boot:spring-boot-starter-actuator")
     api("org.springframework.boot:spring-boot-starter-opentelemetry")
 
-    // 日誌 (Loki)
-    api("com.github.loki4j:loki-logback-appender:1.5.1")
+    // OTLP 導出器 (負責送出 Traces 和 Metrics)
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
-    // API 文件 (Swagger/OpenAPI)
+    // === 3. 日誌  ===
+    api("com.github.loki4j:loki-logback-appender:2.0.3")
+    api("org.zalando:logbook-spring-boot-starter:4.0.0-RC.1")
+
+    // === 4. API 文件 ===
     api("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 
-    // === 2. 資料庫相關 (Database) ===
-    // 如果您的所有服務都會用到 DB，放在這裡最方便；否則可移回個別 Service
-    api("org.springframework.boot:spring-boot-starter-data-jpa")
-    api("org.postgresql:postgresql") // Driver
-
-    // === 3. 工具 (Utils) ===
-    // MapStruct Core (介面定義)
+    // === 5. 工具 ===
     api("org.mapstruct:mapstruct:1.6.3")
-
-    // === 4. 測試依賴 (Test) ===
-    // 讓所有服務都自動擁有測試能力
-    api("org.springframework.boot:spring-boot-starter-test")
-
-    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    api("org.springframework.boot:spring-boot-starter-jackson:4.0.2")
 }
 
 tasks.test {

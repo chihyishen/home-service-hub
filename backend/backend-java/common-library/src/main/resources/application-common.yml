@@ -5,6 +5,12 @@ springdoc:
     path: /swagger-ui.html
     enabled: true
 
+logbook:
+  filter:
+    enabled: true
+  write:
+    level: TRACE
+    chunk-size: 1000
 # 自定義 Appender 設定
 loki:
   url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
@@ -44,7 +50,6 @@ management:
         http.server.requests: true
 
   # 5. OTLP Exporter 統一設定區 (Metrics & Tracing)
-  # 這是 4.0.1 建議的寫法，將 metrics 和 tracing 的輸出統一管理
   otlp:
     metrics:
       export:

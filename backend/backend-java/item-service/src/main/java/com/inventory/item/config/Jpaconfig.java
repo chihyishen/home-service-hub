@@ -1,4 +1,4 @@
-package com.inventory.common.config;
+package com.inventory.item.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
