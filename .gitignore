@@ -1,2 +1,3 @@
 infra/minio-data
 infra/tempo-data
+backend/.DS_Store

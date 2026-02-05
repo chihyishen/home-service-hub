@@ -7,25 +7,44 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-  otlp: # 轉發 Traces 給 Tempo
-    endpoint: tempo:4317 # Docker 內部 DNS
+  debug:
+    verbosity: basic # 改為基本摘要，不顯示詳細內容
+
+  otlp_grpc:
+    endpoint: tempo:4317
     tls:
       insecure: true
   
-  prometheus: # 暴露 Metrics 給 Prometheus 抓
+  prometheus:
     endpoint: "0.0.0.0:8889"
-    namespace: "spring_boot_4" # 選填，幫指標加前綴
+    namespace: "spring_boot_4"
+
+  otlp_http/loki:
+    endpoint: "http://loki:3100/otlp"
+    tls:
+      insecure: true
 
 processors:
   batch:
+  
+  transform:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["service_name"], resource.attributes["service.name"])
+          - set(attributes["app"], resource.attributes["service.name"])
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp] # 送去 Tempo
+      exporters: [otlp_grpc]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus] # 送去 Prometheus exporter
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [transform, batch]
+      exporters: [otlp_http/loki] # 移除 debug，僅發送到 Loki

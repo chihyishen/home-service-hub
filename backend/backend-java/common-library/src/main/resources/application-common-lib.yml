@@ -1,0 +1,65 @@
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+logbook:
+  filter:
+    enabled: true
+  write:
+    level: TRACE
+    chunk-size: 1000
+
+logging:
+  level:
+    # Common LoggingConfig 設定
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+  pattern:
+    # 搭配 Micrometer Tracing 的標準格式
+    level: "%5p [${spring.application.name:-},%X{traceId:-},%X{spanId:-}]"
+
+management:
+  # 1. Endpoints 暴露設定
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+
+  # 2. 觀測功能總開關 (Observation Registry)
+  observations:
+    annotations:
+      enabled: true
+
+  # 3. OpenTelemetry 標準資源屬性 (Spring Boot 4.0.1 強烈建議)
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+          compression: gzip
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/logs
+
+  # 4. Tracing 採樣設定
+  tracing:
+    sampling:
+      probability: 1.0 # 全域採樣率 100%
+
+  # 5. Metrics 邏輯設定 (分佈統計)
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+  # 6. OTLP Metrics 導出設定
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        step: 10s
