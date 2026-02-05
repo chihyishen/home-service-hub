@@ -9,7 +9,7 @@ spring:
     name: item-service
 
   config:
-    import: "classpath:application-common.yml"
+    import: "optional:classpath:application-common-lib.yml"
 
   datasource:
     url: jdbc:postgresql://localhost:5432/inventory_db

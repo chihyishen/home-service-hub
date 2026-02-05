@@ -25,7 +25,9 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
     // === 3. 日誌  ===
-    api("com.github.loki4j:loki-logback-appender:2.0.3")
+    api("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.12.0-alpha")
+    // 補齊實驗性 API 模組，對齊 Spring Boot 4.0.1 內部使用的 1.55.0
+    api("io.opentelemetry:opentelemetry-api-incubator:1.55.0-alpha")
     api("org.zalando:logbook-spring-boot-starter:4.0.0-RC.1")
 
     // === 4. API 文件 ===
@@ -33,7 +35,7 @@ dependencies {
 
     // === 5. 工具 ===
     api("org.mapstruct:mapstruct:1.6.3")
-    api("org.springframework.boot:spring-boot-starter-jackson:4.0.2")
+    api("org.springframework.boot:spring-boot-starter-jackson")
 }
 
 tasks.test {

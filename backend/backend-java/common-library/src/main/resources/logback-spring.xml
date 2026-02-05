@@ -2,7 +2,6 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <springProperty scope="context" name="lokiUrl" source="loki.url" defaultValue="http://localhost:3100/loki/api/v1/push"/>
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="UNKNOWN-APP"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -11,32 +10,21 @@
         </encoder>
     </appender>
 
-    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-        <http>
-            <url>${lokiUrl}</url>
-        </http>
-
-        <labels>
-            app=${appName}
-            host=${HOSTNAME:-localhost}
-        </labels>
-
-        <message>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${appName} traceId=%X{traceId:-} spanId=%X{spanId:-} --- [%15.15t] %-40.40logger{39} : %m%n</pattern>
-        </message>
-
-        <batch>
-            <timeoutMs>3000</timeoutMs>
-        </batch>
+    <!-- 原生 OpenTelemetry Appender -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>true</captureExperimentalAttributes>
+        <captureCodeAttributes>true</captureCodeAttributes>
+        <captureMarkerAttribute>true</captureMarkerAttribute>
+        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
     </appender>
 
     <logger name="org.zalando.logbook" level="TRACE" additivity="false">
-        <appender-ref ref="LOKI"/>
+        <appender-ref ref="OTEL"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="LOKI"/>
+        <appender-ref ref="OTEL"/>
     </root>
 </configuration>

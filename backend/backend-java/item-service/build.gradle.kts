@@ -17,11 +17,10 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
 
     // 3. MapStruct (DTO 轉換)
-    implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 
     // 4. 資料庫相關
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa:4.0.1")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
 
     // 5. 開發工具 (熱重載等)

@@ -35,6 +35,10 @@ services:
       - "4317:4317" # App 的 Traces/Metrics 送這裡 (gRPC)
       - "4318:4318" # App 的 Traces/Metrics 送這裡 (HTTP)
       - "8889:8889" # Prometheus exporter port
+    depends_on:
+      - tempo
+      - prometheus
+      - loki
     networks:
       - inventory-net
 
@@ -69,10 +73,11 @@ services:
 
   # --- 6. 日誌 (Loki) ---
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:latest
     container_name: inventory-loki
     ports:
       - "3100:3100"
+      - "9096:9096"
     volumes:
       - ./infra/config/loki-config.yaml:/etc/loki/local-config.yaml
     command: -config.file=/etc/loki/local-config.yaml
