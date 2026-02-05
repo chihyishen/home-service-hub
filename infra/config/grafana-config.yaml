@@ -11,35 +11,72 @@ datasources:
 
   - name: Tempo
     type: tempo
-    access: proxy
-    orgId: 1
-    url: http://tempo:3200
-    basicAuth: false
-    isDefault: false
-    version: 1
-    editable: true
-    apiVersion: 1
     uid: tempo
+    url: http://tempo:3200
+    access: proxy
+    editable: true
     jsonData:
-      httpMethod: GET
-      nodeGraph:
-        enabled: true
       search:
         hide: false
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki
+      tracesToLogs:
+        datasourceUid: loki
+        filterBySpanID: false
+        filterByTraceID: true
+        mapTagNamesEnabled: true
 
   - name: Loki
     type: loki
-    access: proxy
-    orgId: 1
+    uid: loki
     url: http://loki:3100
-    basicAuth: false
-    isDefault: false
-    version: 1
+    access: proxy
     editable: true
-    apiVersion: 1
     jsonData:
       derivedFields:
-        - datasourceUid: tempo  # 告訴它跳轉到哪個 Data Source (上面定義的 Tempo uid)
-          matcherRegex: "traceId=(\\w+)" # 正則表達式：抓取 Log 裡的 traceId=後面那串字
-          name: TraceID        # 連結顯示的名稱
-         # url: "$${__value.raw}" # 跳轉網址變數 (固定寫法)
+        # 1. 針對日誌文字內容 (Log Line) 中的 traceId=xxxx
+        - datasourceUid: tempo
+          matcherRegex: "traceId=(\\w+)"
+          name: TraceID
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'
+
+        # 2. 針對 Structured Metadata 中的 trace_id (OTLP 標準)
+        - datasourceUid: tempo
+          matcherType: "label"
+          matcherRegex: "trace_id"
+          name: trace_id
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'
+
+        # 3. 針對 Structured Metadata 中的 traceId (其他格式)
+        - datasourceUid: tempo
+          matcherType: "label"
+          matcherRegex: "traceId"
+          name: traceId
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'
+
+correlations:
+  - sourceUID: loki
+    targetUID: tempo
+    label: "Trace"
+    description: "Link to Tempo trace from structured metadata (trace_id)"
+    config:
+      field: "trace_id"
+      type: "query"
+      target:
+        queryType: "traceId"
+        query: "$${__value.raw}"
+  - sourceUID: loki
+    targetUID: tempo
+    label: "Trace"
+    description: "Link to Tempo trace from structured metadata (traceId)"
+    config:
+      field: "traceId"
+      type: "query"
+      target:
+        queryType: "traceId"
+        query: "$${__value.raw}"
