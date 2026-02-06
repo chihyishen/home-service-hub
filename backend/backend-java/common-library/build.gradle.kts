@@ -28,6 +28,7 @@ dependencies {
     // 4. OTEL 相關
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     api("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.24.0-alpha")
+    api("io.opentelemetry:opentelemetry-api-incubator")
 
     // 5. 其他
     api("org.zalando:logbook-spring-boot-starter:4.0.0-RC.1")

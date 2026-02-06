@@ -31,7 +31,11 @@ management:
   observations:
     annotations:
       enabled: true
+    sql:
+      query-text:
+        enabled: true
     key-values:
+      db.system: "postgresql"
       db.query.text.enabled: true
 
   # 3. OpenTelemetry
@@ -65,3 +69,11 @@ management:
       export:
         url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
         step: 10s
+
+jdbc:
+  datasource-proxy:
+    enabled: true
+    include-parameter-values: true
+  observation:
+    enabled: true
+    include-query-arguments: true
