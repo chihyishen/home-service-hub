@@ -8,11 +8,9 @@ springdoc:
 logbook:
   filter:
     enabled: true
-  strategy: body # 確保紀錄內容
+  strategy: default
   format:
     style: json
-  sampling:
-    probability: 1.0
 
 logging:
   level:
