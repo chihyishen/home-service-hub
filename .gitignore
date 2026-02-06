@@ -1,4 +1,25 @@
+# Data directories
 infra/minio-data
 infra/tempo-data
+
+# IDEs
+.vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# OS metadata
+.DS_Store
 backend/.DS_Store
-modify_history
+Thumbs.db
+
+# Build and Temp
+dist/
+build/
+out/
+tmp/
+*.log
+
+# Project specific
+modify_history/
