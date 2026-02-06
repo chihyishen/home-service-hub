@@ -6,6 +6,9 @@ import com.inventory.item.mapper.ItemMapper;
 import com.inventory.item.model.Item;
 import com.inventory.item.repository.ItemRepository;
 import com.inventory.item.service.ItemService;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,20 +17,28 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Observed(name = "item.service", contextualName = "Layer: Service")
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
-    private final ItemMapper itemMapper; // 注入 Mapper
+    private final ItemMapper itemMapper;
+    private final ObservationRegistry observationRegistry;
 
     @Override
     public List<ItemResponse> getAllItems() {
         return itemRepository.findAll().stream()
-                .map(itemMapper::toResponse) // 串流轉換
+                .map(itemMapper::toResponse)
                 .toList();
     }
 
     @Override
     public ItemResponse getItemById(Long id) {
+        // 在當前觀測中添加業務標籤
+        Observation observation = observationRegistry.getCurrentObservation();
+        if (observation != null) {
+            observation.lowCardinalityKeyValue("item.id", String.valueOf(id));
+        }
+
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Item not found with id: " + id));
         return itemMapper.toResponse(item);
@@ -36,11 +47,15 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemResponse createItem(ItemRequest request) {
-        // 1. DTO -> Entity
         Item item = itemMapper.toEntity(request);
-        // 2. Save
         Item savedItem = itemRepository.save(item);
-        // 3. Entity -> DTO
+
+        // 紀錄新建立的資源 ID
+        Observation observation = observationRegistry.getCurrentObservation();
+        if (observation != null) {
+            observation.lowCardinalityKeyValue("item.id", String.valueOf(savedItem.getId()));
+        }
+
         return itemMapper.toResponse(savedItem);
     }
 
