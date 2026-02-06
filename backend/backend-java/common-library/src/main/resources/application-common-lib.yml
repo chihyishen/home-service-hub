@@ -8,9 +8,9 @@ springdoc:
 logbook:
   filter:
     enabled: true
-  write:
-    level: TRACE
-    chunk-size: 1000
+  strategy: default
+  format:
+    style: json
 
 logging:
   level:
@@ -31,8 +31,10 @@ management:
   observations:
     annotations:
       enabled: true
+    key-values:
+      db.query.text.enabled: true
 
-  # 3. OpenTelemetry 標準資源屬性 (Spring Boot 4.0.1 強烈建議)
+  # 3. OpenTelemetry
   opentelemetry:
     resource-attributes:
       service.name: ${spring.application.name}

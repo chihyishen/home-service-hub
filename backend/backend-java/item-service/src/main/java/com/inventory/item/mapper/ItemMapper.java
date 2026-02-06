@@ -5,7 +5,7 @@ import com.inventory.item.dto.ItemResponse;
 import com.inventory.item.model.Item;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring") // 讓 Spring 自動注入這個 Mapper
+@Mapper(componentModel = "spring")
 public interface ItemMapper {
 
     ItemResponse toResponse(Item item);

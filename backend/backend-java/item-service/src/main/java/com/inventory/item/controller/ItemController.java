@@ -3,6 +3,7 @@ package com.inventory.item.controller;
 import com.inventory.item.dto.ItemRequest;
 import com.inventory.item.dto.ItemResponse;
 import com.inventory.item.service.ItemService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/items")
 @RequiredArgsConstructor
+@Observed(name = "item.api", contextualName = "Layer: Controller")
 public class ItemController {
 
     private final ItemService itemService;
