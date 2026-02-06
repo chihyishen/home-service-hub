@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 })
 export class ItemService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:1031/api/items';
+  private apiUrl = 'http://192.168.0.100:1031/api/items';
 
   getAll(): Observable<ItemResponse[]> {
     return this.http.get<ItemResponse[]>(this.apiUrl);

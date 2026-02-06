@@ -60,6 +60,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "host": "192.168.0.100"
+          },
           "configurations": {
             "production": {
               "buildTarget": "inventory-ui:build:production"
