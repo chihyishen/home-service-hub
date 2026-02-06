@@ -2,6 +2,7 @@ package com.inventory.item.service.impl;
 
 import com.inventory.item.dto.ItemRequest;
 import com.inventory.item.dto.ItemResponse;
+import com.inventory.item.exception.ResourceNotFoundException;
 import com.inventory.item.mapper.ItemMapper;
 import com.inventory.item.model.Item;
 import com.inventory.item.repository.ItemRepository;
@@ -40,7 +41,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
         return itemMapper.toResponse(item);
     }
 
@@ -64,7 +65,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemResponse updateItem(Long id, ItemRequest request) {
         // 1. 查出舊資料
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
 
         // 2. 使用 Mapper 自動將 request 的非空欄位更新進 item
         itemMapper.updateEntityFromRequest(request, item);
