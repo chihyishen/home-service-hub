@@ -1,5 +1,25 @@
+# Data directories
 infra/minio-data
 infra/tempo-data
-backend/.DS_Store
-modify_history.vscode/
+
+# IDEs
 .vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# OS metadata
+.DS_Store
+backend/.DS_Store
+Thumbs.db
+
+# Build and Temp
+dist/
+build/
+out/
+tmp/
+*.log
+
+# Project specific
+modify_history/
