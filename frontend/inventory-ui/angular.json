@@ -62,8 +62,11 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "host": "0.0.0.0",
-            "allowedHosts": ["mac-mini.local", "192.168.0.100"],
-            "proxyConfig": "proxy.conf.json"
+            "allowedHosts": [
+              "mac-mini.local",
+              "192.168.0.100"
+            ],
+            "proxyConfig": "proxy.conf.js"
           },
           "configurations": {
             "production": {
