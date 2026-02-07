@@ -25,10 +25,10 @@ if (fs.existsSync(envPath)) {
 // 1. 生成 environment.ts (已在 .gitignore 中)
 const envConfigFile = `export const environment = {
   production: false,
-  apiUrl: '${envConfig.FRONTEND_API_URL || '/api'}',
-  backendHost: '${envConfig.BACKEND_HOST || 'localhost'}',
-  backendPort: '${envConfig.BACKEND_PORT || '1031'}',
-  otelEndpoint: '${envConfig.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318'}'
+  apiUrl: '${envConfig.FRONTEND_API_URL}',
+  backendHost: '${envConfig.BACKEND_HOST}',
+  backendPort: '${envConfig.BACKEND_PORT}',
+  otelEndpoint: '${envConfig.OTEL_EXPORTER_OTLP_ENDPOINT}'
 };
 `;
 
