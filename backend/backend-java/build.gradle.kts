@@ -23,6 +23,27 @@ subprojects {
         }
     }
 
+    // --- 載入 .env 邏輯 ---
+    val dotEnvFile = File(rootProject.projectDir.parentFile.parentFile, ".env")
+    val envMap = mutableMapOf<String, String>()
+    if (dotEnvFile.exists()) {
+        dotEnvFile.readLines().forEach { line ->
+            if (line.isNotBlank() && !line.startsWith("#") && line.contains("=")) {
+                val parts = line.split("=", limit = 2)
+                envMap[parts[0].trim()] = parts[1].trim()
+            }
+        }
+    }
+
+    tasks.withType<org.springframework.boot.gradle.tasks.run.BootRun> {
+        environment(envMap)
+    }
+
+    tasks.withType<Test> {
+        environment(envMap)
+    }
+    // -------------------
+
     dependencies {
         // 共用 Lombok
         compileOnly("org.projectlombok:lombok:1.18.36")
@@ -30,6 +51,7 @@ subprojects {
 
         // 測試
         testImplementation("org.junit.jupiter:junit-jupiter")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     tasks.withType<Test> {
