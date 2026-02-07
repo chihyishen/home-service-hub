@@ -45,4 +45,6 @@ Thumbs.db
 
 # Environments
 /src/environments/environment.ts
-\n# Temporary Angular args\n.ng-args
+
+# Temporary Angular args
+.ng-args
