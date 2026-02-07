@@ -1,5 +1,5 @@
 server:
-  port: 1031
+  port: ${BACKEND_PORT}
 
 spring:
   threads:
