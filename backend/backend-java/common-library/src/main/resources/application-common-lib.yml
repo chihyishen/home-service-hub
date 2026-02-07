@@ -45,12 +45,12 @@ management:
     tracing:
       export:
         otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces
           compression: gzip
     logging:
       export:
         otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/logs
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}/v1/logs
 
   # 4. Tracing 採樣設定
   tracing:
@@ -67,7 +67,7 @@ management:
   otlp:
     metrics:
       export:
-        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT}/v1/metrics
         step: 10s
 
 jdbc:

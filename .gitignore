@@ -22,4 +22,7 @@ tmp/
 *.log
 
 # Project specific
-modify_history/
+
+# modify_history/  <-- Unignored to track changes
+
+.env
