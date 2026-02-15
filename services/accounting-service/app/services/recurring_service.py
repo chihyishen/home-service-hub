@@ -1,24 +1,25 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract
 from datetime import date
-from .. import models
+from .. import models, schemas
+from fastapi import HTTPException
 import logging
 
 logger = logging.getLogger(__name__)
 
+# --- 自動化生成邏輯 ---
+
 def generate_recurring_items(db: Session):
-    """
-    產生本月的訂閱與分期 PENDING 項目。
-    具備等冪性 (Idempotency)，重複執行不會產生重複數據。
-    """
     today = date.today()
     current_year = today.year
     current_month = today.month
     
-    # --- 1. 處理訂閱項目 (Subscription) ---
-    subs = db.query(models.Subscription).filter(models.Subscription.active == True).all()
+    subs = db.query(models.Subscription).filter(
+        models.Subscription.active == True,
+        models.Subscription.is_deleted == False
+    ).all()
+    
     for sub in subs:
-        # 檢查本月是否已存在該訂閱的交易紀錄 (不論狀態)
         exists = db.query(models.Transaction).filter(
             models.Transaction.subscription_id == sub.id,
             extract('year', models.Transaction.date) == current_year,
@@ -27,7 +28,6 @@ def generate_recurring_items(db: Session):
         ).first()
         
         if not exists:
-            logger.info(f"自動生成本月訂閱項目: {sub.name}")
             day = min(sub.day_of_month, 28)
             new_pending = models.Transaction(
                 date=today.replace(day=day),
@@ -43,10 +43,12 @@ def generate_recurring_items(db: Session):
             )
             db.add(new_pending)
 
-    # --- 2. 處理分期項目 (Installment) ---
-    insts = db.query(models.Installment).filter(models.Installment.remaining_periods > 0).all()
+    insts = db.query(models.Installment).filter(
+        models.Installment.remaining_periods > 0,
+        models.Installment.is_deleted == False
+    ).all()
+    
     for inst in insts:
-        # 檢查本月是否已存在
         exists = db.query(models.Transaction).filter(
             models.Transaction.installment_id == inst.id,
             extract('year', models.Transaction.date) == current_year,
@@ -55,11 +57,8 @@ def generate_recurring_items(db: Session):
         ).first()
         
         if not exists:
-            # 計算目前是第幾期 (總期數 - 剩餘期數 + 1)
             current_period = inst.total_periods - inst.remaining_periods + 1
             item_name = f"{inst.name} (第 {current_period}/{inst.total_periods} 期)"
-            
-            logger.info(f"自動生成本月分期項目: {item_name}")
             day = min(inst.start_date.day, 28)
             new_pending = models.Transaction(
                 date=today.replace(day=day),
@@ -74,8 +73,67 @@ def generate_recurring_items(db: Session):
                 transaction_type="EXPENSE"
             )
             db.add(new_pending)
-            
-            # 遞減剩餘期數
             inst.remaining_periods -= 1
 
     db.commit()
+
+# --- 訂閱管理 (Subscription CRUD) ---
+
+def get_subscriptions(db: Session):
+    return db.query(models.Subscription).filter(models.Subscription.is_deleted == False).all()
+
+def create_subscription(db: Session, sub: schemas.SubscriptionCreate):
+    db_sub = models.Subscription(**sub.model_dump())
+    db.add(db_sub)
+    db.commit()
+    db.refresh(db_sub)
+    return db_sub
+
+def update_subscription(db: Session, sub_id: int, sub_update: schemas.SubscriptionUpdate):
+    db_sub = db.query(models.Subscription).filter(models.Subscription.id == sub_id).first()
+    if not db_sub:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    update_data = sub_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_sub, key, value)
+    db.commit()
+    db.refresh(db_sub)
+    return db_sub
+
+def toggle_subscription_active(db: Session, sub_id: int):
+    db_sub = db.query(models.Subscription).filter(models.Subscription.id == sub_id).first()
+    if not db_sub:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    db_sub.active = not db_sub.active
+    db.commit()
+    db.refresh(db_sub)
+    return db_sub
+
+def delete_subscription(db: Session, sub_id: int):
+    db_sub = db.query(models.Subscription).filter(models.Subscription.id == sub_id).first()
+    if not db_sub:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    db_sub.is_deleted = True
+    db.commit()
+    return {"message": "Subscription soft deleted"}
+
+# --- 分期管理 (Installment CRUD) ---
+
+def get_installments(db: Session):
+    return db.query(models.Installment).filter(models.Installment.is_deleted == False).all()
+
+def create_installment(db: Session, inst: schemas.InstallmentCreate):
+    db_inst = models.Installment(**inst.model_dump())
+    db.add(db_inst)
+    db.commit()
+    db.refresh(db_inst)
+    return db_inst
+
+def delete_installment(db: Session, inst_id: int):
+    db_inst = db.query(models.Installment).filter(models.Installment.id == inst_id).first()
+    if not db_inst:
+        raise HTTPException(status_code=404, detail="Installment not found")
+    db_inst.is_deleted = True
+    db.commit()
+    return {"message": "Installment soft deleted"}

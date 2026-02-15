@@ -72,6 +72,10 @@ def update_transaction(
 def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     return transaction_service.delete_transaction(db, transaction_id)
 
+@router.post("/{transaction_id}/refund", response_model=schemas.Transaction, summary="建立交易沖銷(退款)")
+def refund_transaction(transaction_id: int, refund_amount: float, db: Session = Depends(get_db)):
+    return transaction_service.refund_transaction(db, transaction_id, refund_amount)
+
 @router.get("/report/{year}/{month}", response_model=schemas.MonthlyReport, summary="獲取月度財務報表")
 def get_monthly_report(year: int, month: int, db: Session = Depends(get_db)):
     from ..services import analytics_service

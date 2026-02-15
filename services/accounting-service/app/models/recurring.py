@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date
 from sqlalchemy.orm import relationship
-from ..database import Base
+from ..database import Base, TimestampMixin
 
-class Subscription(Base):
+class Subscription(Base, TimestampMixin):
     __tablename__ = "subscriptions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -12,10 +12,11 @@ class Subscription(Base):
     day_of_month = Column(Integer)
     card_id = Column(Integer, ForeignKey("credit_cards.id"))
     active = Column(Boolean, default=True)
+    is_deleted = Column(Boolean, default=False)
 
     card = relationship("CreditCard", back_populates="subscriptions")
 
-class Installment(Base):
+class Installment(Base, TimestampMixin):
     __tablename__ = "installments"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -26,6 +27,7 @@ class Installment(Base):
     remaining_periods = Column(Integer)
     start_date = Column(Date)
     card_id = Column(Integer, ForeignKey("credit_cards.id"))
+    is_deleted = Column(Boolean, default=False)
 
     card = relationship("CreditCard", back_populates="installments")
 

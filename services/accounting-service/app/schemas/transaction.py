@@ -6,6 +6,7 @@ from . import BaseSchema, AuditSchema
 class TransactionBase(BaseSchema):
     date: Optional[dt_date] = Field(default=None, description="交易日期", examples=["2026-02-15"])
     category: str = Field(..., description="分類", examples=["餐飲"])
+    category_id: Optional[int] = Field(default=None, description="結構化分類 ID")
     item: str = Field(..., description="品項名稱", examples=["午餐"])
     personal_amount: float = Field(..., description="個人負擔金額")
     actual_swipe: float = Field(..., description="實際刷卡金額")
@@ -15,6 +16,7 @@ class TransactionBase(BaseSchema):
     note: Optional[str] = Field(default=None, description="備註")
     tags: Optional[List[str]] = Field(default=None, description="標籤")
     status: str = Field(default="COMPLETED", description="狀態")
+    related_transaction_id: Optional[int] = Field(default=None, description="關聯的原始交易 ID (沖銷用)")
 
 class TransactionCreate(TransactionBase):
     pass

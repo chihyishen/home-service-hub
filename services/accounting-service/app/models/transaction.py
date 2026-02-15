@@ -8,7 +8,8 @@ class Transaction(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     date = Column(Date, server_default=func.current_date())
-    category = Column(String, index=True)
+    category = Column(String, index=True) # 舊的字串分類
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True) # 結構化分類
     item = Column(String)
     personal_amount = Column(Float)
     actual_swipe = Column(Float)
@@ -20,7 +21,14 @@ class Transaction(Base, TimestampMixin):
     status = Column(String, default="COMPLETED")
     is_deleted = Column(Boolean, default=False)
     
+    # 沖銷與連結
+    related_transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)
+    
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True)
     installment_id = Column(Integer, ForeignKey("installments.id"), nullable=True)
 
     card = relationship("CreditCard", back_populates="transactions")
+    # 分類關聯
+    category_info = relationship("Category", back_populates="transactions")
+    # 自我關聯
+    related_transaction = relationship("Transaction", remote_side=[id])

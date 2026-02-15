@@ -8,7 +8,7 @@ class BaseSchema(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
         alias_generator=to_camel,
-        populate_by_name=True  # 允許同時使用 snake_case 與 camelCase 賦值
+        populate_by_name=True
     )
 
 # 審計欄位 Mixin
@@ -18,5 +18,9 @@ class AuditSchema(BaseModel):
 
 from .card import CreditCard, CreditCardCreate, CreditCardUpdate, CardStatus
 from .transaction import Transaction, TransactionCreate, TransactionUpdate
-from .recurring import Subscription, Installment
+from .recurring import (
+    Subscription, SubscriptionCreate, SubscriptionUpdate,
+    Installment, InstallmentCreate, InstallmentUpdate
+)
 from .analytics import MonthlyReport
+from .category import Category, CategoryCreate # 補上這一行

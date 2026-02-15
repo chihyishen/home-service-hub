@@ -30,7 +30,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
         span.set_attribute("transaction.amount", transaction.personal_amount)
         span.set_attribute("transaction.type", transaction.transaction_type)
 
-        # 1. 檢查是否有匹配的 PENDING 項目 (訂閱或分期)
+        # 1. 檢查是否有匹配的 PENDING 項目
         pending_item = db.query(models.Transaction).filter(
             models.Transaction.status.like("PENDING_%"),
             models.Transaction.item == transaction.item,
@@ -41,7 +41,6 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
 
         if pending_item:
             span.add_event("matched_pending_item", {"id": pending_item.id})
-            # 更新現有 PENDING 項目為 COMPLETED
             for key, value in transaction.model_dump(exclude_unset=True).items():
                 setattr(pending_item, key, value)
             pending_item.status = "COMPLETED"
@@ -51,14 +50,11 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
 
         # 2. 如果沒有匹配，建立新紀錄
         db_transaction = models.Transaction(**transaction.model_dump())
-        
-        # 自動補齊 card_id (如果有 PaymentRoute 映射)
         if not db_transaction.card_id:
             route = db.query(models.PaymentRoute).filter(
                 models.PaymentRoute.method_name == transaction.payment_method
             ).first()
             if route:
-                span.set_attribute("payment.auto_linked_card", route.card_id)
                 db_transaction.card_id = route.card_id
 
         db.add(db_transaction)
@@ -66,9 +62,36 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
         db.refresh(db_transaction)
         return db_transaction
 
+def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
+    """
+    針對一筆現有的支出建立沖銷(退款)紀錄
+    """
+    with tracer.start_as_current_span("service.refund_transaction") as span:
+        original = get_transaction(db, transaction_id)
+        
+        # 建立一筆 INCOME 交易
+        refund_tx = models.Transaction(
+            date=date.today(),
+            category=original.category,
+            category_id=original.category_id,
+            item=f"退款: {original.item}",
+            personal_amount=refund_amount,
+            actual_swipe=refund_amount,
+            payment_method=original.payment_method,
+            card_id=original.card_id,
+            transaction_type="INCOME",
+            status="COMPLETED",
+            related_transaction_id=original.id,
+            note=f"來自原始交易 ID: {original.id} 的沖銷"
+        )
+        
+        db.add(refund_tx)
+        db.commit()
+        db.refresh(refund_tx)
+        return refund_tx
+
 def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionUpdate):
     with tracer.start_as_current_span("service.update_transaction") as span:
-        span.set_attribute("transaction.id", transaction_id)
         db_transaction = get_transaction(db, transaction_id)
         update_data = transaction_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
@@ -79,7 +102,6 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
 
 def delete_transaction(db: Session, transaction_id: int):
     with tracer.start_as_current_span("service.delete_transaction") as span:
-        span.set_attribute("transaction.id", transaction_id)
         db_transaction = get_transaction(db, transaction_id)
         db_transaction.is_deleted = True
         db.commit()

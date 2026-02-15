@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing import List, Optional
 from . import BaseSchema, AuditSchema
 
@@ -11,7 +11,7 @@ class CardBase(BaseSchema):
 class CreditCardCreate(CardBase):
     pass
 
-class CreditCardUpdate(BaseModel): # 修改模型通常不強制繼承 BaseSchema 的轉化，或維持簡單
+class CreditCardUpdate(BaseSchema): # 修正：改為繼承 BaseSchema
     name: Optional[str] = None
     billing_day: Optional[int] = None
     reward_rules: Optional[List[dict]] = None

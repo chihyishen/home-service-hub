@@ -1,51 +1,61 @@
 # 修改紀錄 - 2026-02-15 (會計服務重構、全域配置對標與自動化功能強化)
 
 ## 📋 概述
-今日完成了 `accounting-service` 的深度重構，建立了「全域單一配置來源 (.env)」機制，實現了 Java 與 Python 的風格統一，並實作了具備等冪性與自動補償功能的定期項目管理系統。
+今日完成了 `accounting-service` 的深度重構與標準化，建立了「全域單一配置來源 (.env)」機制，實作了 Java 與 Python 的 CamelCase 命名對標，並開發了具備自動補償功能的定期帳務自動化系統。
 
 ## 📅 日期
 2026-02-15
 
 ## 🔍 遇到了什麼問題？ (Problem Statement)
-- **手動負擔**：訂閱與分期項目需要手動觸發，且缺乏重複觸發的防護機制。
-- **分期維護難**：無法直觀錄入進行中的分期項目。
-- **風格不一**：Java 與 Python 的 JSON 欄位命名與審計欄位不一致。
-- **配置脆弱**：環境變數路徑計算錯誤，且存在硬編碼預設值。
+- **維護成本高**：原有的訂閱與分期項目需要手動觸發，且容易重複生成。
+- **風格不對稱**：Java 服務使用 `camelCase` 與 `createdAt`，Python 服務使用 `snake_case`，導致前端處理邏輯混亂。
+- **資料安全性**：缺乏軟刪除與沖銷（退款）機制，無法應對真實財務場景。
+- **配置黑盒化**：代碼中存在過多硬編碼預設值，且環境變數載入路徑計算錯誤導致配置失效。
 
 ## 💡 解決方案 (Solution & Implementation)
 
 ### 1. 定期項目自動化 (Recurring Automation)
-- **等冪性檢查**：透過 `subscription_id/installment_id` 結合年份月份，確保單月不重複生成。
-- **自動補償機制**：在獲取月度報表 API 時自動觸發生成邏輯，保證數據即時。
-- **智能期數推算**：自動計算「第 X/Y 期」並遞減剩餘期數，支援錄入中期分期。
+- **等冪性生成**：透過 `subscription_id` 與年月標記，確保單月不重複生成 PENDING 帳目。
+- **自動補償觸發**：在獲取月報表時自動掃描並補齊缺少的定期項目，實現數據最終一致性。
+- **分期管理優化**：支援「錄入中期分期」，自動計算當前期數並逐月遞減。
 
 ### 2. 全系統規範對標 (System-wide Standards)
-- **輸出統一**：實作 Pydantic `alias_generator`，將 Python JSON 輸出轉為 `camelCase` 與 Java 對齊。
-- **審計補全**：在資料庫層實作 `TimestampMixin`，自動記錄 `createdAt` 與 `updatedAt`。
-- **嚴格環境變數**：移除所有代碼預設值，若缺失 `.env` 變數則拒絕啟動。
+- **CamelCase 統一**：實作 Pydantic `alias_generator`，將 API 輸出/輸入全面轉為 `camelCase` 與 Java 對齊。
+- **審計欄位自動化**：引入 `TimestampMixin`，為所有資料表補齊 `createdAt` 與 `updatedAt` 自動時間戳。
+- **嚴格配置模式**：移除所有代碼預設值，若 `.env` 缺少必要變數則拒絕啟動，確保配置透明。
+
+### 3. 功能完善 (Feature Completion)
+- **退款機制**：實作 `/{id}/refund` 邏輯，自動建立關聯的 INCOME 紀錄並標註原始交易。
+- **軟刪除機制**：全局實作 `isDeleted` 過濾，保留歷史數據完整性。
 
 ---
 
 ## 📂 關鍵設定檔變動 (Key Code Snippets)
 
-### `recurring_service.py` (等冪性生成)
+### `BaseSchema` (CamelCase 轉換核心)
 ```python
-exists = db.query(models.Transaction).filter(
-    models.Transaction.subscription_id == sub.id,
-    extract('year', models.Transaction.date) == current_year,
-    extract('month', models.Transaction.date) == current_month
-).first()
-if not exists:
-    # 建立 PENDING 項目...
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+```
+
+### `app/database.py` (嚴格環境變數路徑修正)
+```python
+# 修正跳三層至根目錄載入 .env
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
+load_dotenv(env_path, override=True)
 ```
 
 ---
 
 ## ✅ 驗證結果 (Verification)
-- [x] **自動生成驗證**：多次獲取報表 API，確認 PENDING 項目僅生成一次。
-- [x] **分期邏輯驗證**：確認錄入剩餘 7 期的分期後，能正確生出「第 6/12 期」並剩餘 6 期。
-- [x] **風格統一驗證**：確認所有 API 回傳均為 CamelCase 格式。
+- [x] **自動化驗證**：獲取報表後自動產出當月訂閱項目，第二次呼叫不再重複產出。
+- [x] **對標驗證**：確認 Swagger 與 API 回傳均為 CamelCase，與 Java 服務風格高度一致。
+- [x] **穩定性驗證**：通過 5 項單元與整合測試，覆蓋核心業務流程。
 
 ## 🚀 後續行動 (Next Steps)
-- **PR 提交**：所有功能已推送至 GitHub 分支。
-- **本地查閱**：`規格書.md` 已包含最新的分期錄入教學。
+- **PR 推送**：變動已提交至 `feat/accounting-refactor-observability`。
+- **本地查閱**：`規格書.md` 已同步至 v1.5 版本。
