@@ -11,44 +11,31 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 def setup_tracing(app=None, engine=None):
-    # 嚴格讀取 Python 專用的環境變數
+    # 嚴格讀取環境變數
     service_name = os.getenv("OTEL_SERVICE_NAME_ACCOUNTING")
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT_PYTHON")
+    otlp_endpoint = os.getenv("OTEL_COLLECTOR_ENDPOINT_GRPC")
 
     if not service_name or not otlp_endpoint:
-        missing = [k for k, v in {"OTEL_SERVICE_NAME_ACCOUNTING": service_name, "OTEL_EXPORTER_OTLP_ENDPOINT_PYTHON": otlp_endpoint}.items() if not v]
+        missing = [k for k, v in {"OTEL_SERVICE_NAME_ACCOUNTING": service_name, "OTEL_COLLECTOR_ENDPOINT_GRPC": otlp_endpoint}.items() if not v]
         raise ValueError(f"❌ 缺少必要的 OpenTelemetry 環境變數: {', '.join(missing)}")
 
     resource = Resource.create({"service.name": service_name})
 
-    # --- 1. Tracing (使用 OTLPSpanExporter) ---
+    # --- 1. Tracing ---
     trace_provider = TracerProvider(resource=resource)
-    
-    # 根據 endpoint 自動判斷 Protocol
-    if "4318" in otlp_endpoint:
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-        trace_exporter = OTLPSpanExporter(endpoint=f"{otlp_endpoint}/v1/traces")
-    else:
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-        trace_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
-
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    trace_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
     trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
     trace.set_tracer_provider(trace_provider)
 
     # --- 2. Logging ---
     logger_provider = LoggerProvider(resource=resource)
     _logs.set_logger_provider(logger_provider)
-
-    if "4318" in otlp_endpoint:
-        from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
-        log_exporter = OTLPLogExporter(endpoint=f"{otlp_endpoint}/v1/logs")
-    else:
-        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-        log_exporter = OTLPLogExporter(endpoint=otlp_endpoint, insecure=True)
-
+    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+    log_exporter = OTLPLogExporter(endpoint=otlp_endpoint, insecure=True)
     logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-    # 建立與掛載 Handler
+    # 掛載 Handler
     otel_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
     logging.getLogger().addHandler(otel_handler)
     for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access", "fastapi"]:
@@ -63,5 +50,4 @@ def setup_tracing(app=None, engine=None):
 
     return trace_provider
 
-# 建立全域 tracer (延遲到啟動後由 setup_tracing 初始化 Resource)
 tracer = trace.get_tracer("accounting-service")

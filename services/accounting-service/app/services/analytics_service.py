@@ -2,9 +2,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from datetime import date
 from .. import models, schemas
+from . import recurring_service
 from typing import List
 
 def get_monthly_report(db: Session, year: int, month: int) -> schemas.MonthlyReport:
+    # 【自動補償】在產生報表前，確保本月的定期項目都已經生成 PENDING
+    # 這樣報表才會包含預計支出
+    today = date.today()
+    if year == today.year and month == today.month:
+        recurring_service.generate_recurring_items(db)
+
     # 1. 取得當月所有未刪除交易
     transactions = db.query(models.Transaction).filter(
         extract('year', models.Transaction.date) == year,

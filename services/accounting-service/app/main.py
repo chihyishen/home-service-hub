@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # 載入環境變數 (優先讀取專案根目錄的 .env)
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../../.env"))
 
-from .routers import transactions, cards, recurring
+from .routers import transactions, cards, recurring, categories
 from .database import engine, Base
 from .tracing import setup_tracing
 
@@ -27,6 +27,7 @@ setup_tracing(app=app, engine=engine)
 app.include_router(transactions.router)
 app.include_router(cards.router)
 app.include_router(recurring.router)
+app.include_router(categories.router)
 
 @app.get("/")
 async def root():

@@ -1,62 +1,61 @@
-# 修改紀錄 - 2026-02-15 (會計服務重構、全域變數整頓與可觀測性強化)
+# 修改紀錄 - 2026-02-15 (會計服務重構、全域配置對標與自動化功能強化)
 
 ## 📋 概述
-今日完成了 `accounting-service` 的深度重構與命名統一，建立了「全域單一配置來源 (.env)」機制，並成功實作了跨語言（Java & Python）的 OpenTelemetry 監控整合。
+今日完成了 `accounting-service` 的深度重構與標準化，建立了「全域單一配置來源 (.env)」機制，實作了 Java 與 Python 的 CamelCase 命名對標，並開發了具備自動補償功能的定期帳務自動化系統。
 
 ## 📅 日期
 2026-02-15
 
 ## 🔍 遇到了什麼問題？ (Problem Statement)
-- **架構雜亂**：原 Python 服務功能混雜，缺乏標準的三層架構與 CRUD 完整性。
-- **可觀測性斷層**：Python 服務無法在 Grafana 中與日誌聯動，且 Trace 層次不清（看不見 Body 與 Service 邏輯）。
-- **環境變數混亂**：各服務對環境變數依賴不一，存在預設值導致配置不透明，且 Java 與 Python 的 OTel 傳輸協定（gRPC vs HTTP）發生衝突。
-- **路徑計算錯誤**：Python 服務在載入根目錄 `.env` 時，層次計算錯誤導致配置失效。
+- **維護成本高**：原有的訂閱與分期項目需要手動觸發，且容易重複生成。
+- **風格不對稱**：Java 服務使用 `camelCase` 與 `createdAt`，Python 服務使用 `snake_case`，導致前端處理邏輯混亂。
+- **資料安全性**：缺乏軟刪除與沖銷（退款）機制，無法應對真實財務場景。
+- **配置黑盒化**：代碼中存在過多硬編碼預設值，且環境變數載入路徑計算錯誤導致配置失效。
 
 ## 💡 解決方案 (Solution & Implementation)
 
-### 1. 核心策略
-- **領域驅動重構**：將 Python 服務拆分為 `Router-Service-Model`，並實作軟刪除與月度報表邏輯。
-- **配置現代化**：整頓全域 `.env`，採用 `load_dotenv(override=True)` 確保 `.env` 為唯一真理，並移除程式碼中的所有預設值。
-- **雙協議共存**：針對 Java 穩定性保留 **HTTP (4318)**，針對 Python 效能啟用 **gRPC (4317)**，透過獨立變數互不干擾。
+### 1. 定期項目自動化 (Recurring Automation)
+- **等冪性生成**：透過 `subscription_id` 與年月標記，確保單月不重複生成 PENDING 帳目。
+- **自動補償觸發**：在獲取月報表時自動掃描並補齊缺少的定期項目，實現數據最終一致性。
+- **分期管理優化**：支援「錄入中期分期」，自動計算當前期數並逐月遞減。
 
-### 2. 實作細節
-- **Python**: 
-    - 遷移至 `accounting-service` 資料夾。
-    - 補齊 `is_deleted` 與 `transaction_type` 欄位及自動資料庫修復。
-    - 手動儀表化 Service 層與 Router 層，記錄 Request/Response Body。
-- **Java**: 
-    - 服務名稱同步為 `inventory-item-service`。
-    - Swagger 文件全面中文化並對齊命名規範。
-- **OpenTelemetry**: 使用最新 SDK (1.30+) 的 `OTLPSpanExporter` 與 `OTLPLogExporter` 實作日誌聯動。
+### 2. 全系統規範對標 (System-wide Standards)
+- **CamelCase 統一**：實作 Pydantic `alias_generator`，將 API 輸出/輸入全面轉為 `camelCase` 與 Java 對齊。
+- **審計欄位自動化**：引入 `TimestampMixin`，為所有資料表補齊 `createdAt` 與 `updatedAt` 自動時間戳。
+- **嚴格配置模式**：移除所有代碼預設值，若 `.env` 缺少必要變數則拒絕啟動，確保配置透明。
+
+### 3. 功能完善 (Feature Completion)
+- **退款機制**：實作 `/{id}/refund` 邏輯，自動建立關聯的 INCOME 紀錄並標註原始交易。
+- **軟刪除機制**：全局實作 `isDeleted` 過濾，保留歷史數據完整性。
 
 ---
 
 ## 📂 關鍵設定檔變動 (Key Code Snippets)
 
-### `.env` (全域統一配置)
-```bash
-# Java 優先使用 HTTP (4318)
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-# Python 優先使用 gRPC (4317)
-OTEL_EXPORTER_OTLP_ENDPOINT_PYTHON=http://localhost:4317
+### `BaseSchema` (CamelCase 轉換核心)
+```python
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
 ```
 
-### `app/database.py` (嚴格環境變數模式)
+### `app/database.py` (嚴格環境變數路徑修正)
 ```python
+# 修正跳三層至根目錄載入 .env
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
 load_dotenv(env_path, override=True)
-# 若缺失變數則直接拋出 ValueError 阻斷啟動
 ```
 
 ---
 
 ## ✅ 驗證結果 (Verification)
-- [x] **API 穩定性**：通過整合測試，確認收支、報表與軟刪除邏輯正常。
-- [x] **環境變數驗證**：確認 Java 與 Python 均能正確讀取對應的資料庫與 OTel 配置。
-- [x] **追蹤深度化**：在 Tempo 中可看到 `router -> service -> sql` 層次及完整的 JSON 內容。
-- [x] **標籤聯動**：Loki 與 Tempo 成功透過 `service_name="accounting-service"` 進行跳轉。
+- [x] **自動化驗證**：獲取報表後自動產出當月訂閱項目，第二次呼叫不再重複產出。
+- [x] **對標驗證**：確認 Swagger 與 API 回傳均為 CamelCase，與 Java 服務風格高度一致。
+- [x] **穩定性驗證**：通過 5 項單元與整合測試，覆蓋核心業務流程。
 
-## 🚀 後續行動 (Next Steps) / ⚠️ 注意事項
-- **Pull Request**：代碼已推送到 `feat/accounting-refactor-observability` 分支。
-- **本地文件**：`規格書.md` 已保留於本地，用於後續開發。
-- **Java 重啟**：若修改了配置，請執行 `./gradlew clean :item-service:bootRun` 以清理快取。
+## 🚀 後續行動 (Next Steps)
+- **PR 推送**：變動已提交至 `feat/accounting-refactor-observability`。
+- **本地查閱**：`規格書.md` 已同步至 v1.5 版本。

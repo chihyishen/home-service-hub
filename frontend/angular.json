@@ -63,6 +63,7 @@
           "options": {
             "host": "0.0.0.0",
             "allowedHosts": [
+              "localhost",
               "mac-mini.local",
               "192.168.0.100"
             ],

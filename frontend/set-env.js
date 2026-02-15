@@ -22,13 +22,31 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-// 1. 生成 environment.ts (已在 .gitignore 中)
+// 嚴格校驗
+const required = [
+  'FRONTEND_API_URL',
+  'INVENTORY_ITEM_SERVICE_HOST',
+  'INVENTORY_ITEM_SERVICE_PORT',
+  'ACCOUNTING_SERVICE_HOST',
+  'ACCOUNTING_SERVICE_PORT',
+  'OTEL_COLLECTOR_ENDPOINT_HTTP'
+];
+
+required.forEach(v => {
+  if (!envConfig[v]) {
+    console.error(`\x1b[31m[Env Error] 缺少必要環境變數: ${v}\x1b[0m`);
+    process.exit(1);
+  }
+});
+
 const envConfigFile = `export const environment = {
   production: false,
   apiUrl: '${envConfig.FRONTEND_API_URL}',
-  backendHost: '${envConfig.BACKEND_HOST}',
-  backendPort: '${envConfig.BACKEND_PORT}',
-  otelEndpoint: '${envConfig.OTEL_EXPORTER_OTLP_ENDPOINT}'
+  inventoryServiceHost: '${envConfig.INVENTORY_ITEM_SERVICE_HOST}',
+  inventoryServicePort: '${envConfig.INVENTORY_ITEM_SERVICE_PORT}',
+  accountingServiceHost: '${envConfig.ACCOUNTING_SERVICE_HOST}',
+  accountingServicePort: '${envConfig.ACCOUNTING_SERVICE_PORT}',
+  otelEndpoint: '${envConfig.OTEL_COLLECTOR_ENDPOINT_HTTP}'
 };
 `;
 
@@ -38,10 +56,10 @@ if (!fs.existsSync(path.dirname(targetPath))) {
 }
 fs.writeFileSync(targetPath, envConfigFile);
 
-// 2. 更新 angular.json 中的 allowedHosts
+// 更新 angular.json
 const angularJsonPath = path.resolve(__dirname, './angular.json');
 if (fs.existsSync(angularJsonPath) && envConfig.ALLOWED_HOSTS) {
-  console.log('Updating angular.json allowedHosts for dev server...');
+  console.log('Updating angular.json allowedHosts...');
   const angularJson = JSON.parse(fs.readFileSync(angularJsonPath, 'utf8'));
   const hosts = envConfig.ALLOWED_HOSTS.split(',').map(h => h.trim()).filter(h => h);
   
