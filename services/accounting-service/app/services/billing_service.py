@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from .. import models, schemas
@@ -11,6 +11,7 @@ def get_billing_cycle_range(billing_day: int, target_date: date):
         start_date = target_date.replace(day=billing_day + 1)
         # 處理跨月
         if target_date.month == 12:
+            start_date = target_date.replace(day=billing_day + 1)
             end_date = target_date.replace(year=target_date.year + 1, month=1, day=billing_day)
         else:
             end_date = target_date.replace(month=target_date.month + 1, day=billing_day)
@@ -25,18 +26,22 @@ def get_billing_cycle_range(billing_day: int, target_date: date):
     return start_date, end_date
 
 def get_card_status(db: Session, card_id: int):
-    card = db.query(models.CreditCard).filter(models.CreditCard.id == card_id).first()
+    card = db.query(models.CreditCard).filter(
+        models.CreditCard.id == card_id, 
+        models.CreditCard.is_deleted == False
+    ).first()
     if not card:
         return None
     
     today = date.today()
     start_date, end_date = get_billing_cycle_range(card.billing_day, today)
     
-    # 計算本期已刷總額 (含 Pending 項目)
+    # 計算本期已刷總額 (含 Pending 項目, 不含已軟刪除項目)
     current_usage = db.query(func.sum(models.Transaction.actual_swipe)).filter(
         models.Transaction.card_id == card_id,
         models.Transaction.date >= start_date,
-        models.Transaction.date <= end_date
+        models.Transaction.date <= end_date,
+        models.Transaction.is_deleted == False
     ).scalar() or 0.0
     
     # 計算剩餘優惠額度

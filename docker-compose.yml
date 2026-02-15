@@ -25,10 +25,11 @@ services:
       - inventory-net
 
   # --- 3. 微服務 ---
-  inventory-api:
+  inventory-item-service:
+    profiles: ["apps"]
     build:
       context: ./services/inventory-api
-    container_name: inventory-api
+    container_name: inventory-item-service
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
@@ -39,10 +40,11 @@ services:
     networks:
       - inventory-net
 
-  accounting-api:
+  accounting-service:
+    profiles: ["apps"]
     build:
-      context: ./services/accounting-api
-    container_name: accounting-api
+      context: ./services/accounting-service
+    container_name: accounting-service
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/agent_accounting_db
     ports:

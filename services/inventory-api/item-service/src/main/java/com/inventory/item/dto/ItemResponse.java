@@ -3,25 +3,25 @@ package com.inventory.item.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
-@Schema(description = "Response object representing an inventory item")
+@Schema(description = "代表庫存品項的響應對象")
 public record ItemResponse(
-        @Schema(description = "Unique identifier of the item", example = "1")
+        @Schema(description = "品項唯一識別碼", example = "1")
         Long id,
-        @Schema(description = "Name of the item", example = "Screwdriver")
+        @Schema(description = "品項名稱", example = "螺絲起子")
         String name,
-        @Schema(description = "Category of the item", example = "Tools")
+        @Schema(description = "分類", example = "工具")
         String category,
-        @Schema(description = "Storage location", example = "Garage Shelf A")
+        @Schema(description = "收納位置", example = "車庫 A 層架")
         String location,
-        @Schema(description = "Quantity in stock", example = "5")
+        @Schema(description = "庫存數量", example = "5")
         Integer quantity,
-        @Schema(description = "Additional notes", example = "Phillips head")
+        @Schema(description = "備註說明", example = "十字頭，帶磁性")
         String note,
-        @Schema(description = "URL to an image of the item", example = "http://example.com/image.jpg")
+        @Schema(description = "品項圖片 URL", example = "http://example.com/image.jpg")
         String imageUrl,
-        @Schema(description = "Timestamp when the item was created")
+        @Schema(description = "建立時間")
         LocalDateTime createdAt,
-        @Schema(description = "Timestamp when the item was last updated")
+        @Schema(description = "最後更新時間")
         LocalDateTime updatedAt
 ) {
 }
