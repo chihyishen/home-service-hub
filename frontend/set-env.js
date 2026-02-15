@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const envPath = path.resolve(__dirname, '../../.env');
+const envPath = path.resolve(__dirname, '../.env');
 const targetPath = path.resolve(__dirname, './src/environments/environment.ts');
 
 let envConfig = {};

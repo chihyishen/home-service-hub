@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 
 // 嘗試載入環境變數 (與 set-env.js 邏輯一致)
-const envPath = path.resolve(__dirname, '../../.env');
+const envPath = path.resolve(__dirname, '../.env');
 let envConfig = {};
 
 if (fs.existsSync(envPath)) {

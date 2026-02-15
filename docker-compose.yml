@@ -24,7 +24,35 @@ services:
     networks:
       - inventory-net
 
-  # --- 3. OpenTelemetry Collector (負責接收與分流) ---
+  # --- 3. 微服務 ---
+  inventory-api:
+    build:
+      context: ./services/inventory-api
+    container_name: inventory-api
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - inventory-net
+
+  accounting-api:
+    build:
+      context: ./services/accounting-api
+    container_name: accounting-api
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/agent_accounting_db
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    networks:
+      - inventory-net
+
+  # --- 4. OpenTelemetry Collector ---
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: inventory-otel-collector
@@ -32,9 +60,9 @@ services:
     volumes:
       - ./infra/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      - "4317:4317" # App 的 Traces/Metrics 送這裡 (gRPC)
-      - "4318:4318" # App 的 Traces/Metrics 送這裡 (HTTP)
-      - "8889:8889" # Prometheus exporter port
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
     depends_on:
       - tempo
       - prometheus
@@ -42,8 +70,7 @@ services:
     networks:
       - inventory-net
 
-  # --- 4. 鏈路追蹤 (Grafana Tempo) ---
-  # Spring Boot 4.0 原生 OTel 會送資料來這裡
+  # --- 5. 監控 (Tempo, Prometheus, Loki, Grafana) ---
   tempo:
     image: grafana/tempo:latest
     container_name: inventory-tempo
@@ -51,14 +78,11 @@ services:
     ports:
       - "3200:3200"
     volumes:
-      # 1. 掛載設定檔
       - ./infra/config/tempo.yaml:/etc/tempo.yaml
-      # 2. 掛載資料儲存區 (避免重啟後資料消失，也解決權限問題)
       - ./infra/tempo-data:/var/tempo
     networks:
       - inventory-net
 
-  # --- 5. 監控指標 (Prometheus) ---
   prometheus:
     image: prom/prometheus:latest
     container_name: inventory-prometheus
@@ -71,7 +95,6 @@ services:
     networks:
       - inventory-net
 
-  # --- 6. 日誌 (Loki) ---
   loki:
     image: grafana/loki:latest
     container_name: inventory-loki
@@ -84,7 +107,6 @@ services:
     networks:
       - inventory-net
 
-  # --- 7. 視覺化 (Grafana) ---
   grafana:
     image: grafana/grafana:latest
     container_name: inventory-grafana
@@ -102,7 +124,7 @@ services:
     networks:
       - inventory-net
 
-  # --- 8. 物件儲存 (MinIO) ---
+  # --- 6. 物件儲存 (MinIO) ---
   minio:
     image: minio/minio
     container_name: inventory-minio
