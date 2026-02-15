@@ -56,8 +56,6 @@ load_dotenv(env_path, override=True)
 - [x] **自動化驗證**：獲取報表後自動產出當月訂閱項目，第二次呼叫不再重複產出。
 - [x] **對標驗證**：確認 Swagger 與 API 回傳均為 CamelCase，與 Java 服務風格高度一致。
 - [x] **穩定性驗證**：通過 5 項單元與整合測試，覆蓋核心業務流程。
-- [x] **規格書同步**：規格書 v1.6 已與最新程式碼完全對應。
 
 ## 🚀 後續行動 (Next Steps)
 - **PR 推送**：變動已提交至 `feat/accounting-refactor-observability`。
-- **本地查閱**：`規格書.md` 已同步至 v1.6 版本。
