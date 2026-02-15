@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 
 # 載入環境變數 (優先讀取專案根目錄的 .env)
-load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "../../../.env"))
 
 from .routers import transactions, cards, recurring
 from .database import engine, Base
