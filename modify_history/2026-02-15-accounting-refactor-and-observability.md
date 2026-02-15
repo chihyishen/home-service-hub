@@ -27,6 +27,7 @@
 ### 3. 功能完善 (Feature Completion)
 - **退款機制**：實作 `/{id}/refund` 邏輯，自動建立關聯的 INCOME 紀錄並標註原始交易。
 - **軟刪除機制**：全局實作 `isDeleted` 過濾，保留歷史數據完整性。
+- **分類管理**：新增 `categories` 模組，支援結構化分類管理。
 
 ---
 
@@ -58,4 +59,3 @@ load_dotenv(env_path, override=True)
 
 ## 🚀 後續行動 (Next Steps)
 - **PR 推送**：變動已提交至 `feat/accounting-refactor-observability`。
-- **本地查閱**：`規格書.md` 已同步至 v1.5 版本。
