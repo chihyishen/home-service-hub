@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import Field
 from typing import List, Optional
 from datetime import date as dt_date
+from . import BaseSchema, AuditSchema
 
-class TransactionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class TransactionBase(BaseSchema):
     date: Optional[dt_date] = Field(default=None, description="交易日期", examples=["2026-02-15"])
     category: str = Field(..., description="分類", examples=["餐飲"])
     item: str = Field(..., description="品項名稱", examples=["午餐"])
@@ -19,7 +19,7 @@ class TransactionBase(BaseModel):
 class TransactionCreate(TransactionBase):
     pass
 
-class TransactionUpdate(BaseModel):
+class TransactionUpdate(BaseSchema):
     date: Optional[dt_date] = None
     category: Optional[str] = None
     item: Optional[str] = None
@@ -32,7 +32,7 @@ class TransactionUpdate(BaseModel):
     tags: Optional[List[str]] = None
     status: Optional[str] = None
 
-class Transaction(TransactionBase):
+class Transaction(TransactionBase, AuditSchema):
     id: int
     subscription_id: Optional[int] = None
     installment_id: Optional[int] = None

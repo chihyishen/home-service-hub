@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: ${INVENTORY_DB} # 這裡預設起庫存 DB
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -32,9 +32,9 @@ services:
     container_name: inventory-item-service
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${INVENTORY_DB}
     ports:
-      - "8080:8080"
+      - "${INVENTORY_ITEM_SERVICE_PORT}:8080"
     depends_on:
       - postgres
     networks:
@@ -46,9 +46,9 @@ services:
       context: ./services/accounting-service
     container_name: accounting-service
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/agent_accounting_db
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ACCOUNTING_DB}
     ports:
-      - "8000:8000"
+      - "${ACCOUNTING_SERVICE_PORT}:8000"
     depends_on:
       - postgres
     networks:

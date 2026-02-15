@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, JSON, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from ..database import Base
+from ..database import Base, TimestampMixin
 
-class Transaction(Base):
+class Transaction(Base, TimestampMixin):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -14,7 +14,7 @@ class Transaction(Base):
     actual_swipe = Column(Float)
     payment_method = Column(String)
     card_id = Column(Integer, ForeignKey("credit_cards.id"), nullable=True)
-    transaction_type = Column(String, default="EXPENSE")  # INCOME, EXPENSE
+    transaction_type = Column(String, default="EXPENSE")
     note = Column(String, nullable=True)
     tags = Column(JSON, nullable=True)
     status = Column(String, default="COMPLETED")
@@ -23,5 +23,4 @@ class Transaction(Base):
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True)
     installment_id = Column(Integer, ForeignKey("installments.id"), nullable=True)
 
-    # 這裡同樣使用字串參考
     card = relationship("CreditCard", back_populates="transactions")

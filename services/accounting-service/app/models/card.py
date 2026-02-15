@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, JSON, Boolean
 from sqlalchemy.orm import relationship
-from ..database import Base
+from ..database import Base, TimestampMixin
 
-class CreditCard(Base):
+class CreditCard(Base, TimestampMixin):
     __tablename__ = "credit_cards"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -12,7 +12,6 @@ class CreditCard(Base):
     alert_threshold = Column(Float, default=5000.0)
     is_deleted = Column(Boolean, default=False)
 
-    # 使用字串 "Transaction" 而非類別對象，避免循環引用
     transactions = relationship("Transaction", back_populates="card")
     subscriptions = relationship("Subscription", back_populates="card")
     installments = relationship("Installment", back_populates="card")
