@@ -13,11 +13,11 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Home Inventory System API")
-                        .version("0.0.1")
-                        .description("API for managing home inventory items, categories, and locations.")
+                        .title("Home Service Hub - Inventory Item Service")
+                        .version("1.1.0")
+                        .description("家用品庫存管理微服務。提供品項、分類與收納位置的管理功能。")
                         .contact(new Contact()
-                                .name("Inventory Team")
-                                .email("support@inventory.com")));
+                                .name("Service Maintainer")
+                                .email("admin@example.com")));
     }
 }

@@ -6,7 +6,7 @@ spring:
     virtual:
       enabled: true
   application:
-    name: item-service
+    name: inventory-item-service
 
   config:
     import: "optional:classpath:application-common-lib.yml"

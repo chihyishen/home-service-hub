@@ -14,50 +14,97 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+
 @RequestMapping("/api/items")
+
 @RequiredArgsConstructor
+
 @Observed(name = "item.api", contextualName = "Layer: Controller")
-@Tag(name = "Item API", description = "Management of inventory items")
+
+@Tag(name = "Items", description = "品項管理 (Item API) - 提供庫存品項的增刪查改功能")
+
 public class ItemController {
+
+
+
+
 
     private final ItemService itemService;
 
+
+
     @GetMapping
-    @Operation(summary = "Get all items", description = "Retrieves a list of all inventory items")
+
+    @Operation(summary = "獲取所有品項", description = "取得目前系統中所有庫存品項的完整清單")
+
     public ResponseEntity<List<ItemResponse>> getAllItems() {
+
         return ResponseEntity.ok(itemService.getAllItems());
+
     }
+
+
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get item by ID", description = "Retrieves a single inventory item by its ID")
-    @ApiResponse(responseCode = "200", description = "Item found")
-    @ApiResponse(responseCode = "404", description = "Item not found")
+
+    @Operation(summary = "獲取單一品項詳情", description = "透過 ID 查詢特定庫存品項的詳細資訊")
+
+    @ApiResponse(responseCode = "200", description = "查詢成功")
+
+    @ApiResponse(responseCode = "404", description = "找不到該品項")
+
     public ResponseEntity<ItemResponse> getItemById(@PathVariable Long id) {
+
         return ResponseEntity.ok(itemService.getItemById(id));
+
     }
+
+
 
     @PostMapping
-    @Operation(summary = "Create a new item", description = "Adds a new item to the inventory")
-    @ApiResponse(responseCode = "200", description = "Item created successfully")
+
+    @Operation(summary = "建立新品項", description = "在系統中建立一個新的庫存品項紀錄")
+
+    @ApiResponse(responseCode = "200", description = "建立成功")
+
     public ResponseEntity<ItemResponse> createItem(@RequestBody ItemRequest request) {
-        // 這裡可以加 @Valid 做參數驗證
+
         return ResponseEntity.ok(itemService.createItem(request));
+
     }
+
+
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update an item", description = "Updates an existing inventory item by its ID")
-    @ApiResponse(responseCode = "200", description = "Item updated successfully")
-    @ApiResponse(responseCode = "404", description = "Item not found")
+
+    @Operation(summary = "修改品項資訊", description = "更新現有庫存品項的各項屬性")
+
+    @ApiResponse(responseCode = "200", description = "更新成功")
+
+    @ApiResponse(responseCode = "404", description = "找不到該品項")
+
     public ResponseEntity<ItemResponse> updateItem(@PathVariable Long id, @RequestBody ItemRequest request) {
+
         return ResponseEntity.ok(itemService.updateItem(id, request));
+
     }
 
+
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete an item", description = "Removes an inventory item by its ID")
-    @ApiResponse(responseCode = "204", description = "Item deleted successfully")
-    @ApiResponse(responseCode = "404", description = "Item not found")
+
+    @Operation(summary = "刪除品項", description = "將特定品項從庫存系統中移除")
+
+    @ApiResponse(responseCode = "204", description = "刪除成功")
+
+    @ApiResponse(responseCode = "404", description = "找不到該品項")
+
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
+
         itemService.deleteItem(id);
+
         return ResponseEntity.noContent().build();
+
     }
+
 }
