@@ -1,0 +1,47 @@
+<div class="container-fluid p-4">
+    <div class="d-flex align-items-center mb-4">
+        <i class="pi pi-cog me-2 fs-3"></i>
+        <h2 class="m-0">會計管理中心</h2>
+    </div>
+
+    <p-tabs value="0">
+        <p-tablist>
+            <p-tab value="0"><i class="pi pi-credit-card me-2"></i>支付與卡片</p-tab>
+            <p-tab value="1"><i class="pi pi-tags me-2"></i>支出分類</p-tab>
+            <p-tab value="2"><i class="pi pi-refresh me-2"></i>定期與分期</p-tab>
+        </p-tablist>
+        <p-tabpanels>
+            <!-- 支付與卡片 -->
+            <p-tabpanel value="0">
+                <p-tabs value="0.1">
+                    <p-tablist>
+                        <p-tab value="0.1">信用卡管理</p-tab>
+                        <p-tab value="0.2">支付工具</p-tab>
+                        <p-tab value="0.3">自動路由規則</p-tab>
+                    </p-tablist>
+                    <p-tabpanels>
+                        <p-tabpanel value="0.1">
+                            <app-card-list></app-card-list>
+                        </p-tabpanel>
+                        <p-tabpanel value="0.2">
+                            <app-payment-method-list></app-payment-method-list>
+                        </p-tabpanel>
+                        <p-tabpanel value="0.3">
+                            <app-payment-route-list></app-payment-route-list>
+                        </p-tabpanel>
+                    </p-tabpanels>
+                </p-tabs>
+            </p-tabpanel>
+
+            <!-- 支出分類 -->
+            <p-tabpanel value="1">
+                <app-category-list></app-category-list>
+            </p-tabpanel>
+
+            <!-- 定期與分期 -->
+            <p-tabpanel value="2">
+                <app-recurring-list></app-recurring-list>
+            </p-tabpanel>
+        </p-tabpanels>
+    </p-tabs>
+</div>
