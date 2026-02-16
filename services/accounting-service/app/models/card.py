@@ -8,9 +8,9 @@ class CreditCard(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     billing_day = Column(Integer)
+    reward_cycle_type = Column(String, default="BILLING_CYCLE") # BILLING_CYCLE or CALENDAR_MONTH
     reward_rules = Column(JSON, nullable=True)
-    alert_threshold = Column(Float, default=5000.0)
-    is_deleted = Column(Boolean, default=False)
+    alert_threshold = Column(Integer, default=5000)
 
     transactions = relationship("Transaction", back_populates="card")
     subscriptions = relationship("Subscription", back_populates="card")

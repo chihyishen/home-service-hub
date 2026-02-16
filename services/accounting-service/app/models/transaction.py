@@ -11,15 +11,14 @@ class Transaction(Base, TimestampMixin):
     category = Column(String, index=True) # 舊的字串分類
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True) # 結構化分類
     item = Column(String)
-    personal_amount = Column(Float)
-    actual_swipe = Column(Float)
+    personal_amount = Column(Integer)
+    actual_swipe = Column(Integer)
     payment_method = Column(String)
     card_id = Column(Integer, ForeignKey("credit_cards.id"), nullable=True)
     transaction_type = Column(String, default="EXPENSE")
     note = Column(String, nullable=True)
     tags = Column(JSON, nullable=True)
     status = Column(String, default="COMPLETED")
-    is_deleted = Column(Boolean, default=False)
     
     # 沖銷與連結
     related_transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)
