@@ -16,6 +16,14 @@ def test_category_lifecycle():
     cats = requests.get(BASE_URL).json()
     assert any(c["id"] == cat_id for c in cats)
 
+    # Update
+    updated_name = f"已修改_{unique_name}"
+    resp = requests.put(f"{BASE_URL}{cat_id}", json={"name": updated_name, "color": "#111"})
+    assert resp.status_code == 200
+    updated_cat = resp.json()
+    assert updated_cat["name"] == updated_name
+    assert updated_cat["color"] == "#111"
+
     # Delete
     requests.delete(f"{BASE_URL}{cat_id}")
     cats_after = requests.get(BASE_URL).json()
