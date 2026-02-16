@@ -23,6 +23,4 @@ tmp/
 
 # Project specific
 
-# modify_history/  <-- Unignored to track changes
-
 .env

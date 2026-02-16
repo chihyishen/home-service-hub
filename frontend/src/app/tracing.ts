@@ -33,13 +33,15 @@ export function initTracing() {
       new DocumentLoadInstrumentation(),
       new FetchInstrumentation({
         propagateTraceHeaderCorsUrls: [
-           new RegExp(`http://${environment.backendHost}:${environment.backendPort}/.*`),
+           new RegExp(`http://${environment.inventoryServiceHost}:${environment.inventoryServicePort}/.*`),
+           new RegExp(`http://${environment.accountingServiceHost}:${environment.accountingServicePort}/.*`),
            new RegExp(`${window.location.origin}/api/.*`)
         ],
       }),
       new XMLHttpRequestInstrumentation({
         propagateTraceHeaderCorsUrls: [
-           new RegExp(`http://${environment.backendHost}:${environment.backendPort}/.*`),
+           new RegExp(`http://${environment.inventoryServiceHost}:${environment.inventoryServicePort}/.*`),
+           new RegExp(`http://${environment.accountingServiceHost}:${environment.accountingServicePort}/.*`),
            new RegExp(`${window.location.origin}/api/.*`)
         ],
       }),

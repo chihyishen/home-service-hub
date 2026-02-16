@@ -76,7 +76,10 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 def refund_transaction(transaction_id: int, refund_amount: float, db: Session = Depends(get_db)):
     return transaction_service.refund_transaction(db, transaction_id, refund_amount)
 
-@router.get("/report/{year}/{month}", response_model=schemas.MonthlyReport, summary="獲取月度財務報表")
+@router.get("/report/{year}/{month}", 
+            response_model=schemas.MonthlyReport, 
+            response_model_by_alias=True, 
+            summary="獲取月度財務報表")
 def get_monthly_report(year: int, month: int, db: Session = Depends(get_db)):
     from ..services import analytics_service
     with tracer.start_as_current_span("router.get_monthly_report") as span:
