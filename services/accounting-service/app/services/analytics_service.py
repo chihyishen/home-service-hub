@@ -1,9 +1,51 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
-from datetime import date
+from sqlalchemy import func, extract, or_
+from datetime import date, timedelta
 from .. import models, schemas
-from . import recurring_service
+from . import recurring_service, billing_service
 from typing import List
+
+def get_card_usage_summary(db: Session) -> List[schemas.analytics.CardUsageSummary]:
+    today = date.today()
+    
+    # 取得所有信用卡
+    cards = db.query(models.CreditCard).all()
+    
+    summaries = []
+    
+    for card in cards:
+        # 計算回饋週期
+        start_date, end_date = billing_service.get_reward_cycle_range(card, today)
+
+        # 查詢週期內的消費總額
+        # 條件: (card_id = card.id) OR (payment_method = card.name)
+        # 且為 EXPENSE, 未取消
+        usage_query = db.query(func.sum(models.Transaction.personal_amount)).filter(
+            models.Transaction.date >= start_date,
+            models.Transaction.date <= end_date,
+            models.Transaction.transaction_type == "EXPENSE",
+            models.Transaction.status != "CANCELLED",
+            or_(
+                models.Transaction.card_id == card.id,
+                models.Transaction.payment_method == card.name
+            )
+        )
+        
+        current_usage = usage_query.scalar() or 0.0
+        
+        threshold = card.alert_threshold or 20000.0 # 預設 2萬
+        percentage = (current_usage / threshold * 100) if threshold > 0 else 0.0
+        
+        summaries.append(schemas.analytics.CardUsageSummary(
+            card_name=card.name,
+            billing_cycle_start=start_date,
+            billing_cycle_end=end_date,
+            current_usage=current_usage,
+            alert_threshold=threshold,
+            usage_percentage=percentage
+        ))
+        
+    return summaries
 
 def get_monthly_report(db: Session, year: int, month: int) -> schemas.MonthlyReport:
     # 【自動補償】在產生報表前，確保本月的定期項目都已經生成 PENDING
@@ -15,8 +57,7 @@ def get_monthly_report(db: Session, year: int, month: int) -> schemas.MonthlyRep
     # 1. 取得當月所有未刪除交易
     transactions = db.query(models.Transaction).filter(
         extract('year', models.Transaction.date) == year,
-        extract('month', models.Transaction.date) == month,
-        models.Transaction.is_deleted == False
+        extract('month', models.Transaction.date) == month
     ).all()
 
     total_income = 0.0
