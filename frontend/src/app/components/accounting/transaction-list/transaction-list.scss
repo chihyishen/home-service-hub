@@ -1,1 +1,218 @@
-/* Transaction list specific styles */
+:host ::ng-deep {
+    .p-tag {
+        font-weight: 500;
+    }
+}
+
+:host {
+    --ui-bg: var(--app-bg);
+    --ui-surface: var(--app-surface);
+    --ui-surface-soft: var(--app-surface-soft);
+    --ui-border: var(--app-border);
+    --ui-border-strong: var(--app-border-strong);
+    --ui-text: var(--app-text);
+    --ui-text-muted: var(--app-text-muted);
+    --ui-accent: var(--app-accent);
+    --ui-expense: var(--app-danger);
+    --ui-income: var(--app-success);
+}
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.month-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.month-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.month-label {
+    min-width: 100px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--ui-text);
+    background: var(--ui-surface-soft);
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.summary-card {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.8rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.summary-card .value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-text);
+}
+
+.summary-expense {
+    border-left: 4px solid var(--ui-expense);
+}
+
+.summary-income {
+    border-left: 4px solid var(--ui-income);
+}
+
+.filter-panel {
+    background: var(--ui-surface-soft);
+    border: 1px solid var(--ui-border);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+}
+
+.filter-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.filter-field {
+    min-width: 220px;
+    flex: 1 1 220px;
+}
+
+.type-radio-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 38px;
+}
+
+.type-radio-item {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ui-text);
+}
+
+.dialog-section-title {
+    margin-top: 0.1rem;
+    padding-top: 0.15rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--ui-text-muted);
+    text-transform: uppercase;
+}
+
+.type-toggle {
+    display: inline-flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #e7f4f2;
+    color: var(--ui-accent);
+    border: 1px solid #ccece7;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.txn-title,
+.txn-note {
+    max-width: 220px;
+}
+
+.txn-subtle-text {
+    color: #b45309;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.amount-main {
+    font-weight: 700;
+}
+
+.amount-inline-meta {
+    margin-top: 0.1rem;
+    font-size: 0.74rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.28rem;
+    width: 100%;
+}
+
+.meta-sep {
+    color: var(--ui-border-strong);
+}
+
+:host ::ng-deep .w-100-mobile {
+    @media (max-width: 576px) {
+        width: 100%;
+    }
+}
+
+:host ::ng-deep .month-reset-btn.p-button.p-button-text {
+    color: var(--ui-text-muted) !important;
+}
+
+:host ::ng-deep .month-reset-btn.p-button.p-button-text:hover {
+    background-color: var(--ui-surface-soft) !important;
+    color: var(--ui-text) !important;
+}
+
+@media (max-width: 992px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-row {
+        flex-wrap: wrap;
+    }
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-header-cell {
+    color: var(--ui-text-muted);
+    font-weight: 600;
+    background: #f8fafc;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr {
+    border-color: var(--ui-border);
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+    background: #f8fafc;
+}

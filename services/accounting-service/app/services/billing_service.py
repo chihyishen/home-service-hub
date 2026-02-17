@@ -55,7 +55,7 @@ def get_card_status(db: Session, card_id: int):
     today = date.today()
     start_date, end_date = get_reward_cycle_range(card, today)
     
-    current_usage = db.query(func.sum(models.Transaction.actual_swipe)).filter(
+    current_usage = db.query(func.sum(models.Transaction.transaction_amount)).filter(
         models.Transaction.card_id == card_id,
         models.Transaction.date >= start_date,
         models.Transaction.date <= end_date

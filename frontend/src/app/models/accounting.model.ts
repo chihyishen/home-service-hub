@@ -18,6 +18,7 @@ export interface CreditCard {
   billingDay: number;
   rewardCycleType: string;
   alertThreshold: number;
+  defaultPaymentMethod?: string;
 }
 
 export interface Transaction {
@@ -25,13 +26,13 @@ export interface Transaction {
   date: string;
   category: string;
   item: string;
-  personalAmount: number;
-  actualSwipe: number;
+  paidAmount: number;
+  transactionAmount: number;
   transactionType: TransactionType;
   paymentMethod: string;
   cardId?: number;
+  cardName?: string;
   note?: string;
-  status: string;
   relatedTransactionId?: number;
   createdAt?: string;
 }
@@ -40,8 +41,8 @@ export interface TransactionCreate {
   date: string;
   category: string;
   item: string;
-  personalAmount: number;
-  actualSwipe: number;
+  paidAmount: number;
+  transactionAmount: number;
   transactionType: TransactionType;
   paymentMethod: string;
   cardId?: number;
@@ -73,6 +74,9 @@ export interface CardUsageSummary {
   currentUsage: number;
   alertThreshold: number;
   usagePercentage: number;
+  remainingToThreshold: number;
+  isNearLimit: boolean;
+  isOverLimit: boolean;
 }
 
 export interface MonthlyReport {
@@ -81,6 +85,28 @@ export interface MonthlyReport {
   expenseBreakdown: CategorySummary[];
   paymentBreakdown: PaymentMethodSummary[];
   topExpenses: Transaction[];
+}
+
+export interface CategoryDeltaSummary {
+  category: string;
+  currentAmount: number;
+  previousAmount: number;
+  deltaAmount: number;
+  deltaPercent: number;
+  status: 'up' | 'down' | 'new' | 'gone' | 'flat';
+}
+
+export interface MonthlyCompareSummary {
+  totalExpenseDelta: number;
+  topIncreaseCategory?: string | null;
+  topDecreaseCategory?: string | null;
+}
+
+export interface MonthlyCompareReport {
+  period: string;
+  baselinePeriod: string;
+  categories: CategoryDeltaSummary[];
+  summary: MonthlyCompareSummary;
 }
 
 export interface Subscription {
@@ -93,13 +119,8 @@ export interface Subscription {
   paymentMethod?: string;
   dayOfMonth: number;
   cardId?: number;
+  cardName?: string;
   active: boolean;
-}
-
-export interface PaymentRoute {
-  id: number;
-  methodName: string;
-  cardId: number;
 }
 
 export interface Installment {
@@ -112,4 +133,5 @@ export interface Installment {
   remainingPeriods: number;
   startDate: string;
   cardId?: number;
+  cardName?: string;
 }

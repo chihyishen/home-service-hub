@@ -87,3 +87,16 @@ def get_monthly_report(year: int, month: int, db: Session = Depends(get_db)):
         # 報表是 Pydantic 模型，可以直接 dump
         span.set_attribute("report.summary", result.summary.model_dump_json())
         return result
+
+
+@router.get("/report/compare/{year}/{month}",
+            response_model=schemas.analytics.MonthlyCompareReport,
+            response_model_by_alias=True,
+            summary="獲取本月與上月分類差異")
+def get_monthly_compare_report(year: int, month: int, db: Session = Depends(get_db)):
+    from ..services import analytics_service
+    with tracer.start_as_current_span("router.get_monthly_compare_report") as span:
+        result = analytics_service.get_monthly_compare_report(db, year, month)
+        span.set_attribute("report.compare.period", result.period)
+        span.set_attribute("report.compare.baseline_period", result.baseline_period)
+        return result

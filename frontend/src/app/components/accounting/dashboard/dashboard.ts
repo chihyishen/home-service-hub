@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AccountingService } from '../../../services/accounting.service';
-import { MonthlyReport, CardUsageSummary } from '../../../models/accounting.model';
+import { MonthlyReport, CardUsageSummary, MonthlyCompareReport, CategoryDeltaSummary } from '../../../models/accounting.model';
 import { ChartModule } from 'primeng/chart';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -20,6 +20,7 @@ export class AccountingDashboardComponent implements OnInit {
 
   selectedMonth = new Date();
   report = signal<MonthlyReport | null>(null);
+  compareReport = signal<MonthlyCompareReport | null>(null);
   cardUsage = signal<CardUsageSummary[]>([]);
   
   chartData: any;
@@ -59,6 +60,21 @@ export class AccountingDashboardComponent implements OnInit {
       this.prepareChartData(data);
       this.preparePaymentChartData(data);
     });
+
+    this.accountingService.getMonthlyCompareReport(year, month).subscribe(data => {
+      this.compareReport.set(data);
+    });
+  }
+
+  getTopCategoryChanges(): CategoryDeltaSummary[] {
+    const items = this.compareReport()?.categories ?? [];
+    return items.filter(i => i.status !== 'flat').slice(0, 6);
+  }
+
+  getDeltaSign(delta: number): string {
+    if (delta > 0) return '+';
+    if (delta < 0) return '-';
+    return '';
   }
 
   prepareChartData(report: MonthlyReport) {

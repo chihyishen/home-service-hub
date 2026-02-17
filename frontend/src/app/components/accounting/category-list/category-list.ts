@@ -13,6 +13,7 @@ import { TagModule } from 'primeng/tag';
 import { MenuModule } from 'primeng/menu';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-category-list',
@@ -41,10 +42,25 @@ export class CategoryListComponent implements OnInit {
 
   categories = signal<Category[]>([]);
 
+  modernPalette: string[] = [
+    '#0ea5e9',
+    '#14b8a6',
+    '#22c55e',
+    '#84cc16',
+    '#eab308',
+    '#f97316',
+    '#ef4444',
+    '#ec4899',
+    '#a855f7',
+    '#6366f1',
+    '#06b6d4',
+    '#64748b'
+  ];
+
   displayCategoryDialog = false;
   isEditCategory = false;
 
-  newCategory: any = { name: '', color: '#3498db' };
+  newCategory: any = { name: '', color: '#0ea5e9' };
 
   ngOnInit() {
     this.loadData();
@@ -64,7 +80,7 @@ export class CategoryListComponent implements OnInit {
   }
 
   showCategoryDialog() {
-    this.newCategory = { name: '', color: '#3498db' };
+    this.newCategory = { name: '', color: this.modernPalette[0] };
     this.isEditCategory = false;
     this.displayCategoryDialog = true;
   }
@@ -106,5 +122,28 @@ export class CategoryListComponent implements OnInit {
         }
       });
     }
+  }
+
+  applyModernPalette() {
+    const list = [...this.categories()].sort((a, b) => a.id - b.id);
+    if (list.length === 0) return;
+
+    const confirmed = confirm('將所有分類顏色更新為現代色票，確定要繼續嗎？');
+    if (!confirmed) return;
+
+    const requests = list.map((cat, idx) =>
+      this.accountingService.updateCategory(cat.id, {
+        name: cat.name,
+        color: this.modernPalette[idx % this.modernPalette.length]
+      })
+    );
+
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.messageService.add({ severity: 'success', summary: '完成', detail: '分類色票已更新為現代風格' });
+        this.loadData();
+      },
+      error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '更新色票失敗' })
+    });
   }
 }

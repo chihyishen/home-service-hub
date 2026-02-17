@@ -34,13 +34,13 @@ import { Menu } from 'primeng/menu';
   providers: [MessageService],
   template: `
     <p-toast></p-toast>
-    <div class="card p-4">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="card p-3 p-lg-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <h3 class="m-0">庫存管理</h3>
-        <p-button label="新增物品" icon="pi pi-plus" (onClick)="showDialog()"></p-button>
+        <p-button label="新增物品" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile"></p-button>
       </div>
 
-      <p-table [value]="items()" [rows]="10" [paginator]="true" responsiveLayout="scroll">
+      <p-table [value]="items()" [rows]="10" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
         <ng-template pTemplate="header">
           <tr>
             <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
@@ -53,17 +53,24 @@ import { Menu } from 'primeng/menu';
         <ng-template pTemplate="body" let-item>
           <tr>
             <td>
+              <span class="p-column-title fw-bold">名稱</span>
               <div class="fw-bold">{{ item.name }}</div>
               <small class="text-muted" *ngIf="item.note">{{ item.note }}</small>
             </td>
             <td>
+                <span class="p-column-title fw-bold">類別</span>
                 <p-tag [value]="item.category" severity="secondary"></p-tag>
             </td>
-            <td>{{ item.location }}</td>
             <td>
+              <span class="p-column-title fw-bold">位置</span>
+              {{ item.location }}
+            </td>
+            <td>
+              <span class="p-column-title fw-bold">數量</span>
               <p-tag [severity]="getQuantitySeverity(item.quantity)" [value]="item.quantity.toString()"></p-tag>
             </td>
             <td>
+              <span class="p-column-title fw-bold">操作</span>
               <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showMenu($event, item)"></p-button>
             </td>
           </tr>
@@ -77,18 +84,19 @@ import { Menu } from 'primeng/menu';
 
       <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
-      <p-dialog [header]="isEdit ? '編輯物品' : '新增物品'" [(visible)]="displayDialog" [modal]="true" [style]="{width: '35vw'}" [dismissableMask]="true">
+      <p-dialog [header]="isEdit ? '編輯物品' : '新增物品'" [(visible)]="displayDialog" [modal]="true" 
+                [style]="{width: '450px', maxWidth: '95vw'}" [dismissableMask]="true">
         <div class="flex flex-column gap-3 mt-2">
           <div class="field">
             <label class="d-block mb-2">名稱</label>
             <input pInputText [(ngModel)]="newItem.name" class="w-100" placeholder="例如：電池" />
           </div>
-          <div class="row">
-            <div class="col-6">
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
                 <label class="d-block mb-2">類別</label>
                 <input pInputText [(ngModel)]="newItem.category" class="w-100" placeholder="例如：耗材" />
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
                 <label class="d-block mb-2">位置</label>
                 <input pInputText [(ngModel)]="newItem.location" class="w-100" placeholder="例如：抽屜" />
             </div>
@@ -110,8 +118,16 @@ import { Menu } from 'primeng/menu';
     </div>
   `,
   styles: [`
-    :host ::ng-deep .p-tag {
-        font-weight: 500;
+    :host ::ng-deep {
+        .p-tag {
+            font-weight: 500;
+        }
+        
+        .w-100-mobile {
+            @media (max-width: 576px) {
+                width: 100%;
+            }
+        }
     }
   `]
 })

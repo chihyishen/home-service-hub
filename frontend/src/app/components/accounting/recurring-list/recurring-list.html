@@ -1,119 +1,78 @@
 <p-toast></p-toast>
 <div class="card p-4">
-  <h3 class="mb-4">固定支出管理</h3>
+  <div class="header mb-3">
+    <div>
+      <h3 class="mb-1">定期與分期管理</h3>
+      <small class="text-muted">管理固定扣款、數位訂閱與分期計畫</small>
+    </div>
+    <p-button [label]="'新增' + getCurrentTypeLabel()" icon="pi pi-plus" (onClick)="handleAddByType()"></p-button>
+  </div>
 
-  <p-tabs value="0">
-    <p-tablist>
-      <p-tab value="0">固定支出</p-tab>
-      <p-tab value="1">數位訂閱</p-tab>
-      <p-tab value="2">分期計畫</p-tab>
-    </p-tablist>
-    <p-tabpanels>
-      <!-- 固定支出 -->
-      <p-tabpanel value="0">
-        <div class="d-flex justify-content-end mb-3">
-          <p-button label="新增固定支出" icon="pi pi-plus" (onClick)="showSubDialog('FIXED_EXPENSE')"></p-button>
-        </div>
-        <p-table [value]="fixedExpenses()" responsiveLayout="scroll">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
-                      <th pSortableColumn="amount">金額 <p-sortIcon field="amount"></p-sortIcon></th>
-                      <th pSortableColumn="category">分類 <p-sortIcon field="category"></p-sortIcon></th>
-                      <th pSortableColumn="dayOfMonth">扣款日 <p-sortIcon field="dayOfMonth"></p-sortIcon></th>
-                      <th pSortableColumn="active">狀態 <p-sortIcon field="active"></p-sortIcon></th>
-                      <th style="width: 100px">操作</th>
-                    </tr>
-                  </ng-template>
-          
-          <ng-template pTemplate="body" let-sub>
-            <tr>
-              <td>{{ sub.name }}</td>
-              <td>{{ sub.amount | currency:'TWD':'symbol':'1.0-0' }}</td>
-              <td>{{ sub.category }}</td>
-              <td>每月 {{ sub.dayOfMonth }} 日</td>
-              <td>
-                <p-tag [severity]="sub.active ? 'success' : 'secondary'" 
-                       [value]="sub.active ? '啟用中' : '已停用'"
-                       (click)="toggleSub(sub.id)" class="status-tag"></p-tag>
-              </td>
-              <td>
-                <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showSubMenu($event, sub)"></p-button>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </p-tabpanel>
+  <div class="type-switcher mb-3">
+    <p-button
+      *ngFor="let option of recurringTypeOptions"
+      [label]="option.label"
+      [text]="!isActiveType(option.value)"
+      [outlined]="!isActiveType(option.value)"
+      [severity]="isActiveType(option.value) ? 'primary' : 'secondary'"
+      size="small"
+      (onClick)="setActiveType(option.value)">
+    </p-button>
+  </div>
 
-      <!-- 數位訂閱 -->
-      <p-tabpanel value="1">
-        <div class="d-flex justify-content-end mb-3">
-          <p-button label="新增訂閱項目" icon="pi pi-plus" (onClick)="showSubDialog('SUBSCRIPTION')"></p-button>
-        </div>
-        <p-table [value]="digitalSubscriptions()" responsiveLayout="scroll">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
-                      <th pSortableColumn="amount">金額 <p-sortIcon field="amount"></p-sortIcon></th>
-                      <th pSortableColumn="category">分類 <p-sortIcon field="category"></p-sortIcon></th>
-                      <th pSortableColumn="dayOfMonth">扣款日 <p-sortIcon field="dayOfMonth"></p-sortIcon></th>
-                      <th pSortableColumn="active">狀態 <p-sortIcon field="active"></p-sortIcon></th>
-                      <th style="width: 100px">操作</th>
-                    </tr>
-                  </ng-template>
-          
-          <ng-template pTemplate="body" let-sub>
-            <tr>
-              <td>{{ sub.name }}</td>
-              <td>{{ sub.amount | currency:'TWD':'symbol':'1.0-0' }}</td>
-              <td>{{ sub.category }}</td>
-              <td>每月 {{ sub.dayOfMonth }} 日</td>
-              <td>
-                <p-tag [severity]="sub.active ? 'success' : 'secondary'" 
-                       [value]="sub.active ? '啟用中' : '已停用'"
-                       (click)="toggleSub(sub.id)" class="status-tag"></p-tag>
-              </td>
-              <td>
-                <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showSubMenu($event, sub)"></p-button>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </p-tabpanel>
+  <p-table [value]="tableRows()" responsiveLayout="scroll" [sortField]="'name'">
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
+        <th pSortableColumn="amount">{{ isInstallmentView() ? '總額' : '金額' }} <p-sortIcon [field]="isInstallmentView() ? 'totalAmount' : 'amount'"></p-sortIcon></th>
+        <th *ngIf="!isInstallmentView()" pSortableColumn="category">分類 <p-sortIcon field="category"></p-sortIcon></th>
+        <th *ngIf="isInstallmentView()" pSortableColumn="monthlyAmount">每期金額 <p-sortIcon field="monthlyAmount"></p-sortIcon></th>
+        <th pSortableColumn="cardName" style="width: 150px">支付方式 <p-sortIcon field="cardName"></p-sortIcon></th>
+        <th *ngIf="!isInstallmentView()" pSortableColumn="dayOfMonth">扣款日 <p-sortIcon field="dayOfMonth"></p-sortIcon></th>
+        <th *ngIf="isInstallmentView()" pSortableColumn="remainingPeriods">剩餘期數 <p-sortIcon field="remainingPeriods"></p-sortIcon></th>
+        <th *ngIf="!isInstallmentView()" pSortableColumn="active">狀態 <p-sortIcon field="active"></p-sortIcon></th>
+        <th *ngIf="isInstallmentView()" pSortableColumn="startDate">開始日期 <p-sortIcon field="startDate"></p-sortIcon></th>
+        <th style="width: 100px">操作</th>
+      </tr>
+    </ng-template>
 
-      <!-- 分期計畫 -->
-      <p-tabpanel value="2">
-        <div class="d-flex justify-content-end mb-3">
-          <p-button label="新增分期" icon="pi pi-plus" (onClick)="showInstDialog()"></p-button>
-        </div>
-        <p-table [value]="installments()" responsiveLayout="scroll">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
-                      <th pSortableColumn="totalAmount">總額 <p-sortIcon field="totalAmount"></p-sortIcon></th>
-                      <th pSortableColumn="monthlyAmount">每期金額 <p-sortIcon field="monthlyAmount"></p-sortIcon></th>
-                      <th pSortableColumn="remainingPeriods">剩餘期數 <p-sortIcon field="remainingPeriods"></p-sortIcon></th>
-                      <th pSortableColumn="startDate">開始日期 <p-sortIcon field="startDate"></p-sortIcon></th>
-                      <th style="width: 100px">操作</th>
-                    </tr>
-                  </ng-template>
-          
-          <ng-template pTemplate="body" let-inst>
-            <tr>
-              <td>{{ inst.name }}</td>
-              <td>{{ inst.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
-              <td>{{ inst.monthlyAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
-              <td>{{ inst.remainingPeriods }} / {{ inst.totalPeriods }}</td>
-              <td>{{ inst.startDate }}</td>
-              <td>
-                <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showInstMenu($event, inst)"></p-button>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </p-tabpanel>
-    </p-tabpanels>
-  </p-tabs>
+    <ng-template pTemplate="body" let-item>
+      <tr>
+        <td>{{ $any(item).name }}</td>
+        <td>{{ (isInstallmentView() ? $any(item).totalAmount : $any(item).amount) | currency:'TWD':'symbol':'1.0-0' }}</td>
+        <td *ngIf="!isInstallmentView()">
+          <p-tag [value]="$any(item).category" [style]="{ 'background-color': getCategoryColor($any(item).category) }"></p-tag>
+        </td>
+        <td *ngIf="isInstallmentView()">{{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+        <td>
+          <div [class.fw-bold]="$any(item).cardId">{{ $any(item).cardName || $any(item).paymentMethod }}</div>
+          <small class="text-muted d-block" *ngIf="$any(item).cardId">{{ $any(item).paymentMethod }}</small>
+        </td>
+        <td *ngIf="!isInstallmentView()">每月 {{ $any(item).dayOfMonth }} 日</td>
+        <td *ngIf="isInstallmentView()">{{ $any(item).remainingPeriods }} / {{ $any(item).totalPeriods }}</td>
+        <td *ngIf="!isInstallmentView()">
+          <p-tag
+            [severity]="$any(item).active ? 'success' : 'secondary'"
+            [value]="$any(item).active ? '啟用中' : '已停用'"
+            (click)="toggleSub($any(item).id)"
+            class="status-tag">
+          </p-tag>
+        </td>
+        <td *ngIf="isInstallmentView()">{{ $any(item).startDate }}</td>
+        <td>
+          <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showRowMenu($event, $any(item))"></p-button>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td [attr.colspan]="isInstallmentView() ? 7 : 8" class="text-center py-4 text-muted">
+          {{ getCurrentEmptyMessage() }}
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
 
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
@@ -140,8 +99,14 @@
                     (onChange)="onSubCategoryChange($event.value)" class="w-100" appendTo="body"></p-select>
       </div>
       <div class="field mt-2">
-        <label class="d-block mb-2">支付方式</label>
-        <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="newSub.paymentMethod" [editable]="true" class="w-100" appendTo="body"></p-select>
+        <label class="d-block mb-2">支付方式 (整合選單)</label>
+        <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="selectedSubPaymentValue"
+                    placeholder="選擇卡片或現金" class="w-100" (onChange)="onSubPaymentChange($event)" appendTo="body"></p-select>
+      </div>
+      <div class="field mt-2">
+        <label class="d-block mb-2">付款工具 (自動帶入)</label>
+        <p-select [options]="toolOptions()" [(ngModel)]="newSub.paymentMethod" optionLabel="label" optionValue="value" 
+                    class="w-100" appendTo="body" placeholder="選擇工具"></p-select>
       </div>
     </div>
     <ng-template pTemplate="footer">
@@ -178,13 +143,14 @@
         <p-datepicker [(ngModel)]="instStartDate" dateFormat="yy-mm-dd" class="w-100" appendTo="body"></p-datepicker>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">支付卡片 (cardId)</label>
-        <p-select [options]="cards()" optionLabel="name" optionValue="id" [(ngModel)]="newInst.cardId" 
-                    placeholder="不指定" [showClear]="true" class="w-100" appendTo="body"></p-select>
+        <label class="d-block mb-2">支付方式 (整合選單)</label>
+        <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="selectedInstPaymentValue"
+                    placeholder="選擇卡片或現金" class="w-100" (onChange)="onInstPaymentChange($event)" appendTo="body"></p-select>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">支付方式</label>
-        <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="newInst.paymentMethod" [editable]="true" class="w-100" appendTo="body"></p-select>
+        <label class="d-block mb-2">付款工具 (自動帶入)</label>
+        <p-select [options]="toolOptions()" [(ngModel)]="newInst.paymentMethod" optionLabel="label" optionValue="value" 
+                    class="w-100" appendTo="body" placeholder="選擇工具"></p-select>
       </div>
     </div>
     <ng-template pTemplate="footer">

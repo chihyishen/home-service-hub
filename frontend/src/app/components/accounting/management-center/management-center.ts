@@ -5,7 +5,6 @@ import { CardListComponent } from '../card-list/card-list';
 import { CategoryListComponent } from '../category-list/category-list';
 import { RecurringListComponent } from '../recurring-list/recurring-list';
 import { PaymentMethodListComponent } from '../payment-method-list/payment-method-list';
-import { PaymentRouteListComponent } from '../payment-route-list/payment-route-list';
 
 @Component({
   selector: 'app-management-center',
@@ -16,8 +15,7 @@ import { PaymentRouteListComponent } from '../payment-route-list/payment-route-l
     CardListComponent,
     CategoryListComponent,
     RecurringListComponent,
-    PaymentMethodListComponent,
-    PaymentRouteListComponent
+    PaymentMethodListComponent
   ],
   templateUrl: './management-center.html',
   styleUrl: './management-center.scss'

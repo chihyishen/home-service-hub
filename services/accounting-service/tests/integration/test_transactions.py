@@ -5,8 +5,8 @@ BASE_URL = "http://127.0.0.1:8000/transactions/"
 def test_transaction_and_refund():
     # 1. Create
     tx = requests.post(BASE_URL, json={
-        "category": "測試", "item": "測試支出", "personalAmount": 1000, 
-        "actualSwipe": 1000, "paymentMethod": "Cash"
+        "category": "測試", "item": "測試支出", "paidAmount": 1000, 
+        "transactionAmount": 1000, "paymentMethod": "Cash"
     }).json()
     tid = tx["id"]
 

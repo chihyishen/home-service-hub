@@ -8,6 +8,7 @@ class CardBase(BaseSchema):
     reward_cycle_type: str = Field(default="BILLING_CYCLE", description="回饋計算週期")
     reward_rules: Optional[List[dict]] = Field(default=None, description="回饋規則")
     alert_threshold: int = Field(default=5000, description="消費提醒閾值")
+    default_payment_method: str = Field(default="Apple Pay", description="預設支付工具")
 
 class CreditCardCreate(CardBase):
     pass
@@ -18,6 +19,7 @@ class CreditCardUpdate(BaseSchema): # 修正：改為繼承 BaseSchema
     reward_cycle_type: Optional[str] = None
     reward_rules: Optional[List[dict]] = None
     alert_threshold: Optional[int] = None
+    default_payment_method: Optional[str] = None
 
 class CreditCard(CardBase, AuditSchema):
     id: int

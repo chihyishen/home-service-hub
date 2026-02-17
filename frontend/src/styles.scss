@@ -1,90 +1,214 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global Styles - iOS Inspired Theme */
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons/font/bootstrap-icons.css";
 @import "primeicons/primeicons.css";
 
+:root {
+  --app-bg: #F2F2F7;
+  --app-surface: #FFFFFF;
+  --app-surface-soft: #F2F2F7;
+  --app-border: #D1D1D6;
+  --app-text: #000000;
+  --app-text-muted: #8E8E93;
+  --app-accent: #007AFF;
+  --app-danger: #FF3B30;
+  --app-success: #34C759;
+  --app-warning: #FF9500;
+  --app-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.app-dark-mode {
+  --app-bg: #000000;
+  --app-surface: #1C1C1E;
+  --app-surface-soft: #2C2C2E;
+  --app-border: #38383A;
+  --app-text: #FFFFFF;
+  --app-text-muted: #8E8E93;
+  --app-accent: #0A84FF;
+  --app-danger: #FF453A;
+  --app-success: #32D74B;
+  --app-warning: #FF9F0A;
+  --app-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 body {
-  background-color: #f8f9fa;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 0;
 }
 
 .card {
-  background-color: #ffffff;
-  border: 1px solid #e9ecef;
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--app-card-shadow);
+  padding: 1rem;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
+/* iOS Style Overrides for Bootstrap Utility Classes */
+.app-dark-mode .bg-white, 
+.app-dark-mode .navbar-light.bg-white {
+  background-color: var(--app-surface) !important;
+}
+
+.app-dark-mode .bg-light {
+  background-color: var(--app-surface-soft) !important;
+}
+
+.app-dark-mode .text-dark {
+  color: var(--app-text) !important;
+}
+
+.app-dark-mode .text-muted {
+  color: var(--app-text-muted) !important;
+}
+
+.app-dark-mode .border,
+.app-dark-mode .border-bottom,
+.app-dark-mode .border-top,
+.app-dark-mode .border-start,
+.app-dark-mode .border-end {
+  border-color: var(--app-border) !important;
+}
+
+.app-dark-mode .navbar-light .navbar-text,
+.app-dark-mode .navbar-light .navbar-brand,
+.app-dark-mode .navbar-light .btn-link,
+.app-dark-mode .navbar-light .navbar-nav .nav-link {
+  color: var(--app-text) !important;
+}
+
+.app-dark-mode h3,
+.app-dark-mode h4,
+.app-dark-mode h5 {
+  color: var(--app-text);
+}
+
+/* PrimeNG Specific Dark Mode Overrides */
+.app-dark-mode {
+  .p-inputtext, .p-select, .p-inputnumber-input, .p-datepicker-input, .p-textarea {
+    background-color: var(--app-surface-soft) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+    
+    &:focus {
+      border-color: var(--app-accent) !important;
+      box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2) !important;
+    }
+  }
+
+  .p-datepicker, .p-select-panel, .p-menu, .p-dialog {
+    background-color: var(--app-surface) !important;
+    color: var(--app-text) !important;
+    border: 1px solid var(--app-border) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .p-select-item, .p-menuitem-link {
+    color: var(--app-text) !important;
+    &:hover {
+      background-color: var(--app-surface-soft) !important;
+    }
+    &.p-highlight {
+        background-color: var(--app-accent) !important;
+        color: white !important;
+    }
+  }
+
+  .p-dialog-header, .p-dialog-content, .p-dialog-footer {
+    background-color: var(--app-surface) !important;
+    color: var(--app-text) !important;
+  }
+
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background-color: var(--app-surface-soft) !important;
+      color: var(--app-text-muted) !important;
+      border-bottom: 1px solid var(--app-border) !important;
+    }
+    .p-datatable-tbody > tr {
+      background-color: var(--app-surface) !important;
+      color: var(--app-text) !important;
+      border-bottom: 1px solid var(--app-border) !important;
+      
+      &:hover {
+        background-color: var(--app-surface-soft) !important;
+      }
+    }
+  }
+
+  .p-paginator {
+    background-color: var(--app-surface) !important;
+    color: var(--app-text) !important;
+    border-top: 1px solid var(--app-border) !important;
+    
+    .p-paginator-page, .p-paginator-next, .p-paginator-last, .p-paginator-first, .p-paginator-prev {
+      color: var(--app-text) !important;
+      &:hover {
+        background-color: var(--app-surface-soft) !important;
+      }
+      &.p-highlight {
+        background-color: var(--app-accent) !important;
+        color: white !important;
+      }
+    }
+  }
+}
+
+/* PrimeNG Tags */
 .p-tag {
-
-  font-weight: 700 !important;
-
-  padding: 0.35rem 0.7rem !important;
-
-  color: #ffffff !important;
-
-  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
-
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-
-  border: 1px solid rgba(0,0,0,0.1);
-
+  font-weight: 600 !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 6px !important;
+  border: none !important;
 }
 
-
-
-.p-tag-success {
-
-  background-color: #22c55e !important; // 更深的綠色
-
+.p-tag-success { background-color: var(--app-success) !important; color: white !important; }
+.p-tag-danger { background-color: var(--app-danger) !important; color: white !important; }
+.p-tag-warn { background-color: var(--app-warning) !important; color: white !important; }
+.p-tag-info { background-color: var(--app-accent) !important; color: white !important; }
+.p-tag-secondary { 
+  background-color: var(--app-surface-soft) !important; 
+  color: var(--app-text-muted) !important;
+  border: 1px solid var(--app-border) !important;
 }
 
-
-
-.p-tag-warn {
-
-  background-color: #f59e0b !important; // 更深的橘黃色
-
+/* Responsive Table Fixes */
+.p-column-title {
+  display: none;
 }
 
+@media (max-width: 960px) {
+  .p-column-title {
+    display: inline-block !important;
+    font-weight: 600;
+    min-width: 35%;
+    text-align: left;
+    color: var(--app-text-muted);
+    margin-right: 1rem;
+    font-size: 0.9rem;
+  }
 
+  .p-datatable-stacked .p-datatable-tbody > tr > td {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem !important;
+    border-bottom: 1px solid var(--app-border) !important;
+    text-align: right;
+    width: 100% !important;
+    border-top: 0 !important;
+    background-color: var(--app-surface) !important;
 
-.p-tag-danger {
-
-  background-color: #ef4444 !important; // 更深的紅色
-
+    .fw-bold, p-tag, div, span:not(.p-column-title) {
+        text-align: right;
+    }
+  }
+  
+  .p-datatable-stacked .p-datatable-thead {
+      display: none !important;
+  }
 }
-
-
-
-.p-tag-info {
-
-
-
-  background-color: #3b82f6 !important; // 更深的藍色
-
-
-
-}
-
-
-
-
-
-
-
-.p-tag-secondary {
-
-
-
-  background-color: #64748b !important; // 使用深藍灰色提升對比
-
-
-
-}
-
-
-
-
-
-

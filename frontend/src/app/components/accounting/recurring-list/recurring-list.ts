@@ -5,7 +5,6 @@ import { AccountingService } from '../../../services/accounting.service';
 import { Subscription, Installment, Category, CreditCard, PaymentMethod } from '../../../models/accounting.model';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -18,6 +17,8 @@ import { MessageService, MenuItem } from 'primeng/api';
 import { forkJoin } from 'rxjs';
 import { Menu } from 'primeng/menu';
 
+type RecurringType = 'FIXED_EXPENSE' | 'SUBSCRIPTION' | 'INSTALLMENT';
+
 @Component({
   selector: 'app-recurring-list',
   standalone: true,
@@ -26,7 +27,6 @@ import { Menu } from 'primeng/menu';
     FormsModule, 
     TableModule, 
     ButtonModule, 
-    TabsModule, 
     TagModule,
     DialogModule,
     InputTextModule,
@@ -52,9 +52,25 @@ export class RecurringListComponent implements OnInit {
   digitalSubscriptions = computed(() => this.subscriptions().filter(s => s.subType === 'SUBSCRIPTION'));
   
   installments = signal<Installment[]>([]);
+  activeType = signal<RecurringType>('FIXED_EXPENSE');
+  recurringTypeOptions: { label: string; value: RecurringType }[] = [
+    { label: '固定支出', value: 'FIXED_EXPENSE' },
+    { label: '數位訂閱', value: 'SUBSCRIPTION' },
+    { label: '分期計畫', value: 'INSTALLMENT' }
+  ];
+  tableRows = computed<(Subscription | Installment)[]>(() => {
+    if (this.activeType() === 'INSTALLMENT') return this.installments();
+    if (this.activeType() === 'SUBSCRIPTION') return this.digitalSubscriptions();
+    return this.fixedExpenses();
+  });
   categories = signal<Category[]>([]);
   cards = signal<CreditCard[]>([]);
+  paymentMethods = signal<PaymentMethod[]>([]);
   paymentOptions = signal<any[]>([]);
+
+  toolOptions = computed(() => 
+    this.paymentMethods().map(m => ({ label: m.name, value: m.name }))
+  );
 
   displaySubDialog = false;
   displayInstDialog = false;
@@ -63,6 +79,8 @@ export class RecurringListComponent implements OnInit {
 
   newSub: any = this.resetSub();
   newInst: any = this.resetInst();
+  selectedSubPaymentValue: string | null = null;
+  selectedInstPaymentValue: string | null = null;
   instStartDate = new Date();
 
   ngOnInit() {
@@ -81,14 +99,20 @@ export class RecurringListComponent implements OnInit {
         this.installments.set(insts);
         this.categories.set(cats);
         this.cards.set(cards);
+        this.paymentMethods.set(methods);
         
-        const options = [
-            ...methods.map(m => ({ label: m.name, value: m.name })),
-            { label: '信用卡', value: '信用卡' } // 確保有預設值
+        // 建立「整合型支付選單」: 現金 + 所有的信用卡
+        const combined = [
+            { label: '現金', value: 'CASH', type: 'CASH' },
+            ...cards.map(c => ({ 
+                label: `💳 ${c.name}`, 
+                value: `CARD_${c.id}`, 
+                type: 'CARD',
+                cardId: c.id,
+                defaultTool: c.defaultPaymentMethod || 'Apple Pay'
+            }))
         ];
-        // 去重
-        const uniqueOptions = Array.from(new Map(options.map(item => [item.value, item])).values());
-        this.paymentOptions.set(uniqueOptions);
+        this.paymentOptions.set(combined);
     });
   }
 
@@ -100,8 +124,50 @@ export class RecurringListComponent implements OnInit {
           categoryId: null, 
           subType: type, 
           dayOfMonth: 1, 
-          paymentMethod: '信用卡' 
+          paymentMethod: '信用卡',
+          cardId: null
       };
+  }
+
+  setActiveType(type: RecurringType) {
+      this.activeType.set(type);
+  }
+
+  isActiveType(type: RecurringType) {
+      return this.activeType() === type;
+  }
+
+  isInstallmentView() {
+      return this.activeType() === 'INSTALLMENT';
+  }
+
+  getCurrentTypeLabel() {
+      if (this.activeType() === 'INSTALLMENT') return '分期計畫';
+      if (this.activeType() === 'SUBSCRIPTION') return '數位訂閱';
+      return '固定支出';
+  }
+
+  getCurrentEmptyMessage() {
+      if (this.activeType() === 'INSTALLMENT') return '目前沒有分期計畫';
+      if (this.activeType() === 'SUBSCRIPTION') return '目前沒有數位訂閱項目';
+      return '目前沒有固定支出項目';
+  }
+
+  handleAddByType() {
+      const active = this.activeType();
+      if (active === 'INSTALLMENT') {
+          this.showInstDialog();
+          return;
+      }
+      this.showSubDialog(active);
+  }
+
+  showRowMenu(event: MouseEvent, row: Subscription | Installment) {
+      if (this.isInstallmentView()) {
+          this.showInstMenu(event, row as Installment);
+      } else {
+          this.showSubMenu(event, row as Subscription);
+      }
   }
 
   showSubMenu(event: MouseEvent, sub: Subscription) {
@@ -123,13 +189,15 @@ export class RecurringListComponent implements OnInit {
   }
 
   resetInst() {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
       return {
           name: '',
           totalAmount: 0,
           monthlyAmount: 0,
           totalPeriods: 12,
           remainingPeriods: 12,
-          startDate: new Date().toISOString().split('T')[0],
+          startDate: dateStr,
           cardId: null,
           paymentMethod: '信用卡'
       };
@@ -137,6 +205,7 @@ export class RecurringListComponent implements OnInit {
 
   showSubDialog(type: 'FIXED_EXPENSE' | 'SUBSCRIPTION' = 'SUBSCRIPTION') {
       this.newSub = this.resetSub(type);
+      this.selectedSubPaymentValue = 'CASH';
       this.isEditSub = false;
       this.displaySubDialog = true;
   }
@@ -144,7 +213,21 @@ export class RecurringListComponent implements OnInit {
   editSub(sub: Subscription) {
       this.isEditSub = true;
       this.newSub = { ...sub, paymentMethod: sub.paymentMethod || '信用卡' };
+      this.selectedSubPaymentValue = sub.cardId ? `CARD_${sub.cardId}` : 'CASH';
       this.displaySubDialog = true;
+  }
+
+  onSubPaymentChange(event: any) {
+      const selected = this.paymentOptions().find(o => o.value === event.value);
+      if (!selected) return;
+
+      if (selected.type === 'CASH') {
+          this.newSub.paymentMethod = '現金';
+          this.newSub.cardId = null;
+      } else if (selected.type === 'CARD') {
+          this.newSub.cardId = selected.cardId;
+          this.newSub.paymentMethod = selected.defaultTool;
+      }
   }
 
   onSubCategoryChange(id: number) {
@@ -154,8 +237,14 @@ export class RecurringListComponent implements OnInit {
       }
   }
 
+  getCategoryColor(name: string) {
+      const cat = this.categories().find(c => c.name === name);
+      return cat ? cat.color : '#64748b';
+  }
+
   showInstDialog() {
       this.newInst = this.resetInst();
+      this.selectedInstPaymentValue = 'CASH';
       this.instStartDate = new Date();
       this.isEditInst = false;
       this.displayInstDialog = true;
@@ -164,8 +253,22 @@ export class RecurringListComponent implements OnInit {
   editInst(inst: Installment) {
       this.isEditInst = true;
       this.newInst = { ...inst };
+      this.selectedInstPaymentValue = inst.cardId ? `CARD_${inst.cardId}` : 'CASH';
       this.instStartDate = new Date(inst.startDate);
       this.displayInstDialog = true;
+  }
+
+  onInstPaymentChange(event: any) {
+      const selected = this.paymentOptions().find(o => o.value === event.value);
+      if (!selected) return;
+
+      if (selected.type === 'CASH') {
+          this.newInst.paymentMethod = '現金';
+          this.newInst.cardId = null;
+      } else if (selected.type === 'CARD') {
+          this.newInst.cardId = selected.cardId;
+          this.newInst.paymentMethod = selected.defaultTool;
+      }
   }
 
   calcMonthly() {
@@ -199,7 +302,11 @@ export class RecurringListComponent implements OnInit {
   }
 
   saveInst() {
-      const dateStr = this.instStartDate.toISOString().split('T')[0];
+      const year = this.instStartDate.getFullYear();
+      const month = (this.instStartDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = this.instStartDate.getDate().toString().padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
       this.newInst.startDate = dateStr;
       
       if (this.isEditInst) {
