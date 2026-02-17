@@ -11,8 +11,8 @@ class Transaction(Base, TimestampMixin):
     category = Column(String, index=True) # 舊的字串分類
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True) # 結構化分類
     item = Column(String)
-    personal_amount = Column(Integer)
-    actual_swipe = Column(Integer)
+    paid_amount = Column(Integer)
+    transaction_amount = Column(Integer)
     payment_method = Column(String)
     card_id = Column(Integer, ForeignKey("credit_cards.id"), nullable=True)
     transaction_type = Column(String, default="EXPENSE")

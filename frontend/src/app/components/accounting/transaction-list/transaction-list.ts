@@ -75,10 +75,10 @@ export class TransactionListComponent implements OnInit {
     const txns = this.monthTransactions();
     const expense = txns
       .filter(t => t.transactionType === 'EXPENSE')
-      .reduce((sum, t) => sum + (t.personalAmount || 0), 0);
+      .reduce((sum, t) => sum + (t.paidAmount || 0), 0);
     const income = txns
       .filter(t => t.transactionType === 'INCOME')
-      .reduce((sum, t) => sum + (t.personalAmount || 0), 0);
+      .reduce((sum, t) => sum + (t.paidAmount || 0), 0);
     return {
       expense,
       income,
@@ -142,7 +142,7 @@ export class TransactionListComponent implements OnInit {
   displayDialog = false;
   isEdit = false;
   isGeneratingRecurring = false;
-  actualSwipeOverridden = false;
+  paidAmountOverridden = false;
   txnDate = new Date();
   newTxn: any = this.resetNewTxn();
   selectedPaymentValue: string | null = null;
@@ -229,14 +229,14 @@ export class TransactionListComponent implements OnInit {
 
   resetNewTxn() {
     this.selectedPaymentValue = 'CASH';
-    this.actualSwipeOverridden = false;
+    this.paidAmountOverridden = false;
     return {
       item: '',
       date: '',
       category: '',
       categoryId: null,
-      personalAmount: 0,
-      actualSwipe: 0,
+      paidAmount: 0,
+      transactionAmount: 0,
       paymentMethod: '現金',
       cardId: null,
       transactionType: 'EXPENSE',
@@ -247,7 +247,7 @@ export class TransactionListComponent implements OnInit {
   showDialog() {
     this.newTxn = this.resetNewTxn();
     this.selectedPaymentValue = 'CASH';
-    this.actualSwipeOverridden = false;
+    this.paidAmountOverridden = false;
     this.txnDate = new Date();
     this.isEdit = false;
     this.displayDialog = true;
@@ -280,23 +280,23 @@ export class TransactionListComponent implements OnInit {
   editTransaction(txn: Transaction) {
       this.isEdit = true;
       this.newTxn = { ...txn };
-      this.actualSwipeOverridden = txn.actualSwipe !== txn.personalAmount;
+      this.paidAmountOverridden = txn.transactionAmount !== txn.paidAmount;
       this.txnDate = new Date(txn.date);
       this.selectedPaymentValue = txn.cardId ? `CARD_${txn.cardId}` : 'CASH';
       this.displayDialog = true;
   }
 
-  onPersonalAmountChange(value: number | null | undefined) {
+  onTransactionAmountChange(value: number | null | undefined) {
       const amount = value ?? 0;
-      this.newTxn.personalAmount = amount;
-      if (!this.actualSwipeOverridden) {
-          this.newTxn.actualSwipe = amount;
+      this.newTxn.transactionAmount = amount;
+      if (!this.paidAmountOverridden) {
+          this.newTxn.paidAmount = amount;
       }
   }
 
-  onActualSwipeChange(value: number | null | undefined) {
-      this.newTxn.actualSwipe = value ?? 0;
-      this.actualSwipeOverridden = true;
+  onPaidAmountChange(value: number | null | undefined) {
+      this.newTxn.paidAmount = value ?? 0;
+      this.paidAmountOverridden = true;
   }
 
   onCategoryChange(id: number) {
@@ -319,13 +319,13 @@ export class TransactionListComponent implements OnInit {
       }
       
       // 若使用者尚未手動覆寫，維持交易金額與實付金額同步
-      if (!this.actualSwipeOverridden) {
-          this.newTxn.actualSwipe = this.newTxn.personalAmount;
+      if (!this.paidAmountOverridden) {
+          this.newTxn.paidAmount = this.newTxn.transactionAmount;
       }
   }
 
   onRefund(txn: Transaction) {
-      const amount = prompt(`請輸入退款/沖銷金額 (原始金額: ${txn.personalAmount})`, txn.personalAmount.toString());
+      const amount = prompt(`請輸入退款/沖銷金額 (原始金額: ${txn.transactionAmount})`, txn.transactionAmount.toString());
       if (amount && !isNaN(Number(amount))) {
           this.accountingService.refundTransaction(txn.id, Number(amount)).subscribe({
               next: () => {
@@ -340,6 +340,32 @@ export class TransactionListComponent implements OnInit {
   getCategoryColor(name: string) {
       const cat = this.categories().find(c => c.name === name);
       return cat ? cat.color : '#64748b'; // 使用更明亮的藍灰色作為預設
+  }
+
+  getCategoryTagStyle(name: string) {
+      const hex = this.getCategoryColor(name);
+      const rgb = this.hexToRgb(hex);
+      if (!rgb) {
+          return {
+              'background-color': 'rgba(100, 116, 139, 0.16)',
+              'border': '1px solid rgba(100, 116, 139, 0.38)',
+              'color': '#334155'
+          };
+      }
+      return {
+          'background-color': `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)`,
+          'border': `1px solid rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.42)`,
+          'color': `rgb(${Math.max(40, Math.round(rgb.r * 0.65))}, ${Math.max(40, Math.round(rgb.g * 0.65))}, ${Math.max(40, Math.round(rgb.b * 0.65))})`
+      };
+  }
+
+  private hexToRgb(hex: string) {
+      const normalized = hex?.replace('#', '').trim();
+      if (!normalized || !/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+      const r = parseInt(normalized.substring(0, 2), 16);
+      const g = parseInt(normalized.substring(2, 4), 16);
+      const b = parseInt(normalized.substring(4, 6), 16);
+      return { r, g, b };
   }
 
   saveTransaction() {

@@ -33,7 +33,7 @@ def get_transaction(db: Session, transaction_id: int):
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     with tracer.start_as_current_span("service.create_transaction") as span:
         span.set_attribute("transaction.item", transaction.item)
-        span.set_attribute("transaction.amount", transaction.personal_amount)
+        span.set_attribute("transaction.amount", transaction.transaction_amount)
         span.set_attribute("transaction.type", transaction.transaction_type)
 
         # --- 資料校驗與自動同步 ---
@@ -86,8 +86,8 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
             category=original.category,
             category_id=original.category_id,
             item=f"退款: {original.item}",
-            personal_amount=refund_amount,
-            actual_swipe=refund_amount,
+            paid_amount=refund_amount,
+            transaction_amount=refund_amount,
             payment_method=original.payment_method,
             card_id=original.card_id,
             transaction_type="INCOME",

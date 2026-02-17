@@ -1,6 +1,6 @@
 <div class="dashboard-container">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <h3 class="m-0">分析儀表板</h3>
+    <h3 class="m-0 dashboard-title">分析儀表板</h3>
     <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
                 (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"
                 styleClass="w-100-mobile"></p-datepicker>
@@ -32,7 +32,7 @@
   <div class="row g-4">
     <div class="col-md-4">
       <div class="card p-4 h-100">
-        <h5 class="mb-4">消費種類佔比</h5>
+        <h5 class="mb-4 section-title">消費種類佔比</h5>
         <div *ngIf="chartData" class="chart-wrapper">
           <p-chart type="pie" [data]="chartData" [options]="chartOptions"></p-chart>
         </div>
@@ -41,7 +41,7 @@
     </div>
     <div class="col-md-4">
       <div class="card p-4 h-100">
-        <h5 class="mb-4">支付方式分佈</h5>
+        <h5 class="mb-4 section-title">支付方式分佈</h5>
         <div *ngIf="paymentChartData" class="chart-wrapper">
           <p-chart type="doughnut" [data]="paymentChartData" [options]="chartOptions"></p-chart>
         </div>
@@ -50,22 +50,21 @@
     </div>
     <div class="col-md-4">
       <div class="card p-4 h-100">
-        <h5 class="mb-4">主要支出項目</h5>
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0" 
-              *ngFor="let txn of report()?.topExpenses">
+        <h5 class="mb-4 section-title">本月 vs 上月類別變化</h5>
+        <ul class="list-group list-group-flush" *ngIf="getTopCategoryChanges().length">
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0"
+              *ngFor="let c of getTopCategoryChanges()">
             <div>
-              <div class="fw-bold text-truncate" style="max-width: 150px;">{{ txn.item }}</div>
-              <small class="text-muted">{{ txn.date | date:'MM/dd' }} · {{ txn.category }}</small>
+              <div class="fw-bold text-truncate" style="max-width: 180px;">{{ c.category }}</div>
+              <small class="text-muted">{{ c.previousAmount | currency:'TWD':'symbol':'1.0-0' }} -> {{ c.currentAmount | currency:'TWD':'symbol':'1.0-0' }}</small>
             </div>
-            <span class="text-danger fw-bold d-flex align-items-center">
-              <i class="pi pi-minus-circle me-1" style="font-size: 0.7rem;"></i>
-              {{ txn.personalAmount | currency:'TWD':'symbol':'1.0-0' }}
+            <span class="fw-bold d-flex align-items-center" [class.text-danger]="c.deltaAmount > 0" [class.text-success]="c.deltaAmount < 0">
+              {{ getDeltaSign(c.deltaAmount) }}{{ (c.deltaAmount < 0 ? -c.deltaAmount : c.deltaAmount) | currency:'TWD':'symbol':'1.0-0' }}
             </span>
           </li>
         </ul>
-        <div *ngIf="!report()?.topExpenses?.length" class="text-center p-5 text-muted">
-          無支出紀錄
+        <div *ngIf="!getTopCategoryChanges().length" class="text-center p-5 text-muted">
+          與上月相比無明顯變化
         </div>
       </div>
     </div>
@@ -75,7 +74,7 @@
   <div class="row g-4 mt-1">
     <div class="col-12">
         <div class="card p-4 shadow-sm">
-            <h5 class="mb-3 text-muted"><i class="pi pi-credit-card me-2"></i>信用卡本期額度監控</h5>
+            <h5 class="mb-3 section-title"><i class="pi pi-credit-card me-2"></i>信用卡本期額度監控</h5>
             
             <div *ngIf="cardUsage().length === 0" class="text-center py-5 text-muted">
                 目前沒有信用卡資料或尚無預警設定。
@@ -85,7 +84,7 @@
                 <div class="col-12 col-md-6 col-lg-4" *ngFor="let card of cardUsage()">
                     <div class="border rounded p-3 h-100 bg-white">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="m-0 fw-bold text-truncate" [title]="card.cardName">{{ card.cardName }}</h6>
+                            <h6 class="m-0 fw-bold text-truncate card-usage-name" [title]="card.cardName">{{ card.cardName }}</h6>
                             <span class="badge" [ngClass]="{
                                 'bg-success': card.usagePercentage < 80,
                                 'bg-warning text-dark': card.usagePercentage >= 80 && card.usagePercentage < 100,
@@ -98,6 +97,9 @@
                         <div class="d-flex justify-content-between text-muted small mb-1">
                             <span>本期: {{ card.currentUsage | currency:'TWD':'symbol':'1.0-0' }}</span>
                             <span>上限: {{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</span>
+                        </div>
+                        <div class="text-muted small mb-1">
+                            剩餘額度: {{ card.remainingToThreshold | currency:'TWD':'symbol':'1.0-0' }}
                         </div>
                         
                         <p-progressBar [value]="card.usagePercentage" [showValue]="false" 

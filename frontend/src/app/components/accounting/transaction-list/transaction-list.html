@@ -16,7 +16,7 @@
         <p-button icon="pi pi-angle-left" [text]="true" (onClick)="goPrevMonth()"></p-button>
         <span class="month-label">{{ getSelectedMonthLabel() }}</span>
         <p-button icon="pi pi-angle-right" [text]="true" (onClick)="goNextMonth()"></p-button>
-        <p-button label="回到本月" [text]="true" size="small" (onClick)="goCurrentMonth()"></p-button>
+        <p-button label="回到本月" [text]="true" size="small" styleClass="month-reset-btn" (onClick)="goCurrentMonth()"></p-button>
       </div>
       <small class="text-muted">本月共 {{ monthSummary().count }} 筆交易</small>
     </div>
@@ -121,7 +121,7 @@
         <th pSortableColumn="item">內容 <p-sortIcon field="item"></p-sortIcon></th>
         <th pSortableColumn="category" style="width: 160px">分類 <p-sortIcon field="category"></p-sortIcon></th>
         <th pSortableColumn="cardName" style="width: 140px">支付方式 <p-sortIcon field="cardName"></p-sortIcon></th>
-        <th pSortableColumn="personalAmount" class="text-end" style="width: 180px">金額 <p-sortIcon field="personalAmount"></p-sortIcon></th>
+        <th pSortableColumn="transactionAmount" class="text-end" style="width: 180px">金額 <p-sortIcon field="transactionAmount"></p-sortIcon></th>
         <th style="width: 120px">操作</th>
       </tr>
     </ng-template>
@@ -138,7 +138,7 @@
         </td>
         <td>
           <span class="p-column-title fw-bold">分類</span>
-          <p-tag [value]="txn.category" [style]="{ 'background-color': getCategoryColor(txn.category) }"></p-tag>
+          <p-tag [value]="txn.category" [style]="getCategoryTagStyle(txn.category)"></p-tag>
         </td>
         <td>
             <span class="p-column-title fw-bold">支付方式</span>
@@ -148,10 +148,10 @@
         <td class="text-end amount-cell" [class.text-danger]="txn.transactionType === 'EXPENSE'" [class.text-success]="txn.transactionType === 'INCOME'">
           <span class="p-column-title fw-bold text-dark">金額</span>
           <div class="amount-main d-flex align-items-center justify-content-end">
-            <span>{{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.personalAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
+            <span>{{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.transactionAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
           </div>
-          <div class="amount-inline-meta text-muted" *ngIf="txn.personalAmount !== txn.actualSwipe">
-            <span>刷卡 {{ txn.actualSwipe | currency:'TWD':'symbol':'1.0-0' }}</span>
+          <div class="amount-inline-meta text-muted" *ngIf="txn.transactionAmount !== txn.paidAmount">
+            <span>實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
             <span class="meta-sep">•</span>
             <span class="txn-subtle-text">代墊</span>
           </div>
@@ -213,11 +213,11 @@
       </div>
       <div class="col-12 col-md-6">
         <label class="d-block mb-1 fw-bold small">交易金額</label>
-        <p-inputNumber [ngModel]="newTxn.personalAmount" (ngModelChange)="onPersonalAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
+        <p-inputNumber [ngModel]="newTxn.transactionAmount" (ngModelChange)="onTransactionAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
       </div>
       <div class="col-12 col-md-6">
         <label class="d-block mb-1 fw-bold small">實付金額</label>
-        <p-inputNumber [ngModel]="newTxn.actualSwipe" (ngModelChange)="onActualSwipeChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
+        <p-inputNumber [ngModel]="newTxn.paidAmount" (ngModelChange)="onPaidAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
       </div>
       <div class="col-12">
         <label class="d-block mb-1 fw-bold small">備註 (可選)</label>

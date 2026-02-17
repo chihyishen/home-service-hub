@@ -1,3 +1,18 @@
+.dashboard-title {
+  color: var(--app-text);
+  font-weight: 700;
+}
+
+.section-title {
+  color: var(--app-text);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.card-usage-name {
+  color: var(--app-text);
+}
+
 .chart-wrapper {
   display: flex;
   justify-content: center;
@@ -12,6 +27,30 @@
 }
 
 :host ::ng-deep {
+  .card {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+  }
+
+  .list-group,
+  .list-group-flush {
+    background-color: var(--app-surface);
+  }
+
+  .list-group-item {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text);
+  }
+
+  .text-muted {
+    color: var(--app-text-muted) !important;
+  }
+
+  .border {
+    border-color: var(--app-border) !important;
+  }
+
   .w-100-mobile {
     @media (max-width: 576px) {
       width: 100%;

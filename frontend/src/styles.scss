@@ -81,6 +81,12 @@ body {
   color: var(--app-text) !important;
 }
 
+.app-dark-mode h3,
+.app-dark-mode h4,
+.app-dark-mode h5 {
+  color: var(--app-text);
+}
+
 /* PrimeNG Specific Dark Mode Overrides */
 .app-dark-mode {
   .p-inputtext, .p-select, .p-inputnumber-input, .p-datepicker-input, .p-textarea {

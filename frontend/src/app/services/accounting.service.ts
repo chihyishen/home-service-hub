@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { 
   Transaction, TransactionCreate, Category, CreditCard, 
-  Subscription, Installment, MonthlyReport, PaymentMethod,
+  Subscription, Installment, MonthlyReport, PaymentMethod, MonthlyCompareReport,
   CardUsageSummary
 } from '../models/accounting.model';
 
@@ -43,6 +43,10 @@ export class AccountingService {
 
   getMonthlyReport(year: number, month: number): Observable<MonthlyReport> {
     return this.http.get<MonthlyReport>(`${this.apiUrl}/transactions/report/${year}/${month}`);
+  }
+
+  getMonthlyCompareReport(year: number, month: number): Observable<MonthlyCompareReport> {
+    return this.http.get<MonthlyCompareReport>(`${this.apiUrl}/transactions/report/compare/${year}/${month}`);
   }
 
   // Cards

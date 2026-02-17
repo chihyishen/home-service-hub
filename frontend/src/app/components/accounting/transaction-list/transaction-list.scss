@@ -43,6 +43,11 @@
     min-width: 100px;
     text-align: center;
     font-weight: 600;
+    color: var(--ui-text);
+    background: var(--ui-surface-soft);
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
 }
 
 .summary-grid {
@@ -172,6 +177,15 @@
     @media (max-width: 576px) {
         width: 100%;
     }
+}
+
+:host ::ng-deep .month-reset-btn.p-button.p-button-text {
+    color: var(--ui-text-muted) !important;
+}
+
+:host ::ng-deep .month-reset-btn.p-button.p-button-text:hover {
+    background-color: var(--ui-surface-soft) !important;
+    color: var(--ui-text) !important;
 }
 
 @media (max-width: 992px) {

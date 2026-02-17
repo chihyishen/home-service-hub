@@ -18,11 +18,11 @@ def db_session():
 def test_monthly_report_math(db_session):
     # Setup test data
     db_session.add(Transaction(
-        item="薪資", personal_amount=1000, actual_swipe=0, 
+        item="薪資", paid_amount=1000, transaction_amount=0, 
         transaction_type="INCOME", date=date(2026, 2, 1), category="Work", payment_method="Bank"
     ))
     db_session.add(Transaction(
-        item="晚餐", personal_amount=200, actual_swipe=200, 
+        item="晚餐", paid_amount=200, transaction_amount=200, 
         transaction_type="EXPENSE", date=date(2026, 2, 1), category="Food", payment_method="Cash"
     ))
     db_session.commit()
