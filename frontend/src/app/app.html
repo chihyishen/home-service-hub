@@ -1,7 +1,13 @@
-<div class="layout-wrapper">
-  <div class="sidebar shadow-sm">
-    <div class="sidebar-header p-3 border-bottom mb-3">
+<div class="layout-wrapper" [class.sidebar-open]="isSidebarOpen()">
+  <!-- Mobile Backdrop Overlay -->
+  <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
+
+  <div class="sidebar shadow-sm" [class.show]="isSidebarOpen()">
+    <div class="sidebar-header p-3 border-bottom mb-3 d-flex justify-content-between align-items-center">
       <h5 class="m-0"><i class="pi pi-home me-2"></i>Home Hub</h5>
+      <button class="btn btn-link d-lg-none text-dark p-0" (click)="closeSidebar()">
+        <i class="pi pi-times"></i>
+      </button>
     </div>
     
     <div class="menu-section px-2">
@@ -36,15 +42,20 @@
   </div>
 
   <div class="main-content">
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4 px-4 sticky-top">
-      <div class="container-fluid">
-        <span class="navbar-text fw-bold text-dark">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4 px-3 px-lg-4 sticky-top">
+      <div class="container-fluid d-flex align-items-center">
+        <!-- Mobile Toggle Button -->
+        <button class="btn btn-link d-lg-none me-2 text-dark p-0" (click)="toggleSidebar()">
+          <i class="pi pi-bars" style="font-size: 1.25rem;"></i>
+        </button>
+
+        <span class="navbar-text fw-bold text-dark flex-grow-1 overflow-hidden text-nowrap text-truncate">
           {{ title() }}
         </span>
       </div>
     </nav>
 
-    <main class="container-fluid px-4 pb-4">
+    <main class="container-fluid px-3 px-lg-4 pb-4">
       <router-outlet />
     </main>
   </div>
