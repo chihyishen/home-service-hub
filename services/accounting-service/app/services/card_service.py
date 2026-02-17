@@ -3,10 +3,10 @@ from .. import models, schemas
 from fastapi import HTTPException
 
 def get_cards(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.CreditCard).filter(models.CreditCard.is_deleted == False).offset(skip).limit(limit).all()
+    return db.query(models.CreditCard).offset(skip).limit(limit).all()
 
 def get_card(db: Session, card_id: int):
-    card = db.query(models.CreditCard).filter(models.CreditCard.id == card_id, models.CreditCard.is_deleted == False).first()
+    card = db.query(models.CreditCard).filter(models.CreditCard.id == card_id).first()
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
     return card
@@ -29,6 +29,6 @@ def update_card(db: Session, card_id: int, card_update: schemas.CreditCardUpdate
 
 def delete_card(db: Session, card_id: int):
     db_card = get_card(db, card_id)
-    db_card.is_deleted = True
+    db.delete(db_card)
     db.commit()
-    return {"message": "Card soft deleted successfully"}
+    return {"message": "Card deleted successfully"}

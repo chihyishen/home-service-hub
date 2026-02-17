@@ -44,6 +44,10 @@ def list_installments(db: Session = Depends(get_db)):
 def create_installment(inst: schemas.InstallmentCreate, db: Session = Depends(get_db)):
     return recurring_service.create_installment(db, inst)
 
+@router.put("/installments/{inst_id}", response_model=schemas.Installment, summary="修改分期項目")
+def update_installment(inst_id: int, inst_update: schemas.InstallmentUpdate, db: Session = Depends(get_db)):
+    return recurring_service.update_installment(db, inst_id, inst_update)
+
 @router.delete("/installments/{inst_id}", summary="軟刪除分期項目")
 def delete_installment(inst_id: int, db: Session = Depends(get_db)):
     return recurring_service.delete_installment(db, inst_id)

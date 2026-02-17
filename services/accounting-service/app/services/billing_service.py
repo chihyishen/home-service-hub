@@ -32,22 +32,33 @@ def get_billing_cycle_range(billing_day: int, target_date: date):
     
     return start_date, end_date
 
+def get_reward_cycle_range(card: models.CreditCard, target_date: date):
+    """
+    根據卡片的回饋週期類型計算日期範圍
+    """
+    if card.reward_cycle_type == "CALENDAR_MONTH":
+        import calendar
+        start_date = date(target_date.year, target_date.month, 1)
+        _, last_day = calendar.monthrange(target_date.year, target_date.month)
+        end_date = date(target_date.year, target_date.month, last_day)
+        return start_date, end_date
+    
+    return get_billing_cycle_range(card.billing_day, target_date)
+
 def get_card_status(db: Session, card_id: int):
     card = db.query(models.CreditCard).filter(
-        models.CreditCard.id == card_id, 
-        models.CreditCard.is_deleted == False
+        models.CreditCard.id == card_id
     ).first()
     if not card:
         return None
     
     today = date.today()
-    start_date, end_date = get_billing_cycle_range(card.billing_day, today)
+    start_date, end_date = get_reward_cycle_range(card, today)
     
     current_usage = db.query(func.sum(models.Transaction.actual_swipe)).filter(
         models.Transaction.card_id == card_id,
         models.Transaction.date >= start_date,
-        models.Transaction.date <= end_date,
-        models.Transaction.is_deleted == False
+        models.Transaction.date <= end_date
     ).scalar() or 0.0
     
     remaining = None

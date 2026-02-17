@@ -1,0 +1,117 @@
+<div class="dashboard-container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="m-0">分析儀表板</h3>
+    <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
+                (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"></p-datepicker>
+  </div>
+
+  <div class="row g-4 mb-4" *ngIf="report()">
+    <div class="col-md-3">
+      <p-card header="總支出" subheader="本月合計" styleClass="h-100 border-start border-4 border-danger">
+        <h2 class="text-danger m-0">{{ report()?.summary?.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</h2>
+      </p-card>
+    </div>
+    <div class="col-md-3">
+      <p-card header="結餘" subheader="收入 - 支出" styleClass="h-100 border-start border-4 border-info">
+        <h2 class="text-info m-0">{{ report()?.summary?.surplus | currency:'TWD':'symbol':'1.0-0' }}</h2>
+      </p-card>
+    </div>
+    <div class="col-md-3">
+      <p-card header="總收入" subheader="本月合計" styleClass="h-100 border-start border-4 border-success">
+        <h2 class="text-success m-0">{{ report()?.summary?.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</h2>
+      </p-card>
+    </div>
+    <div class="col-md-3">
+      <p-card header="儲蓄率" subheader="百分比" styleClass="h-100 border-start border-4 border-warning">
+        <h2 class="text-warning m-0">{{ report()?.summary?.savingsRate | number:'1.1-1' }}%</h2>
+      </p-card>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card p-4 h-100">
+        <h5 class="mb-4">消費種類佔比</h5>
+        <div *ngIf="chartData" class="chart-wrapper">
+          <p-chart type="pie" [data]="chartData" [options]="chartOptions"></p-chart>
+        </div>
+        <div *ngIf="!chartData" class="text-center p-5 text-muted">本月無支出數據</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-4 h-100">
+        <h5 class="mb-4">支付方式分佈</h5>
+        <div *ngIf="paymentChartData" class="chart-wrapper">
+          <p-chart type="doughnut" [data]="paymentChartData" [options]="chartOptions"></p-chart>
+        </div>
+        <div *ngIf="!paymentChartData" class="text-center p-5 text-muted">本月無數據</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-4 h-100">
+        <h5 class="mb-4">主要支出項目</h5>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0" 
+              *ngFor="let txn of report()?.topExpenses">
+            <div>
+              <div class="fw-bold text-truncate" style="max-width: 150px;">{{ txn.item }}</div>
+              <small class="text-muted">{{ txn.date | date:'MM/dd' }} · {{ txn.category }}</small>
+            </div>
+            <span class="text-danger fw-bold d-flex align-items-center">
+              <i class="pi pi-minus-circle me-1" style="font-size: 0.7rem;"></i>
+              {{ txn.personalAmount | currency:'TWD':'symbol':'1.0-0' }}
+            </span>
+          </li>
+        </ul>
+        <div *ngIf="!report()?.topExpenses?.length" class="text-center p-5 text-muted">
+          無支出紀錄
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 信用卡預警 -->
+  <div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="card p-4 shadow-sm">
+            <h5 class="mb-3 text-muted"><i class="pi pi-credit-card me-2"></i>信用卡本期額度監控</h5>
+            
+            <div *ngIf="cardUsage().length === 0" class="text-center py-5 text-muted">
+                目前沒有信用卡資料或尚無預警設定。
+            </div>
+
+            <div class="row g-3" *ngIf="cardUsage().length > 0">
+                <div class="col-12 col-md-6 col-lg-4" *ngFor="let card of cardUsage()">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="m-0 fw-bold text-truncate" [title]="card.cardName">{{ card.cardName }}</h6>
+                            <span class="badge" [ngClass]="{
+                                'bg-success': card.usagePercentage < 80,
+                                'bg-warning text-dark': card.usagePercentage >= 80 && card.usagePercentage < 100,
+                                'bg-danger': card.usagePercentage >= 100
+                            }">
+                                {{ card.usagePercentage | number:'1.0-1' }}%
+                            </span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between text-muted small mb-1">
+                            <span>本期: {{ card.currentUsage | currency:'TWD':'symbol':'1.0-0' }}</span>
+                            <span>上限: {{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</span>
+                        </div>
+                        
+                        <p-progressBar [value]="card.usagePercentage" [showValue]="false" 
+                                       [color]="getProgressBarColor(card.usagePercentage)" 
+                                       [style]="{'height': '8px'}"></p-progressBar>
+                        
+                        <div class="text-end mt-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                週期: {{ card.billingCycleStart | date:'MM/dd' }} ~ {{ card.billingCycleEnd | date:'MM/dd' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>

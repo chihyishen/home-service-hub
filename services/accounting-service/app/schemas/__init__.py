@@ -23,4 +23,6 @@ from .recurring import (
     Installment, InstallmentCreate, InstallmentUpdate
 )
 from .analytics import MonthlyReport
-from .category import Category, CategoryCreate # 補上這一行
+from .category import Category, CategoryCreate, CategoryUpdate
+from .payment_method import PaymentMethod, PaymentMethodCreate, PaymentMethodUpdate
+from .payment_route import PaymentRoute, PaymentRouteCreate, PaymentRouteUpdate # 補上這一行

@@ -1,6 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons/font/bootstrap-icons.css";
+@import "primeicons/primeicons.css";
 
 body {
   background-color: #f8f9fa;
@@ -8,11 +9,82 @@ body {
 }
 
 .card {
-  border: none;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.navbar {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.p-tag {
+
+  font-weight: 700 !important;
+
+  padding: 0.35rem 0.7rem !important;
+
+  color: #ffffff !important;
+
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+  border: 1px solid rgba(0,0,0,0.1);
+
 }
+
+
+
+.p-tag-success {
+
+  background-color: #22c55e !important; // 更深的綠色
+
+}
+
+
+
+.p-tag-warn {
+
+  background-color: #f59e0b !important; // 更深的橘黃色
+
+}
+
+
+
+.p-tag-danger {
+
+  background-color: #ef4444 !important; // 更深的紅色
+
+}
+
+
+
+.p-tag-info {
+
+
+
+  background-color: #3b82f6 !important; // 更深的藍色
+
+
+
+}
+
+
+
+
+
+
+
+.p-tag-secondary {
+
+
+
+  background-color: #64748b !important; // 使用深藍灰色提升對比
+
+
+
+}
+
+
+
+
+
+

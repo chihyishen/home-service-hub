@@ -1,19 +1,57 @@
-.navbar-custom {
-  background-color: #7a6a8f !important; // 低飽和灰紫色
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+
+  .sidebar {
+    width: 250px;
+    background: white;
+    border-right: 1px solid #dee2e6;
+    position: fixed;
+    height: 100vh;
+    z-index: 1000;
+
+    .nav-link {
+      color: #495057;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      transition: all 0.2s;
+      border-radius: 8px;
+      margin: 2px 8px;
+
+      &:hover {
+        background-color: #f8f9fa;
+        color: #007bff;
+      }
+
+      &.active {
+        background-color: #e7f1ff;
+        color: #007bff;
+        font-weight: 600;
+      }
+
+      i {
+        font-size: 1.1rem;
+      }
+    }
+  }
+
+  .main-content {
+    flex: 1;
+    margin-left: 250px;
+    background-color: #f8f9fa;
+    min-width: 0; // Prevent flex item from overflowing
+  }
 }
 
-@media (max-width: 767.98px) {
-  h2 {
-    font-size: 1.5rem;
-  }
-
-  .container {
-    padding-left: 15px;
-    padding-right: 15px;
-  }
-
-  .card-body {
-    padding: 1.25rem;
+// Responsive adjustments
+@media (max-width: 991.98px) {
+  .layout-wrapper {
+    .sidebar {
+      display: none; // TODO: Implement mobile menu toggle
+    }
+    .main-content {
+      margin-left: 0;
+    }
   }
 }
