@@ -70,11 +70,16 @@
     </div>
   </div>
 
-  <!-- 信用卡預警 -->
   <div class="row g-4 mt-1">
     <div class="col-12">
         <div class="card p-4 shadow-sm">
-            <h5 class="mb-3 section-title"><i class="pi pi-credit-card me-2"></i>信用卡本期額度監控</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="m-0 section-title"><i class="pi pi-credit-card me-2"></i>信用卡本期額度監控</h5>
+              <p-button [label]="cardSortBy() === 'usage' ? '依使用率' : '依名稱'" 
+                        [icon]="'pi ' + (cardSortBy() === 'usage' ? 'pi-sort-amount-down' : 'pi-sort-alpha-down')"
+                        [text]="true" [rounded]="true" size="small"
+                        (onClick)="toggleCardSort()" severity="secondary"></p-button>
+            </div>
             
             <div *ngIf="cardUsage().length === 0" class="text-center py-5 text-muted">
                 目前沒有信用卡資料或尚無預警設定。

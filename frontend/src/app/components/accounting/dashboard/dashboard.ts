@@ -7,11 +7,12 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-accounting-dashboard',
   standalone: true,
-  imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule],
+  imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -22,6 +23,7 @@ export class AccountingDashboardComponent implements OnInit {
   report = signal<MonthlyReport | null>(null);
   compareReport = signal<MonthlyCompareReport | null>(null);
   cardUsage = signal<CardUsageSummary[]>([]);
+  cardSortBy = signal<'usage' | 'name'>('usage');
   
   chartData: any;
   paymentChartData: any;
@@ -40,8 +42,28 @@ export class AccountingDashboardComponent implements OnInit {
 
   loadCardUsage() {
       this.accountingService.getCardUsage().subscribe(data => {
-          this.cardUsage.set(data);
+          this.sortAndSetCardUsage(data);
       });
+  }
+
+  toggleCardSort() {
+      const current = this.cardSortBy();
+      this.cardSortBy.set(current === 'usage' ? 'name' : 'usage');
+      this.sortAndSetCardUsage(this.cardUsage());
+  }
+
+  private sortAndSetCardUsage(data: CardUsageSummary[]) {
+    const sortedData = [...data].sort((a, b) => {
+        if (this.cardSortBy() === 'usage') {
+            if (b.usagePercentage !== a.usagePercentage) {
+                return b.usagePercentage - a.usagePercentage;
+            }
+            return a.cardName.localeCompare(b.cardName);
+        } else {
+            return a.cardName.localeCompare(b.cardName);
+        }
+    });
+    this.cardUsage.set(sortedData);
   }
 
   getProgressBarColor(percentage: number): string {
