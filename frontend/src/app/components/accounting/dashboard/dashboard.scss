@@ -3,6 +3,24 @@
   justify-content: center;
   
   p-chart {
-    width: 80%;
+    width: 85%;
+    
+    @media (max-width: 576px) {
+      width: 100%;
+    }
+  }
+}
+
+:host ::ng-deep {
+  .w-100-mobile {
+    @media (max-width: 576px) {
+      width: 100%;
+      .p-datepicker {
+        width: 100%;
+      }
+      .p-inputtext {
+        width: 100%;
+      }
+    }
   }
 }

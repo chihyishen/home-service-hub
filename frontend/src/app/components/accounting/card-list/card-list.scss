@@ -1,1 +1,11 @@
-/* Card list specific styles */
+:host ::ng-deep {
+    .p-tag {
+        font-weight: 500;
+    }
+    
+    .w-100-mobile {
+        @media (max-width: 576px) {
+            width: 100%;
+        }
+    }
+}

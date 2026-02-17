@@ -1,25 +1,40 @@
 <p-toast></p-toast>
-<div class="card p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="card p-3 p-lg-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h3 class="m-0">信用卡管理</h3>
-    <p-button label="新增卡片" icon="pi pi-plus" (onClick)="showDialog()"></p-button>
+    <p-button label="新增卡片" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile"></p-button>
   </div>
 
-  <p-table [value]="cards()" [rows]="10" [paginator]="true" responsiveLayout="scroll">
+  <p-table [value]="cards()" [rows]="10" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
     <ng-template pTemplate="header">
       <tr>
         <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
         <th pSortableColumn="billingDay">結帳日 <p-sortIcon field="billingDay"></p-sortIcon></th>
+        <th pSortableColumn="defaultPaymentMethod">預設工具 <p-sortIcon field="defaultPaymentMethod"></p-sortIcon></th>
         <th pSortableColumn="alertThreshold">預警門檻 <p-sortIcon field="alertThreshold"></p-sortIcon></th>
         <th style="width: 100px">操作</th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-card>
       <tr>
-        <td>{{ card.name }}</td>
-        <td>每月 {{ card.billingDay }} 日</td>
-        <td>{{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</td>
         <td>
+          <span class="p-column-title fw-bold">名稱</span>
+          {{ card.name }}
+        </td>
+        <td>
+          <span class="p-column-title fw-bold">結帳日</span>
+          每月 {{ card.billingDay }} 日
+        </td>
+        <td>
+          <span class="p-column-title fw-bold">預設工具</span>
+          {{ card.defaultPaymentMethod }}
+        </td>
+        <td>
+          <span class="p-column-title fw-bold">預警門檻</span>
+          {{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}
+        </td>
+        <td>
+          <span class="p-column-title fw-bold">操作</span>
           <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showMenu($event, card)"></p-button>
         </td>
       </tr>
@@ -28,29 +43,34 @@
 
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
-  <p-dialog [header]="isEdit ? '編輯信用卡' : '新增信用卡'" [(visible)]="displayDialog" [modal]="true" [style]="{width: '35vw'}" [dismissableMask]="true">
+  <p-dialog [header]="isEdit ? '編輯信用卡' : '新增信用卡'" [(visible)]="displayDialog" [modal]="true" 
+            [style]="{width: '450px', maxWidth: '95vw'}" [dismissableMask]="true">
     <div class="flex flex-column gap-3 mt-2">
-      <div class="field mb-3">
-        <label for="name" class="d-block mb-2">卡片名稱</label>
+      <div class="field mb-1">
+        <label for="name" class="d-block mb-1 fw-bold small">卡片名稱</label>
         <input pInputText id="name" [(ngModel)]="newCard.name" class="w-100" placeholder="例如：台新 FlyGo" />
       </div>
-      <div class="row">
-        <div class="col-6">
+      <div class="row g-2">
+        <div class="col-12 col-md-6">
           <div class="field">
-            <label for="billingDay" class="d-block mb-2">結帳日 (1-31)</label>
-            <p-inputNumber id="billingDay" [(ngModel)]="newCard.billingDay" [min]="1" [max]="31" class="w-100"></p-inputNumber>
+            <label for="billingDay" class="d-block mb-1 fw-bold small">結帳日 (1-31)</label>
+            <p-inputNumber id="billingDay" [(ngModel)]="newCard.billingDay" [min]="1" [max]="31" class="w-100" styleClass="w-100"></p-inputNumber>
           </div>
         </div>
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="field">
-            <label for="cycleType" class="d-block mb-2">回饋週期</label>
+            <label for="cycleType" class="d-block mb-1 fw-bold small">回饋週期</label>
             <p-select id="cycleType" [options]="cycleOptions" [(ngModel)]="newCard.rewardCycleType" optionLabel="label" optionValue="value" class="w-100" appendTo="body"></p-select>
           </div>
         </div>
       </div>
-      <div class="field mb-3">
-        <label for="threshold" class="d-block mb-2">預警門檻</label>
-        <p-inputNumber id="threshold" [(ngModel)]="newCard.alertThreshold" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" class="w-100"></p-inputNumber>
+      <div class="field mb-1">
+        <label for="threshold" class="d-block mb-1 fw-bold small">預警門檻</label>
+        <p-inputNumber id="threshold" [(ngModel)]="newCard.alertThreshold" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" class="w-100" styleClass="w-100"></p-inputNumber>
+      </div>
+      <div class="field mb-1">
+        <label for="defaultTool" class="d-block mb-1 fw-bold small">預設支付工具 (如 Apple Pay)</label>
+        <p-select id="defaultTool" [options]="toolOptions()" [(ngModel)]="newCard.defaultPaymentMethod" optionLabel="label" optionValue="value" class="w-100" appendTo="body"></p-select>
       </div>
     </div>
     <ng-template pTemplate="footer">

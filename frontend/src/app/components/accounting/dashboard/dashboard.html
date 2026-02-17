@@ -1,8 +1,9 @@
 <div class="dashboard-container">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h3 class="m-0">分析儀表板</h3>
     <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
-                (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"></p-datepicker>
+                (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"
+                styleClass="w-100-mobile"></p-datepicker>
   </div>
 
   <div class="row g-4 mb-4" *ngIf="report()">
