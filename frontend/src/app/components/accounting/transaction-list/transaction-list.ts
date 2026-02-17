@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, ViewChild, computed } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
-import { Transaction, Category, CreditCard, PaymentMethod, PaymentRoute } from '../../../models/accounting.model';
+import { Transaction, Category, CreditCard, PaymentMethod } from '../../../models/accounting.model';
 import { forkJoin } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -15,6 +15,7 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { MenuModule } from 'primeng/menu';
+import { RadioButtonModule } from 'primeng/radiobutton';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 
@@ -34,7 +35,8 @@ import { Menu } from 'primeng/menu';
     DatePickerModule,
     ToastModule,
     TooltipModule,
-    MenuModule
+    MenuModule,
+    RadioButtonModule
   ],
   providers: [MessageService],
   templateUrl: './transaction-list.html',
@@ -50,16 +52,63 @@ export class TransactionListComponent implements OnInit {
   transactions = signal<Transaction[]>([]);
   categories = signal<Category[]>([]);
   cards = signal<CreditCard[]>([]);
-  paymentRoutes = signal<PaymentRoute[]>([]);
+  paymentMethods = signal<PaymentMethod[]>([]);
   
   // Filter Signals
   selectedCategory = signal<string | undefined>(undefined);
   selectedPaymentMethod = signal<string | undefined>(undefined);
+  selectedKeyword = signal<string>('');
+  selectedType = signal<'ALL' | 'EXPENSE' | 'INCOME'>('ALL');
+  selectedMonth = signal<Date>(new Date());
+
+  monthTransactions = computed(() => {
+    const current = this.selectedMonth();
+    const year = current.getFullYear();
+    const month = current.getMonth();
+    return this.transactions().filter(txn => {
+      const txnDate = new Date(txn.date);
+      return txnDate.getFullYear() === year && txnDate.getMonth() === month;
+    });
+  });
+
+  monthSummary = computed(() => {
+    const txns = this.monthTransactions();
+    const expense = txns
+      .filter(t => t.transactionType === 'EXPENSE')
+      .reduce((sum, t) => sum + (t.personalAmount || 0), 0);
+    const income = txns
+      .filter(t => t.transactionType === 'INCOME')
+      .reduce((sum, t) => sum + (t.personalAmount || 0), 0);
+    return {
+      expense,
+      income,
+      net: income - expense,
+      count: txns.length
+    };
+  });
+
+  activeFilterTags = computed(() => {
+    const tags: string[] = [];
+    const cat = this.selectedCategory();
+    const pm = this.selectedPaymentMethod();
+    const keyword = this.selectedKeyword().trim();
+    const type = this.selectedType();
+
+    if (cat) tags.push(`分類：${cat}`);
+    if (pm) tags.push(`支付：${pm}`);
+    if (type !== 'ALL') tags.push(`類型：${type === 'EXPENSE' ? '支出' : '收入'}`);
+    if (keyword) tags.push(`關鍵字：${keyword}`);
+    return tags;
+  });
+
+  hasActiveFilters = computed(() => this.activeFilterTags().length > 0);
 
   filteredTransactions = computed(() => {
-    let result = this.transactions();
+    let result = this.monthTransactions();
     const cat = this.selectedCategory();
     const pmValue = this.selectedPaymentMethod();
+    const keyword = this.selectedKeyword().trim().toLowerCase();
+    const type = this.selectedType();
 
     if (cat) {
       result = result.filter(txn => txn.category === cat);
@@ -76,13 +125,27 @@ export class TransactionListComponent implements OnInit {
         }
     }
 
+    if (type !== 'ALL') {
+      result = result.filter(txn => txn.transactionType === type);
+    }
+
+    if (keyword) {
+      result = result.filter(txn =>
+        (txn.item || '').toLowerCase().includes(keyword) ||
+        (txn.note || '').toLowerCase().includes(keyword)
+      );
+    }
+
     return result;
   });
 
   displayDialog = false;
   isEdit = false;
+  isGeneratingRecurring = false;
+  actualSwipeOverridden = false;
   txnDate = new Date();
   newTxn: any = this.resetNewTxn();
+  selectedPaymentValue: string | null = null;
 
   typeOptions = [
     { label: '支出', value: 'EXPENSE' },
@@ -92,8 +155,39 @@ export class TransactionListComponent implements OnInit {
   paymentOptions = signal<any[]>([]);
   filterPaymentOptions = signal<any[]>([]);
 
+  toolOptions = computed(() => 
+    this.paymentMethods().map(m => ({ label: m.name, value: m.name }))
+  );
+
   ngOnInit() {
     this.loadData();
+  }
+
+  getSelectedMonthLabel() {
+    const month = this.selectedMonth();
+    return `${month.getFullYear()}年${month.getMonth() + 1}月`;
+  }
+
+  goPrevMonth() {
+    const current = this.selectedMonth();
+    this.selectedMonth.set(new Date(current.getFullYear(), current.getMonth() - 1, 1));
+  }
+
+  goNextMonth() {
+    const current = this.selectedMonth();
+    this.selectedMonth.set(new Date(current.getFullYear(), current.getMonth() + 1, 1));
+  }
+
+  goCurrentMonth() {
+    const now = new Date();
+    this.selectedMonth.set(new Date(now.getFullYear(), now.getMonth(), 1));
+  }
+
+  clearFilters() {
+    this.selectedCategory.set(undefined);
+    this.selectedPaymentMethod.set(undefined);
+    this.selectedType.set('ALL');
+    this.selectedKeyword.set('');
   }
 
   loadData() {
@@ -105,23 +199,27 @@ export class TransactionListComponent implements OnInit {
     
     forkJoin({
         cards: this.accountingService.getCards(),
-        methods: this.accountingService.getPaymentMethods(),
-        routes: this.accountingService.getPaymentRoutes()
-    }).subscribe(({ cards, methods, routes }) => {
+        methods: this.accountingService.getPaymentMethods()
+    }).subscribe(({ cards, methods }) => {
         this.cards.set(cards);
-        this.paymentRoutes.set(routes);
+        this.paymentMethods.set(methods);
         
-        // 支付方式選項僅包含純支付工具
-        const options = methods.map(m => ({ label: m.name, value: m.name }));
-        if (!options.some(o => o.value === '現金')) {
-            options.unshift({ label: '現金', value: '現金' });
-        }
-        this.paymentOptions.set(options);
+        // 1. 建立「整合型支付選單」: 現金 + 所有的信用卡
+        const combined = [
+            { label: '現金', value: 'CASH', type: 'CASH' },
+            ...cards.map(c => ({ 
+                label: `💳 ${c.name}`, 
+                value: `CARD_${c.id}`, 
+                type: 'CARD',
+                cardId: c.id,
+                defaultTool: c.defaultPaymentMethod || 'Apple Pay'
+            }))
+        ];
+        this.paymentOptions.set(combined);
 
-        // 篩選器選項：包含支付工具與信用卡
+        // 2. 篩選器選項：保持原樣
         const filterOptions = [
-            { label: '--- 支付工具 ---', value: null, disabled: true },
-            ...options,
+            { label: '現金', value: '現金' },
             { label: '--- 信用卡 ---', value: null, disabled: true },
             ...cards.map(c => ({ label: `💳 ${c.name}`, value: c.id.toString() }))
         ];
@@ -130,6 +228,8 @@ export class TransactionListComponent implements OnInit {
   }
 
   resetNewTxn() {
+    this.selectedPaymentValue = 'CASH';
+    this.actualSwipeOverridden = false;
     return {
       item: '',
       date: '',
@@ -146,6 +246,8 @@ export class TransactionListComponent implements OnInit {
 
   showDialog() {
     this.newTxn = this.resetNewTxn();
+    this.selectedPaymentValue = 'CASH';
+    this.actualSwipeOverridden = false;
     this.txnDate = new Date();
     this.isEdit = false;
     this.displayDialog = true;
@@ -161,7 +263,7 @@ export class TransactionListComponent implements OnInit {
           { 
               label: '申請退款/沖銷', 
               icon: 'pi pi-undo', 
-              visible: txn.transactionType === 'EXPENSE' && txn.status === 'COMPLETED',
+              visible: txn.transactionType === 'EXPENSE',
               command: () => this.onRefund(txn)
           },
           { separator: true },
@@ -178,8 +280,23 @@ export class TransactionListComponent implements OnInit {
   editTransaction(txn: Transaction) {
       this.isEdit = true;
       this.newTxn = { ...txn };
+      this.actualSwipeOverridden = txn.actualSwipe !== txn.personalAmount;
       this.txnDate = new Date(txn.date);
+      this.selectedPaymentValue = txn.cardId ? `CARD_${txn.cardId}` : 'CASH';
       this.displayDialog = true;
+  }
+
+  onPersonalAmountChange(value: number | null | undefined) {
+      const amount = value ?? 0;
+      this.newTxn.personalAmount = amount;
+      if (!this.actualSwipeOverridden) {
+          this.newTxn.actualSwipe = amount;
+      }
+  }
+
+  onActualSwipeChange(value: number | null | undefined) {
+      this.newTxn.actualSwipe = value ?? 0;
+      this.actualSwipeOverridden = true;
   }
 
   onCategoryChange(id: number) {
@@ -189,40 +306,21 @@ export class TransactionListComponent implements OnInit {
       }
   }
 
-  onPaymentMethodChange(val: string) {
-      // 1. 檢查是否有自動路由規則
-      const route = this.paymentRoutes().find(r => r.methodName === val);
-      if (route) {
-          this.newTxn.cardId = route.cardId;
-      } else if (val === '現金') {
+  onCombinedPaymentChange(event: any) {
+      const selected = this.paymentOptions().find(o => o.value === event.value);
+      if (!selected) return;
+
+      if (selected.type === 'CASH') {
+          this.newTxn.paymentMethod = '現金';
           this.newTxn.cardId = null;
+      } else if (selected.type === 'CARD') {
+          this.newTxn.cardId = selected.cardId;
+          this.newTxn.paymentMethod = selected.defaultTool;
       }
       
-      // 2. 自動同步實際刷卡金額 (若尚未填寫)
-      if (this.newTxn.cardId && (this.newTxn.actualSwipe === 0 || !this.isEdit)) {
+      // 若使用者尚未手動覆寫，維持交易金額與實付金額同步
+      if (!this.actualSwipeOverridden) {
           this.newTxn.actualSwipe = this.newTxn.personalAmount;
-      }
-  }
-
-  getStatusSeverity(status: string): "success" | "warn" | "danger" | "secondary" | "info" | undefined {
-      switch (status) {
-          case 'COMPLETED': return 'success';
-          case 'PENDING':
-          case 'PENDING_SUB':
-          case 'PENDING_INSTALLMENT': return 'warn';
-          case 'CANCELLED': return 'danger';
-          default: return 'info';
-      }
-  }
-
-  getStatusLabel(status: string): string {
-      switch (status) {
-          case 'COMPLETED': return '已完成';
-          case 'PENDING': return '待處理';
-          case 'PENDING_SUB': return '訂閱中';
-          case 'PENDING_INSTALLMENT': return '分期中';
-          case 'CANCELLED': return '已取消';
-          default: return status;
       }
   }
 
@@ -245,7 +343,11 @@ export class TransactionListComponent implements OnInit {
   }
 
   saveTransaction() {
-    const dateStr = this.txnDate.toISOString().split('T')[0];
+    const year = this.txnDate.getFullYear();
+    const month = (this.txnDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = this.txnDate.getDate().toString().padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
     this.newTxn.date = dateStr;
 
     if (this.isEdit) {
@@ -282,12 +384,20 @@ export class TransactionListComponent implements OnInit {
   }
 
   generateRecurring() {
+      if (this.isGeneratingRecurring) return;
+      const now = new Date();
+      const yearMonth = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+      const confirmed = confirm(`確定要同步 ${yearMonth} 的固定支出、訂閱與分期扣款嗎？`);
+      if (!confirmed) return;
+
+      this.isGeneratingRecurring = true;
       this.accountingService.triggerRecurringGeneration().subscribe({
           next: () => {
-              this.messageService.add({ severity: 'success', summary: '成功', detail: '已觸發定期帳生成' });
+              this.messageService.add({ severity: 'success', summary: '同步完成', detail: `已同步 ${yearMonth} 定期交易` });
               this.loadData();
           },
-          error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '生成失敗' })
+          error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '同步失敗，請稍後再試' }),
+          complete: () => { this.isGeneratingRecurring = false; }
       });
   }
 }

@@ -11,7 +11,14 @@ def get_transactions(db: Session, skip: int = 0, limit: int = 100, category: Opt
         if category:
             span.set_attribute("filter.category", category)
             query = query.filter(models.Transaction.category == category)
-        return query.order_by(models.Transaction.date.desc()).offset(skip).limit(limit).all()
+        transactions = query.order_by(models.Transaction.date.desc()).offset(skip).limit(limit).all()
+        
+        # 顯式填充 card_name 以便 Pydantic 輸出
+        for t in transactions:
+            if t.card:
+                t.card_name = t.card.name
+        
+        return transactions
 
 def get_transaction(db: Session, transaction_id: int):
     with tracer.start_as_current_span("service.get_transaction") as span:
@@ -40,44 +47,30 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
         elif not transaction.category:
              raise HTTPException(status_code=400, detail="Either category_id or category name must be provided")
 
-        # 2. 校驗卡片
+        # 2. 校驗付款工具 (必須存在於支付方式字典表中)
+        if transaction.payment_method:
+            pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == transaction.payment_method).first()
+            if not pm_exists:
+                raise HTTPException(status_code=400, detail=f"Invalid payment_method: {transaction.payment_method}. Please add it to the system settings first.")
+
+        # 3. 校驗卡片
         if transaction.card_id:
             card = db.query(models.CreditCard).filter(models.CreditCard.id == transaction.card_id).first()
             if not card:
                 raise HTTPException(status_code=400, detail=f"Invalid card_id: {transaction.card_id}")
-            # 如果支付方式是空或預設，同步為卡片名稱
+            # 如果支付方式是空或預設，使用卡片的預設支付工具
             if not transaction.payment_method or transaction.payment_method == "信用卡":
-                transaction.payment_method = card.name
+                transaction.payment_method = card.default_payment_method or "Apple Pay"
 
-        # 1. 檢查是否有匹配的 PENDING 項目
-        pending_item = db.query(models.Transaction).filter(
-            models.Transaction.status.like("PENDING_%"),
-            models.Transaction.item == transaction.item,
-            models.Transaction.actual_swipe == transaction.actual_swipe,
-            models.Transaction.date >= date.today().replace(day=1)
-        ).first()
-
-        if pending_item:
-            span.add_event("matched_pending_item", {"id": pending_item.id})
-            for key, value in transaction.model_dump(exclude_unset=True).items():
-                setattr(pending_item, key, value)
-            pending_item.status = "COMPLETED"
-            db.commit()
-            db.refresh(pending_item)
-            return pending_item
-
-        # 2. 如果沒有匹配，建立新紀錄
+        # 1. 建立新紀錄
         db_transaction = models.Transaction(**transaction.model_dump())
-        if not db_transaction.card_id:
-            route = db.query(models.PaymentRoute).filter(
-                models.PaymentRoute.method_name == transaction.payment_method
-            ).first()
-            if route:
-                db_transaction.card_id = route.card_id
-
         db.add(db_transaction)
         db.commit()
         db.refresh(db_transaction)
+        
+        if db_transaction.card:
+            db_transaction.card_name = db_transaction.card.name
+            
         return db_transaction
 
 def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
@@ -98,7 +91,6 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
             payment_method=original.payment_method,
             card_id=original.card_id,
             transaction_type="INCOME",
-            status="COMPLETED",
             related_transaction_id=original.id,
             note=f"來自原始交易 ID: {original.id} 的沖銷"
         )
@@ -106,6 +98,10 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
         db.add(refund_tx)
         db.commit()
         db.refresh(refund_tx)
+        
+        if refund_tx.card:
+            refund_tx.card_name = refund_tx.card.name
+            
         return refund_tx
 
 def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionUpdate):
@@ -120,6 +116,11 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
                 raise HTTPException(status_code=400, detail=f"Invalid category_id: {update_data['category_id']}")
             update_data["category"] = cat.name
         
+        if "payment_method" in update_data and update_data["payment_method"]:
+            pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == update_data["payment_method"]).first()
+            if not pm_exists:
+                raise HTTPException(status_code=400, detail=f"Invalid payment_method: {update_data['payment_method']}")
+
         if "card_id" in update_data:
             if update_data["card_id"]:
                 card = db.query(models.CreditCard).filter(models.CreditCard.id == update_data["card_id"]).first()
@@ -136,6 +137,10 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
             setattr(db_transaction, key, value)
         db.commit()
         db.refresh(db_transaction)
+        
+        if db_transaction.card:
+            db_transaction.card_name = db_transaction.card.name
+            
         return db_transaction
 
 def delete_transaction(db: Session, transaction_id: int):

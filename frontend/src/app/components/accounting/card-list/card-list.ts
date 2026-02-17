@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
-import { CreditCard } from '../../../models/accounting.model';
+import { CreditCard, PaymentMethod } from '../../../models/accounting.model';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -41,6 +41,7 @@ export class CardListComponent implements OnInit {
   menuItems: MenuItem[] = [];
 
   cards = signal<CreditCard[]>([]);
+  paymentMethods = signal<PaymentMethod[]>([]);
   displayDialog = false;
   isEdit = false;
   newCard: any = this.resetNewCard();
@@ -50,19 +51,33 @@ export class CardListComponent implements OnInit {
     { label: '日曆月 (1-31日)', value: 'CALENDAR_MONTH' }
   ];
 
+  toolOptions = computed(() => 
+    this.paymentMethods().map(m => ({ label: m.name, value: m.name }))
+  );
+
   ngOnInit() {
-    this.loadCards();
+    this.loadData();
   }
 
-  loadCards() {
+  loadData() {
     this.accountingService.getCards().subscribe({
       next: (data) => this.cards.set(data),
       error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '無法載入卡片' })
     });
+    this.accountingService.getPaymentMethods().subscribe({
+        next: (data) => this.paymentMethods.set(data)
+    });
   }
 
   resetNewCard() {
-      return { name: '', billingDay: 1, rewardCycleType: 'BILLING_CYCLE', alertThreshold: 20000, rewardRules: {} };
+      return { 
+          name: '', 
+          billingDay: 1, 
+          rewardCycleType: 'BILLING_CYCLE', 
+          alertThreshold: 20000, 
+          rewardRules: {},
+          defaultPaymentMethod: 'Apple Pay' 
+      };
   }
 
   showDialog() {
@@ -92,7 +107,7 @@ export class CardListComponent implements OnInit {
             next: () => {
               this.messageService.add({ severity: 'success', summary: '成功', detail: '卡片已更新' });
               this.displayDialog = false;
-              this.loadCards();
+              this.loadData();
             },
             error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '更新失敗' })
           });
@@ -101,7 +116,7 @@ export class CardListComponent implements OnInit {
             next: () => {
               this.messageService.add({ severity: 'success', summary: '成功', detail: '卡片已建立' });
               this.displayDialog = false;
-              this.loadCards();
+              this.loadData();
             },
             error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '建立失敗' })
           });
@@ -113,7 +128,7 @@ export class CardListComponent implements OnInit {
       this.accountingService.deleteCard(id).subscribe({
         next: () => {
           this.messageService.add({ severity: 'success', summary: '成功', detail: '卡片已刪除' });
-          this.loadCards();
+          this.loadData();
         },
         error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '刪除失敗' })
       });

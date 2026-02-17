@@ -15,7 +15,6 @@ class TransactionBase(BaseSchema):
     transaction_type: str = Field(default="EXPENSE", description="交易類型 (INCOME, EXPENSE)", examples=["EXPENSE"])
     note: Optional[str] = Field(default=None, description="備註")
     tags: Optional[List[str]] = Field(default=None, description="標籤")
-    status: str = Field(default="COMPLETED", description="狀態")
     related_transaction_id: Optional[int] = Field(default=None, description="關聯的原始交易 ID (沖銷用)")
 
 class TransactionCreate(TransactionBase):
@@ -33,9 +32,9 @@ class TransactionUpdate(BaseSchema):
     transaction_type: Optional[str] = None
     note: Optional[str] = None
     tags: Optional[List[str]] = None
-    status: Optional[str] = None
 
 class Transaction(TransactionBase, AuditSchema):
     id: int
     subscription_id: Optional[int] = None
     installment_id: Optional[int] = None
+    card_name: Optional[str] = None

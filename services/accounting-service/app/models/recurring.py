@@ -33,12 +33,3 @@ class Installment(Base, TimestampMixin):
     card_id = Column(Integer, ForeignKey("credit_cards.id"))
 
     card = relationship("CreditCard", back_populates="installments")
-
-class PaymentRoute(Base):
-    __tablename__ = "payment_routes"
-
-    id = Column(Integer, primary_key=True, index=True)
-    method_name = Column(String, unique=True)
-    card_id = Column(Integer, ForeignKey("credit_cards.id"))
-
-    card = relationship("CreditCard", back_populates="payment_routes")

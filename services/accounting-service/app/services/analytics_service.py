@@ -24,7 +24,6 @@ def get_card_usage_summary(db: Session) -> List[schemas.analytics.CardUsageSumma
             models.Transaction.date >= start_date,
             models.Transaction.date <= end_date,
             models.Transaction.transaction_type == "EXPENSE",
-            models.Transaction.status != "CANCELLED",
             or_(
                 models.Transaction.card_id == card.id,
                 models.Transaction.payment_method == card.name
@@ -72,9 +71,10 @@ def get_monthly_report(db: Session, year: int, month: int) -> schemas.MonthlyRep
             total_expense += t.personal_amount
             # 統計分類
             category_map[t.category] = category_map.get(t.category, 0.0) + t.personal_amount
-            # 統計支付方式
-            p_method = t.payment_method
-            payment_map[p_method] = payment_map.get(p_method, 0.0) + t.personal_amount
+            
+            # 統計支付來源 (以卡片名稱為準，若無卡片則使用支付方式名稱如「現金」)
+            p_source = t.card.name if t.card_id and t.card else t.payment_method
+            payment_map[p_source] = payment_map.get(p_source, 0.0) + t.personal_amount
 
     surplus = total_income - total_expense
     savings_rate = (surplus / total_income * 100) if total_income > 0 else 0.0

@@ -18,7 +18,6 @@ class Transaction(Base, TimestampMixin):
     transaction_type = Column(String, default="EXPENSE")
     note = Column(String, nullable=True)
     tags = Column(JSON, nullable=True)
-    status = Column(String, default="COMPLETED")
     
     # 沖銷與連結
     related_transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)

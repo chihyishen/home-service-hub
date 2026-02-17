@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { 
   Transaction, TransactionCreate, Category, CreditCard, 
   Subscription, Installment, MonthlyReport, PaymentMethod,
-  CardUsageSummary, PaymentRoute
+  CardUsageSummary
 } from '../models/accounting.model';
 
 @Injectable({
@@ -98,19 +98,6 @@ export class AccountingService {
 
   deletePaymentMethod(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/payment-methods/${id}`);
-  }
-
-  // Payment Routes
-  getPaymentRoutes(): Observable<PaymentRoute[]> {
-    return this.http.get<PaymentRoute[]>(`${this.apiUrl}/payment-routes/`);
-  }
-
-  createPaymentRoute(data: { methodName: string, cardId: number }): Observable<PaymentRoute> {
-    return this.http.post<PaymentRoute>(`${this.apiUrl}/payment-routes/`, data);
-  }
-
-  deletePaymentRoute(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/payment-routes/${id}`);
   }
 
   // Recurring

@@ -11,8 +11,8 @@ class CreditCard(Base, TimestampMixin):
     reward_cycle_type = Column(String, default="BILLING_CYCLE") # BILLING_CYCLE or CALENDAR_MONTH
     reward_rules = Column(JSON, nullable=True)
     alert_threshold = Column(Integer, default=5000)
+    default_payment_method = Column(String, default="Apple Pay")
 
     transactions = relationship("Transaction", back_populates="card")
     subscriptions = relationship("Subscription", back_populates="card")
     installments = relationship("Installment", back_populates="card")
-    payment_routes = relationship("PaymentRoute", back_populates="card")

@@ -18,6 +18,7 @@ export interface CreditCard {
   billingDay: number;
   rewardCycleType: string;
   alertThreshold: number;
+  defaultPaymentMethod?: string;
 }
 
 export interface Transaction {
@@ -30,8 +31,8 @@ export interface Transaction {
   transactionType: TransactionType;
   paymentMethod: string;
   cardId?: number;
+  cardName?: string;
   note?: string;
-  status: string;
   relatedTransactionId?: number;
   createdAt?: string;
 }
@@ -93,13 +94,8 @@ export interface Subscription {
   paymentMethod?: string;
   dayOfMonth: number;
   cardId?: number;
+  cardName?: string;
   active: boolean;
-}
-
-export interface PaymentRoute {
-  id: number;
-  methodName: string;
-  cardId: number;
 }
 
 export interface Installment {
@@ -112,4 +108,5 @@ export interface Installment {
   remainingPeriods: number;
   startDate: string;
   cardId?: number;
+  cardName?: string;
 }
