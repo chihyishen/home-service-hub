@@ -11,7 +11,7 @@ def get_transactions(db: Session, skip: int = 0, limit: int = 100, category: Opt
         if category:
             span.set_attribute("filter.category", category)
             query = query.filter(models.Transaction.category == category)
-        transactions = query.order_by(models.Transaction.date.desc()).offset(skip).limit(limit).all()
+        transactions = query.order_by(models.Transaction.date.desc(), models.Transaction.id.desc()).offset(skip).limit(limit).all()
         
         # 顯式填充 card_name 以便 Pydantic 輸出
         for t in transactions:

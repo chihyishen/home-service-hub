@@ -133,8 +133,10 @@
         </td>
         <td>
             <span class="p-column-title fw-bold">內容</span>
-            <div class="txn-title fw-bold text-truncate" [title]="txn.item">{{ txn.item }}</div>
-            <small class="txn-note text-muted text-truncate d-block" *ngIf="txn.note" [title]="txn.note">{{ txn.note }}</small>
+            <div class="txn-info-content">
+              <div class="txn-title fw-bold text-truncate" [title]="txn.item">{{ txn.item }}</div>
+              <small class="txn-note text-muted text-truncate d-block" *ngIf="txn.note" [title]="txn.note">{{ txn.note }}</small>
+            </div>
         </td>
         <td>
           <span class="p-column-title fw-bold">分類</span>
@@ -142,18 +144,22 @@
         </td>
         <td>
             <span class="p-column-title fw-bold">支付方式</span>
-            <div [class.fw-bold]="txn.cardId">{{ txn.cardName || txn.paymentMethod }}</div>
-            <small class="text-muted d-block" *ngIf="txn.cardId">{{ txn.paymentMethod }}</small>
+            <div class="txn-payment-content">
+              <div [class.fw-bold]="txn.cardId">{{ txn.cardName || txn.paymentMethod }}</div>
+              <small class="text-muted d-block" *ngIf="txn.cardId">{{ txn.paymentMethod }}</small>
+            </div>
         </td>
         <td class="text-end amount-cell" [class.text-danger]="txn.transactionType === 'EXPENSE'" [class.text-success]="txn.transactionType === 'INCOME'">
           <span class="p-column-title fw-bold text-dark">金額</span>
-          <div class="amount-main d-flex align-items-center justify-content-end">
-            <span>{{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.transactionAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
-          </div>
-          <div class="amount-inline-meta text-muted" *ngIf="txn.transactionAmount !== txn.paidAmount">
-            <span>實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
-            <span class="meta-sep">•</span>
-            <span class="txn-subtle-text">代墊</span>
+          <div class="amount-values">
+            <div class="amount-main d-flex align-items-center justify-content-end">
+              <span>{{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.transactionAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
+            </div>
+            <div class="amount-inline-meta text-muted" *ngIf="txn.transactionAmount !== txn.paidAmount">
+              <span>實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
+              <span class="meta-sep">•</span>
+              <span class="txn-subtle-text">代墊</span>
+            </div>
           </div>
         </td>
         <td>
