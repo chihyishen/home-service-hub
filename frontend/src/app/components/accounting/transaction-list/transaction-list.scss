@@ -149,6 +149,21 @@
     max-width: 220px;
 }
 
+.txn-info-content,
+.txn-payment-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+@media (max-width: 960px) {
+    .txn-info-content,
+    .txn-payment-content {
+        align-items: flex-end;
+        text-align: right;
+    }
+}
+
 .txn-subtle-text {
     color: #b45309;
     font-weight: 600;
@@ -159,6 +174,12 @@
     font-weight: 700;
 }
 
+.amount-values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
 .amount-inline-meta {
     margin-top: 0.1rem;
     font-size: 0.74rem;
@@ -166,7 +187,6 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0.28rem;
-    width: 100%;
 }
 
 .meta-sep {
