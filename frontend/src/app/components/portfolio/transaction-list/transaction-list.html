@@ -1,0 +1,80 @@
+<div class="p-4">
+  <p-toast></p-toast>
+  <p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>交易紀錄</h2>
+    <p-button label="新增交易" icon="pi pi-plus" (onClick)="openNew()"></p-button>
+  </div>
+
+  <p-table [value]="transactions()" responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>日期</th>
+        <th>股票代碼</th>
+        <th>類型</th>
+        <th>數量</th>
+        <th>單價</th>
+        <th>手續費</th>
+        <th>交易稅</th>
+        <th>操作</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-t>
+      <tr>
+        <td>{{ t.trade_date | date:'yyyy-MM-dd' }}</td>
+        <td>{{ t.symbol }}</td>
+        <td>
+          <span [ngClass]="{'text-danger': t.type === 'BUY', 'text-success': t.type === 'SELL'}">
+            {{ t.type === 'BUY' ? '買進' : '賣出' }}
+          </span>
+        </td>
+        <td>{{ t.quantity | number }}</td>
+        <td>{{ t.price | number:'1.1-2' }}</td>
+        <td>{{ t.fee | number }}</td>
+        <td>{{ t.tax | number }}</td>
+        <td>
+          <p-button icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" (onClick)="editTransaction(t)"></p-button>
+          <p-button icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger p-button-sm" (onClick)="deleteTransaction(t)"></p-button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog [header]="isEdit() ? '修改交易' : '新增交易'" [(visible)]="showDialog" [modal]="true" [style]="{width: '450px'}">
+    <div class="grid p-fluid">
+      <div class="col-12 mb-3">
+        <label>交易類型</label>
+        <p-selectButton [options]="transactionTypes" [(ngModel)]="newTransaction.type"></p-selectButton>
+      </div>
+      <div class="col-12 mb-3">
+        <label>交易日期 (選填)</label>
+        <p-datepicker [(ngModel)]="newTransaction.trade_date" [showIcon]="true" appendTo="body"></p-datepicker>
+      </div>
+      <div class="col-12 mb-3">
+        <label>股票代碼</label>
+        <input pInputText [(ngModel)]="newTransaction.symbol" placeholder="例如: 2330" />
+      </div>
+      <div class="col-12 mb-3">
+        <label>成交股數</label>
+        <p-inputNumber [(ngModel)]="newTransaction.quantity" [min]="0"></p-inputNumber>
+      </div>
+      <div class="col-12 mb-3">
+        <label>成交單價</label>
+        <p-inputNumber [(ngModel)]="newTransaction.price" mode="decimal" [minFractionDigits]="1"></p-inputNumber>
+      </div>
+      <div class="col-6 mb-3">
+        <label>手續費</label>
+        <p-inputNumber [(ngModel)]="newTransaction.fee"></p-inputNumber>
+      </div>
+      <div class="col-6 mb-3">
+        <label>交易稅</label>
+        <p-inputNumber [(ngModel)]="newTransaction.tax"></p-inputNumber>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button label="取消" icon="pi pi-times" (onClick)="showDialog.set(false)" class="p-button-text"></p-button>
+      <p-button label="儲存" icon="pi pi-check" (onClick)="saveTransaction()"></p-button>
+    </ng-template>
+  </p-dialog>
+</div>
