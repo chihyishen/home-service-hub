@@ -8,13 +8,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @RestController
-
 @RequestMapping("/api/items")
 
 @RequiredArgsConstructor
@@ -35,11 +36,37 @@ public class ItemController {
 
     @GetMapping
 
-    @Operation(summary = "獲取所有品項", description = "取得目前系統中所有庫存品項的完整清單")
+    @Operation(summary = "獲取所有品項", description = "取得目前系統中所有庫存品項的完整清單，可選用關鍵字搜尋")
 
-    public ResponseEntity<List<ItemResponse>> getAllItems() {
+    public ResponseEntity<List<ItemResponse>> getAllItems(
+            @RequestParam(required = false) String keyword
+    ) {
 
-        return ResponseEntity.ok(itemService.getAllItems());
+        return ResponseEntity.ok(itemService.getAllItems(keyword));
+
+    }
+
+
+
+    @GetMapping("/categories")
+
+    @Operation(summary = "獲取所有分類", description = "取得目前系統中已存在的所有分類名稱")
+
+    public ResponseEntity<List<String>> getAllCategories() {
+
+        return ResponseEntity.ok(itemService.getAllCategories());
+
+    }
+
+
+
+    @GetMapping("/locations")
+
+    @Operation(summary = "獲取所有位置", description = "取得目前系統中已存在的所有收納位置")
+
+    public ResponseEntity<List<String>> getAllLocations() {
+
+        return ResponseEntity.ok(itemService.getAllLocations());
 
     }
 
@@ -74,6 +101,16 @@ public class ItemController {
     }
 
 
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "上傳品項圖片", description = "上傳圖片並更新品項的圖片連結")
+    @ApiResponse(responseCode = "200", description = "上傳成功")
+    @ApiResponse(responseCode = "404", description = "找不到該品項")
+    public ResponseEntity<ItemResponse> uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(itemService.uploadImage(id, file));
+    }
 
     @PutMapping("/{id}")
 

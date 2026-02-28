@@ -48,6 +48,7 @@ export class App implements OnDestroy {
   private applyTheme(isDark: boolean) {
     if (typeof document !== 'undefined') {
       document.documentElement.classList.toggle('app-dark-mode', isDark);
+      document.documentElement.classList.toggle('app-light-mode', !isDark);
     }
   }
 

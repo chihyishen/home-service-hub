@@ -4,6 +4,7 @@
 @import "primeicons/primeicons.css";
 
 :root {
+  color-scheme: light;
   --app-bg: #F2F2F7;
   --app-surface: #FFFFFF;
   --app-surface-soft: #F2F2F7;
@@ -17,7 +18,8 @@
   --app-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.app-dark-mode {
+@mixin dark-theme-styles {
+  color-scheme: dark;
   --app-bg: #000000;
   --app-surface: #1C1C1E;
   --app-surface-soft: #2C2C2E;
@@ -29,66 +31,45 @@
   --app-success: #32D74B;
   --app-warning: #FF9F0A;
   --app-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
 
-body {
-  background-color: var(--app-bg);
-  color: var(--app-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  transition: background-color 0.3s ease, color 0.3s ease;
-  margin: 0;
-}
+  /* iOS Style Overrides for Bootstrap Utility Classes */
+  .bg-white, 
+  .navbar-light.bg-white {
+    background-color: var(--app-surface) !important;
+  }
 
-.card {
-  background-color: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 12px;
-  box-shadow: var(--app-card-shadow);
-  padding: 1rem;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
+  .bg-light {
+    background-color: var(--app-surface-soft) !important;
+  }
 
-/* iOS Style Overrides for Bootstrap Utility Classes */
-.app-dark-mode .bg-white, 
-.app-dark-mode .navbar-light.bg-white {
-  background-color: var(--app-surface) !important;
-}
+  .text-dark {
+    color: var(--app-text) !important;
+  }
 
-.app-dark-mode .bg-light {
-  background-color: var(--app-surface-soft) !important;
-}
+  .text-muted {
+    color: var(--app-text-muted) !important;
+  }
 
-.app-dark-mode .text-dark {
-  color: var(--app-text) !important;
-}
+  .border,
+  .border-bottom,
+  .border-top,
+  .border-start,
+  .border-end {
+    border-color: var(--app-border) !important;
+  }
 
-.app-dark-mode .text-muted {
-  color: var(--app-text-muted) !important;
-}
+  .navbar-light .navbar-text,
+  .navbar-light .navbar-brand,
+  .navbar-light .btn-link,
+  .navbar-light .navbar-nav .nav-link {
+    color: var(--app-text) !important;
+  }
 
-.app-dark-mode .border,
-.app-dark-mode .border-bottom,
-.app-dark-mode .border-top,
-.app-dark-mode .border-start,
-.app-dark-mode .border-end {
-  border-color: var(--app-border) !important;
-}
+  h3, h4, h5 {
+    color: var(--app-text);
+  }
 
-.app-dark-mode .navbar-light .navbar-text,
-.app-dark-mode .navbar-light .navbar-brand,
-.app-dark-mode .navbar-light .btn-link,
-.app-dark-mode .navbar-light .navbar-nav .nav-link {
-  color: var(--app-text) !important;
-}
-
-.app-dark-mode h3,
-.app-dark-mode h4,
-.app-dark-mode h5 {
-  color: var(--app-text);
-}
-
-/* PrimeNG Specific Dark Mode Overrides */
-.app-dark-mode {
+  /* PrimeNG Specific Dark Mode Overrides */
   .p-inputtext, .p-select, .p-inputnumber-input, .p-datepicker-input, .p-textarea {
     background-color: var(--app-surface-soft) !important;
     color: var(--app-text) !important;
@@ -156,6 +137,35 @@ body {
       }
     }
   }
+}
+
+/* Automatic System Theme Support */
+@media (prefers-color-scheme: dark) {
+  :root:not(.app-light-mode) {
+    @include dark-theme-styles;
+  }
+}
+
+/* Explicit Overrides (Manual Toggle) */
+.app-dark-mode {
+  @include dark-theme-styles;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 0;
+}
+
+.card {
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  box-shadow: var(--app-card-shadow);
+  padding: 1rem;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* PrimeNG Tags */

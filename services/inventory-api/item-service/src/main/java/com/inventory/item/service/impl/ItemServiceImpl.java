@@ -7,12 +7,14 @@ import com.inventory.item.mapper.ItemMapper;
 import com.inventory.item.model.Item;
 import com.inventory.item.repository.ItemRepository;
 import com.inventory.item.service.ItemService;
+import com.inventory.item.service.StorageService;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,12 +26,29 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
     private final ObservationRegistry observationRegistry;
+    private final StorageService storageService;
 
     @Override
-    public List<ItemResponse> getAllItems() {
-        return itemRepository.findAll().stream()
+    public List<ItemResponse> getAllItems(String keyword) {
+        List<Item> items;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            items = itemRepository.findByNameContainingIgnoreCaseOrNoteContainingIgnoreCase(keyword.trim(), keyword.trim());
+        } else {
+            items = itemRepository.findAll();
+        }
+        return items.stream()
                 .map(itemMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public List<String> getAllCategories() {
+        return itemRepository.findDistinctCategories();
+    }
+
+    @Override
+    public List<String> getAllLocations() {
+        return itemRepository.findDistinctLocations();
     }
 
     @Override
@@ -77,7 +96,26 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
+    public ItemResponse uploadImage(Long id, MultipartFile file) {
+        // 1. 查出 Item
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
+
+        // 2. 上傳圖片
+        String imageUrl = storageService.uploadFile(file);
+
+        // 3. 更新 URL
+        item.setImageUrl(imageUrl);
+        Item updatedItem = itemRepository.save(item);
+
+        return itemMapper.toResponse(updatedItem);
+    }
+
+    @Override
+    @Transactional
     public void deleteItem(Long id) {
+        // Optional: delete old image if exists?
+        // itemRepository.findById(id).ifPresent(item -> storageService.deleteFile(item.getImageUrl()));
         itemRepository.deleteById(id);
     }
 }
