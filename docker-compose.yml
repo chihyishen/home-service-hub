@@ -54,6 +54,20 @@ services:
     networks:
       - inventory-net
 
+  stock-portfolio-service:
+    profiles: ["apps"]
+    build:
+      context: ./services/stock-portfolio-service
+    container_name: stock-portfolio-service
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${STOCK_DB}
+    ports:
+      - "${STOCK_SERVICE_PORT}:8001"
+    depends_on:
+      - postgres
+    networks:
+      - inventory-net
+
   # --- 4. OpenTelemetry Collector ---
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest

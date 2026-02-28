@@ -20,6 +20,17 @@ module.exports = {
       },
     },
     {
+      name: 'stock-portfolio-service',
+      cwd: './services/stock-portfolio-service',
+      script: './.venv/bin/uvicorn',
+      args: 'app.main:app --host 0.0.0.0 --port 8001',
+      interpreter: 'none',
+      env_file: '../../.env',
+      env: {
+        PYTHONUNBUFFERED: '1',
+      },
+    },
+    {
       name: 'frontend',
       cwd: './frontend',
       script: 'npm',

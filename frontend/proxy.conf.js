@@ -21,7 +21,9 @@ const requiredVars = [
   'INVENTORY_ITEM_SERVICE_HOST',
   'INVENTORY_ITEM_SERVICE_PORT',
   'ACCOUNTING_SERVICE_HOST',
-  'ACCOUNTING_SERVICE_PORT'
+  'ACCOUNTING_SERVICE_PORT',
+  'STOCK_SERVICE_HOST',
+  'STOCK_SERVICE_PORT'
 ];
 
 requiredVars.forEach(v => {
@@ -33,6 +35,7 @@ requiredVars.forEach(v => {
 
 const INVENTORY_TARGET = `http://${envConfig.INVENTORY_ITEM_SERVICE_HOST}:${envConfig.INVENTORY_ITEM_SERVICE_PORT}`;
 const ACCOUNTING_TARGET = `http://${envConfig.ACCOUNTING_SERVICE_HOST}:${envConfig.ACCOUNTING_SERVICE_PORT}`;
+const STOCK_TARGET = `http://${envConfig.STOCK_SERVICE_HOST}:${envConfig.STOCK_SERVICE_PORT}`;
 
 module.exports = {
   "/api/items": {
@@ -44,6 +47,13 @@ module.exports = {
   "/api/accounting": {
     "target": ACCOUNTING_TARGET,
     "pathRewrite": { "^/api/accounting": "" },
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/portfolio": {
+    "target": STOCK_TARGET,
+    "pathRewrite": { "^/api/portfolio": "/api/portfolio" },
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
