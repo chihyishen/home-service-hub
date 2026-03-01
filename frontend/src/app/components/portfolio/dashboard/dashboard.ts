@@ -17,12 +17,18 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class PortfolioDashboardComponent implements OnInit {
   private portfolioService = inject(PortfolioService);
+  protected readonly Number = Number;
 
   summary = signal<PortfolioSummary | null>(null);
   loading = signal<boolean>(false);
+  showWithDividend = signal<boolean>(false);
 
   ngOnInit() {
     this.loadSummary();
+  }
+
+  toggleDividend() {
+    this.showWithDividend.set(!this.showWithDividend());
   }
 
   loadSummary() {
@@ -39,13 +45,14 @@ export class PortfolioDashboardComponent implements OnInit {
     });
   }
 
-  getPnlColor(value: number): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
-    if (value > 0) return 'danger';
-    if (value < 0) return 'success';
+  getPnlColor(value: number | string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
+    const num = Number(value);
+    if (num > 0) return 'danger';
+    if (num < 0) return 'success';
     return 'info';
   }
 
-  formatCurrency(value: number): string {
-    return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(value);
+  formatCurrency(value: number | string): string {
+    return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(Number(value));
   }
 }

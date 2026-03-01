@@ -19,14 +19,28 @@
       <p-card>
         <ng-template pTemplate="title">
           <div class="d-flex justify-content-between align-items-center">
-            <span style="font-size: 1.25rem; font-weight: 700;">未實現損益</span>
+            <span style="font-size: 1.25rem; font-weight: 700;" class="d-flex align-items-center">
+              未實現損益
+              <p-button 
+                [icon]="showWithDividend() ? 'pi pi-percentage' : 'pi pi-money-bill'" 
+                [text]="true" 
+                [rounded]="true" 
+                severity="secondary" 
+                size="small"
+                (onClick)="toggleDividend()"
+                class="ms-1"
+                [pTooltip]="showWithDividend() ? '目前顯示：含息損益' : '目前顯示：價差損益 (不含息)'">
+              </p-button>
+            </span>
             <small class="ms-2" [ngClass]="{'text-danger': summary()!.total_unrealized_pnl > 0, 'text-success': summary()!.total_unrealized_pnl < 0}">
-              {{ summary()!.total_unrealized_pnl_percent.toFixed(2) }}%
+              {{ (showWithDividend() ? 
+                  ((Number(summary()!.total_unrealized_pnl) + Number(summary()!.total_dividends)) / Number(summary()!.total_cost) * 100) : 
+                  summary()!.total_unrealized_pnl_percent) | number:'1.2-2' }}%
             </small>
           </div>
         </ng-template>
         <div class="h3 m-0" [ngClass]="{'text-danger': summary()!.total_unrealized_pnl > 0, 'text-success': summary()!.total_unrealized_pnl < 0}">
-          {{ formatCurrency(summary()!.total_unrealized_pnl) }}
+          {{ formatCurrency(showWithDividend() ? (Number(summary()!.total_unrealized_pnl) + Number(summary()!.total_dividends)) : summary()!.total_unrealized_pnl) }}
         </div>
       </p-card>
     </div>
@@ -78,7 +92,7 @@
           <td>{{ formatCurrency(stock.market_value) }}</td>
           <td>{{ formatCurrency(stock.total_dividends) }}</td>
           <td>
-            <p-tag [severity]="getPnlColor(stock.unrealized_pnl)" [value]="formatCurrency(stock.unrealized_pnl) + ' (' + stock.unrealized_pnl_percent.toFixed(2) + '%)'"></p-tag>
+            <p-tag [severity]="getPnlColor(stock.unrealized_pnl)" [value]="formatCurrency(stock.unrealized_pnl) + ' (' + ((stock.unrealized_pnl_percent | number:'1.2-2') || '0.00') + '%)'"></p-tag>
           </td>
           <td>
             <span [ngClass]="{'text-danger': stock.total_pnl_with_dividend > 0, 'text-success': stock.total_pnl_with_dividend < 0}">
