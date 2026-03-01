@@ -81,19 +81,19 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             yesterday_close = quote.get("yesterday_close", 0.0)
             
             # 平均成本計算 (Task 4)
-            avg_cost = h["total_cost"] / h["total_quantity"] if h["total_quantity"] > 0 else 0.0
+            avg_cost = round(h["total_cost"] / h["total_quantity"], 2) if h["total_quantity"] > 0 else 0.0
             
             # 市值與未實現損益
-            market_value = h["total_quantity"] * current_price
-            unrealized_pnl = market_value - h["total_cost"]
-            pnl_percent = (unrealized_pnl / h["total_cost"] * 100) if h["total_cost"] > 0 else 0.0
+            market_value = round(h["total_quantity"] * current_price, 2)
+            unrealized_pnl = round(market_value - h["total_cost"], 2)
+            pnl_percent = round((unrealized_pnl / h["total_cost"] * 100), 2) if h["total_cost"] > 0 else 0.0
             
             # 單日損益計算 (Task 1)
-            day_change_amount = current_price - yesterday_close
-            day_change_percent = (day_change_amount / yesterday_close * 100) if yesterday_close > 0 else 0.0
-            day_pnl = day_change_amount * h["total_quantity"]
+            day_change_amount = round(current_price - yesterday_close, 2)
+            day_change_percent = round((day_change_amount / yesterday_close * 100), 2) if yesterday_close > 0 else 0.0
+            day_pnl = round(day_change_amount * h["total_quantity"], 2)
             
-            stock_div = dividend_map.get(symbol, 0.0)
+            stock_div = round(dividend_map.get(symbol, 0.0), 2)
 
             holdings_list.append(schemas.StockHolding(
                 symbol=symbol,
@@ -108,7 +108,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                 day_change_percent=day_change_percent,
                 day_pnl=day_pnl,
                 total_dividends=stock_div,
-                total_pnl_with_dividend=unrealized_pnl + stock_div
+                total_pnl_with_dividend=round(unrealized_pnl + stock_div, 2)
             ))
 
             total_market_value += market_value
@@ -116,15 +116,15 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             total_unrealized_pnl += unrealized_pnl
             total_day_pnl += day_pnl
 
-        total_pnl_percent = (total_unrealized_pnl / total_cost * 100) if total_cost > 0 else 0.0
+        total_pnl_percent = round((total_unrealized_pnl / total_cost * 100), 2) if total_cost > 0 else 0.0
 
         return schemas.PortfolioSummary(
-            total_market_value=total_market_value,
-            total_cost=total_cost,
-            total_unrealized_pnl=total_unrealized_pnl,
+            total_market_value=round(total_market_value, 2),
+            total_cost=round(total_cost, 2),
+            total_unrealized_pnl=round(total_unrealized_pnl, 2),
             total_unrealized_pnl_percent=total_pnl_percent,
-            total_day_pnl=total_day_pnl,
-            total_dividends=total_dividends,
+            total_day_pnl=round(total_day_pnl, 2),
+            total_dividends=round(total_dividends, 2),
             holdings=holdings_list
         )
 
