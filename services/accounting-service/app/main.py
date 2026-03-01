@@ -15,9 +15,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Home Service Hub - Accounting API",
-    description="""
-記帳與財務管理微服務。
-""",
+    description="記帳與財務管理微服務。",
     version="1.2.0",
 )
 

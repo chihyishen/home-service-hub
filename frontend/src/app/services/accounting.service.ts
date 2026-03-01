@@ -15,7 +15,7 @@ export class AccountingService {
   private apiUrl = '/api/accounting';
 
   // Transactions
-  getTransactions(skip = 0, limit = 100, category?: string): Observable<Transaction[]> {
+  getTransactions(skip = 0, limit = 300, category?: string): Observable<Transaction[]> {
     let url = `${this.apiUrl}/transactions/?skip=${skip}&limit=${limit}`;
     if (category) url += `&category=${category}`;
     return this.http.get<Transaction[]>(url);

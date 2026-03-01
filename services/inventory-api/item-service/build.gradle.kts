@@ -23,6 +23,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
 
+    // 4.1 MinIO (物件儲存)
+    implementation("io.minio:minio:8.5.17")
+
     // 5. 開發工具 (熱重載等)
     // 這行確保 DevTools 不會被打包進 Production
     developmentOnly("org.springframework.boot:spring-boot-devtools")

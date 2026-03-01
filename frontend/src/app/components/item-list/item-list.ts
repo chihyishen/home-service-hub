@@ -12,6 +12,9 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
 import { MenuModule } from 'primeng/menu';
+import { AutoCompleteModule } from 'primeng/autocomplete';
+import { FileUploadModule } from 'primeng/fileupload';
+import { ImageModule } from 'primeng/image';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 
@@ -29,7 +32,10 @@ import { Menu } from 'primeng/menu';
     TextareaModule,
     ToastModule,
     TagModule,
-    MenuModule
+    MenuModule,
+    AutoCompleteModule,
+    FileUploadModule,
+    ImageModule
   ],
   providers: [MessageService],
   template: `
@@ -37,12 +43,16 @@ import { Menu } from 'primeng/menu';
     <div class="card p-3 p-lg-4">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <h3 class="m-0">庫存管理</h3>
-        <p-button label="新增物品" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile"></p-button>
+        <div class="d-flex gap-2 w-100-mobile">
+            <input pInputText type="text" [(ngModel)]="searchKeyword" (ngModelChange)="loadItems()" placeholder="搜尋物品名稱或備註..." class="flex-grow-1" />
+            <p-button label="新增物品" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile"></p-button>
+        </div>
       </div>
 
       <p-table [value]="items()" [rows]="10" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
         <ng-template pTemplate="header">
           <tr>
+            <th style="width: 80px">圖片</th>
             <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
             <th pSortableColumn="category">類別 <p-sortIcon field="category"></p-sortIcon></th>
             <th pSortableColumn="location">位置 <p-sortIcon field="location"></p-sortIcon></th>
@@ -52,6 +62,11 @@ import { Menu } from 'primeng/menu';
         </ng-template>
         <ng-template pTemplate="body" let-item>
           <tr>
+            <td>
+              <span class="p-column-title fw-bold">圖片</span>
+              <p-image *ngIf="item.imageUrl" [src]="item.imageUrl" [preview]="true" width="50" class="vertical-align-middle"></p-image>
+              <i *ngIf="!item.imageUrl" class="pi pi-image text-muted" style="font-size: 1.5rem"></i>
+            </td>
             <td>
               <span class="p-column-title fw-bold">名稱</span>
               <div class="fw-bold">{{ item.name }}</div>
@@ -94,16 +109,26 @@ import { Menu } from 'primeng/menu';
           <div class="row g-2">
             <div class="col-12 col-md-6">
                 <label class="d-block mb-2">類別</label>
-                <input pInputText [(ngModel)]="newItem.category" class="w-100" placeholder="例如：耗材" />
+                <p-autoComplete [(ngModel)]="newItem.category" [suggestions]="filteredCategories" (completeMethod)="filterCategories($event)" [dropdown]="true" styleClass="w-100" placeholder="例如：耗材"></p-autoComplete>
             </div>
             <div class="col-12 col-md-6">
                 <label class="d-block mb-2">位置</label>
-                <input pInputText [(ngModel)]="newItem.location" class="w-100" placeholder="例如：抽屜" />
+                <p-autoComplete [(ngModel)]="newItem.location" [suggestions]="filteredLocations" (completeMethod)="filterLocations($event)" [dropdown]="true" styleClass="w-100" placeholder="例如：抽屜"></p-autoComplete>
             </div>
           </div>
           <div class="field">
             <label class="d-block mb-2">數量</label>
             <p-inputNumber [(ngModel)]="newItem.quantity" [min]="0" class="w-100"></p-inputNumber>
+          </div>
+          <div class="field" *ngIf="isEdit">
+            <label class="d-block mb-2">圖片</label>
+            <div class="d-flex align-items-center gap-3">
+                <p-image *ngIf="newItem.imageUrl" [src]="newItem.imageUrl" [preview]="true" width="100"></p-image>
+                <p-fileUpload mode="basic" chooseLabel="上傳圖片" name="file" accept="image/*" [auto]="true" [customUpload]="true" (uploadHandler)="onUpload($event)"></p-fileUpload>
+            </div>
+          </div>
+          <div class="alert alert-info mt-2" *ngIf="!isEdit">
+            <i class="pi pi-info-circle me-2"></i> 請先儲存物品，再上傳圖片。
           </div>
           <div class="field">
             <label class="d-block mb-2">備註</label>
@@ -128,6 +153,10 @@ import { Menu } from 'primeng/menu';
                 width: 100%;
             }
         }
+        
+        .p-autocomplete {
+            width: 100%;
+        }
     }
   `]
 })
@@ -143,16 +172,53 @@ export class ItemListComponent implements OnInit {
   isEdit = false;
   
   newItem: any = this.resetNewItem();
+  
+  // Search & Autocomplete
+  searchKeyword: string = '';
+  allCategories: string[] = [];
+  filteredCategories: string[] = [];
+  allLocations: string[] = [];
+  filteredLocations: string[] = [];
 
   ngOnInit(): void {
     this.loadItems();
+    this.loadMetadata();
+  }
+
+  loadMetadata(): void {
+    this.itemService.getCategories().subscribe(cats => this.allCategories = cats);
+    this.itemService.getLocations().subscribe(locs => this.allLocations = locs);
   }
 
   loadItems(): void {
-    this.itemService.getAll().subscribe({
+    this.itemService.getAll(this.searchKeyword).subscribe({
       next: (data) => this.items.set(data),
       error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '無法載入物品清單' })
     });
+  }
+  
+  filterCategories(event: any) {
+    const query = event.query.toLowerCase();
+    this.filteredCategories = this.allCategories.filter(c => c.toLowerCase().includes(query));
+  }
+
+  filterLocations(event: any) {
+    const query = event.query.toLowerCase();
+    this.filteredLocations = this.allLocations.filter(l => l.toLowerCase().includes(query));
+  }
+
+  onUpload(event: any) {
+    const file = event.files[0];
+    if (this.isEdit && this.newItem.id) {
+        this.itemService.uploadImage(this.newItem.id, file).subscribe({
+            next: (updatedItem) => {
+                this.newItem.imageUrl = updatedItem.imageUrl;
+                this.messageService.add({ severity: 'success', summary: '成功', detail: '圖片上傳成功' });
+                this.loadItems();
+            },
+            error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '圖片上傳失敗' })
+        });
+    }
   }
 
   showMenu(event: MouseEvent, item: ItemResponse) {
