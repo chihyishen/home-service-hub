@@ -2,6 +2,7 @@ import requests
 import time
 import logging
 from typing import Dict, Optional, List
+from decimal import Decimal
 from ..tracing import tracer
 
 logger = logging.getLogger(__name__)
@@ -51,12 +52,12 @@ def get_stock_quotes(symbols: List[str]) -> Dict[str, Dict]:
                     current_price = yesterday_close
                 
                 try:
-                    price_val = float(current_price)
+                    price_val = Decimal(str(current_price))
                 except (TypeError, ValueError):
-                    price_val = 0.0
+                    price_val = Decimal("0.0")
                 
                 try:
-                    y_close_val = float(yesterday_close)
+                    y_close_val = Decimal(str(yesterday_close))
                 except (TypeError, ValueError):
                     y_close_val = price_val # 如果拿不到昨收，就用當前價代替 (change = 0)
 

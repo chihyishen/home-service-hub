@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Dict
+from decimal import Decimal, ROUND_HALF_UP
 from ..models import portfolio as models
 from ..schemas import portfolio as schemas
 from .twse_service import get_stock_quotes
@@ -32,7 +33,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
         dividend_map = {}
         for d in dividends:
             symbol = sanitize_symbol(d.symbol)
-            dividend_map[symbol] = dividend_map.get(symbol, 0.0) + d.amount
+            dividend_map[symbol] = dividend_map.get(symbol, Decimal("0.0")) + Decimal(str(d.amount))
 
         # 交易統計 (計算平均成本與持股數)
         for t in transactions:
@@ -42,23 +43,21 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                     "symbol": symbol,
                     "name": t.name,
                     "total_quantity": 0,
-                    "total_cost": 0.0,
+                    "total_cost": Decimal("0.0"),
                 }
             
             h = holdings_map[symbol]
             if t.type == models.TransactionType.BUY:
                 h["total_quantity"] += t.quantity
                 # 買入總成本 = (單價 * 股數) + 手續費
-                h["total_cost"] += (t.quantity * t.price) + (t.fee or 0.0)
+                h["total_cost"] += (Decimal(t.quantity) * Decimal(str(t.price))) + Decimal(str(t.fee or "0.0"))
             elif t.type == models.TransactionType.SELL:
                 if h["total_quantity"] > 0:
-                    avg_unit_cost = h["total_cost"] / h["total_quantity"]
+                    avg_unit_cost = h["total_cost"] / Decimal(h["total_quantity"])
                     h["total_quantity"] -= t.quantity
                     # 賣出時減少庫存成本 (簡易已實現計算方式)
-                    # 這裡不計入手續費，因為手續費是增加買入成本，賣出手續費則視為減少賣出收益 (通常算入已實現損益)
-                    h["total_cost"] -= (t.quantity * avg_unit_cost)
+                    h["total_cost"] -= (Decimal(t.quantity) * avg_unit_cost)
                 else:
-                    # 異常狀況：沒庫存還賣
                     pass
 
         # 只顯示還有持股的股票
@@ -68,32 +67,34 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
         quotes = get_stock_quotes(active_symbols)
 
         holdings_list = []
-        total_market_value = 0.0
-        total_cost = 0.0
-        total_unrealized_pnl = 0.0
-        total_day_pnl = 0.0
-        total_dividends = sum(dividend_map.values())
+        total_market_value = Decimal("0.0")
+        total_cost = Decimal("0.0")
+        total_unrealized_pnl = Decimal("0.0")
+        total_day_pnl = Decimal("0.0")
+        total_dividends = sum(dividend_map.values(), Decimal("0.0"))
 
         for symbol in active_symbols:
             h = holdings_map[symbol]
             quote = quotes.get(symbol, {})
-            current_price = quote.get("current_price", 0.0)
-            yesterday_close = quote.get("yesterday_close", 0.0)
+            current_price = quote.get("current_price", Decimal("0.0"))
+            yesterday_close = quote.get("yesterday_close", Decimal("0.0"))
             
-            # 平均成本計算 (Task 4)
-            avg_cost = round(h["total_cost"] / h["total_quantity"], 2) if h["total_quantity"] > 0 else 0.0
+            total_qty_dec = Decimal(h["total_quantity"])
+            
+            # 平均成本計算
+            avg_cost = (h["total_cost"] / total_qty_dec).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             
             # 市值與未實現損益
-            market_value = round(h["total_quantity"] * current_price, 2)
-            unrealized_pnl = round(market_value - h["total_cost"], 2)
-            pnl_percent = round((unrealized_pnl / h["total_cost"] * 100), 2) if h["total_cost"] > 0 else 0.0
+            market_value = (total_qty_dec * current_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            unrealized_pnl = (market_value - h["total_cost"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            pnl_percent = ((unrealized_pnl / h["total_cost"]) * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if h["total_cost"] > 0 else Decimal("0.0")
             
-            # 單日損益計算 (Task 1)
-            day_change_amount = round(current_price - yesterday_close, 2)
-            day_change_percent = round((day_change_amount / yesterday_close * 100), 2) if yesterday_close > 0 else 0.0
-            day_pnl = round(day_change_amount * h["total_quantity"], 2)
+            # 單日損益計算
+            day_change_amount = (current_price - yesterday_close).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            day_change_percent = ((day_change_amount / yesterday_close) * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if yesterday_close > 0 else Decimal("0.0")
+            day_pnl = (day_change_amount * total_qty_dec).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             
-            stock_div = round(dividend_map.get(symbol, 0.0), 2)
+            stock_div = dividend_map.get(symbol, Decimal("0.0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             holdings_list.append(schemas.StockHolding(
                 symbol=symbol,
@@ -108,7 +109,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                 day_change_percent=day_change_percent,
                 day_pnl=day_pnl,
                 total_dividends=stock_div,
-                total_pnl_with_dividend=round(unrealized_pnl + stock_div, 2)
+                total_pnl_with_dividend=(unrealized_pnl + stock_div).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             ))
 
             total_market_value += market_value
@@ -116,15 +117,15 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             total_unrealized_pnl += unrealized_pnl
             total_day_pnl += day_pnl
 
-        total_pnl_percent = round((total_unrealized_pnl / total_cost * 100), 2) if total_cost > 0 else 0.0
+        total_pnl_percent = ((total_unrealized_pnl / total_cost) * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if total_cost > 0 else Decimal("0.0")
 
         return schemas.PortfolioSummary(
-            total_market_value=round(total_market_value, 2),
-            total_cost=round(total_cost, 2),
-            total_unrealized_pnl=round(total_unrealized_pnl, 2),
+            total_market_value=total_market_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            total_cost=total_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            total_unrealized_pnl=total_unrealized_pnl.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             total_unrealized_pnl_percent=total_pnl_percent,
-            total_day_pnl=round(total_day_pnl, 2),
-            total_dividends=round(total_dividends, 2),
+            total_day_pnl=total_day_pnl.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            total_dividends=total_dividends.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             holdings=holdings_list
         )
 
