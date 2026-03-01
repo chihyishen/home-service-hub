@@ -15,9 +15,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Home Service Hub - Stock Portfolio API",
-    description="""
-投資組合管理微服務。
-""",
+    description="投資組合管理微服務。",
     version="1.0.0",
 )
 

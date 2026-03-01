@@ -11,9 +11,9 @@ load_dotenv(env_path, override=True)
 def get_database_url() -> str:
     user = os.getenv("POSTGRES_USER")
     password = os.getenv("POSTGRES_PASSWORD")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("POSTGRES_PORT", "5432")
-    db_name = os.getenv("STOCK_DB", "stock_portfolio_db")
+    host = os.getenv("DB_HOST")
+    port = os.getenv("POSTGRES_PORT")
+    db_name = os.getenv("STOCK_DB")
 
     missing_vars = [
         var for var, val in {
