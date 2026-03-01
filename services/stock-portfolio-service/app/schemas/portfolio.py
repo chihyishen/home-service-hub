@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
+from decimal import Decimal
 
 class TransactionType(str, Enum):
     BUY = "BUY"
@@ -12,10 +13,10 @@ class TransactionBase(BaseModel):
     name: Optional[str] = None
     type: TransactionType
     quantity: int
-    price: float
+    price: Decimal = Field(..., decimal_places=2)
     trade_date: Optional[datetime] = None
-    fee: float = 0.0
-    tax: float = 0.0
+    fee: Decimal = Field(default=Decimal("0.0"), decimal_places=2)
+    tax: Decimal = Field(default=Decimal("0.0"), decimal_places=2)
 
 class TransactionCreate(TransactionBase):
     pass
@@ -30,7 +31,7 @@ class Transaction(TransactionBase):
 
 class DividendBase(BaseModel):
     symbol: str
-    amount: float
+    amount: Decimal = Field(..., decimal_places=2)
     ex_dividend_date: datetime
     received_date: Optional[datetime] = None
 
@@ -51,22 +52,22 @@ class StockHolding(BaseModel):
     symbol: str
     name: Optional[str] = None
     total_quantity: int
-    avg_cost: float
-    current_price: float
-    market_value: float
-    unrealized_pnl: float
-    unrealized_pnl_percent: float
-    day_change_amount: float = 0.0      # 單日漲跌金額
-    day_change_percent: float = 0.0     # 單日漲跌幅(%)
-    day_pnl: float = 0.0                # 單日損益
-    total_dividends: float = 0.0
-    total_pnl_with_dividend: float # 含息損益
+    avg_cost: Decimal
+    current_price: Decimal
+    market_value: Decimal
+    unrealized_pnl: Decimal
+    unrealized_pnl_percent: Decimal
+    day_change_amount: Decimal = Decimal("0.0")      # 單日漲跌金額
+    day_change_percent: Decimal = Decimal("0.0")     # 單日漲跌幅(%)
+    day_pnl: Decimal = Decimal("0.0")                # 單日損益
+    total_dividends: Decimal = Decimal("0.0")
+    total_pnl_with_dividend: Decimal # 含息損益
 
 class PortfolioSummary(BaseModel):
-    total_market_value: float
-    total_cost: float
-    total_unrealized_pnl: float
-    total_unrealized_pnl_percent: float
-    total_day_pnl: float = 0.0          # 投資組合今日總損益
-    total_dividends: float
+    total_market_value: Decimal
+    total_cost: Decimal
+    total_unrealized_pnl: Decimal
+    total_unrealized_pnl_percent: Decimal
+    total_day_pnl: Decimal = Decimal("0.0")          # 投資組合今日總損益
+    total_dividends: Decimal
     holdings: List[StockHolding]
