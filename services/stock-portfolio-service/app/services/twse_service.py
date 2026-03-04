@@ -3,7 +3,7 @@ import time
 import logging
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Any
 from decimal import Decimal, InvalidOperation
 from ..tracing import tracer
 
@@ -12,135 +12,129 @@ logger = logging.getLogger(__name__)
 class TWSEapiError(Exception):
     pass
 
-
 def _bool_env(name: str, default: bool = True) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
     return value.strip().lower() not in {"0", "false", "no", "off"}
 
-
-def _fetch_twse_response(url: str) -> requests.Response:
+def _to_decimal(val: Any) -> Decimal:
     """
-    優先使用憑證驗證；若憑證鏈異常導致 SSL 失敗，降級重試一次 verify=False。
-    可透過 TWSE_SSL_VERIFY=false 直接關閉驗證。
+    安全轉換為 Decimal。
+    針對 TWSE 的 'a' (買價) 或 'b' (賣價) 欄位，會自動拆分並取第一檔報價。
     """
-    verify_ssl = _bool_env("TWSE_SSL_VERIFY", True)
+    if val is None or val == "" or val == "-":
+        return Decimal("0.0")
     try:
-        return requests.get(url, timeout=10, verify=verify_ssl)
-    except requests.exceptions.SSLError:
-        if not verify_ssl:
-            raise
-        logger.warning("TWSE SSL 驗證失敗，改用 verify=False 重試一次")
-        return requests.get(url, timeout=10, verify=False)
+        # 處理多重報價格式，例如 "23.5900_23.6000_" -> 取 "23.5900"
+        clean_val = str(val).split('_')[0].replace(",", "").strip()
+        return Decimal(clean_val)
+    except (TypeError, ValueError, InvalidOperation):
+        return Decimal("0.0")
 
-
-def _parse_twse_json(raw_text: str) -> Dict:
+def fetch_raw_quotes(symbols: List[str]) -> Dict[str, Any]:
     """
-    解析 TWSE 回傳字串，容忍 BOM/前後雜訊/JSONP 包裹。
-    """
-    text = (raw_text or "").strip()
-    if not text:
-        return {}
-
-    # 移除 UTF-8 BOM
-    text = text.lstrip("\ufeff")
-
-    # 若回傳包含前後雜訊或 JSONP，抓第一個 { 到最後一個 }
-    first_brace = text.find("{")
-    last_brace = text.rfind("}")
-    if first_brace == -1 or last_brace == -1 or first_brace > last_brace:
-        raise TWSEapiError("TWSE 回傳非 JSON 格式內容")
-    candidate = text[first_brace:last_brace + 1]
-
-    try:
-        parsed = json.loads(candidate)
-    except json.JSONDecodeError as exc:
-        raise TWSEapiError(f"TWSE JSON 解析失敗: {exc}") from exc
-
-    if not isinstance(parsed, dict):
-        raise TWSEapiError("TWSE JSON 根節點不是物件")
-
-    return parsed
-
-def get_stock_quotes(symbols: List[str]) -> Dict[str, Dict]:
-    """
-    獲取多檔股票的即時報價
+    第一階段：發送網路請求並取得原始 JSON
     """
     if not symbols:
         return {}
 
-    # 預處理代碼，轉大寫並去除後綴
     clean_symbols = [s.split('.')[0].upper().strip() for s in symbols]
-
-    ch_list = []
-    for s in clean_symbols:
-        ch_list.append(f"tse_{s}.tw")
-        ch_list.append(f"otc_{s}.tw")
-    
+    ch_list = [f"tse_{s}.tw|otc_{s}.tw" for s in clean_symbols]
     ex_ch = "|".join(ch_list)
     url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={ex_ch}&_={int(time.time() * 1000)}"
+    
+    # 預設跳過 SSL 驗證以提升內部服務發查穩定性
+    verify_ssl = _bool_env("TWSE_SSL_VERIFY", False)
 
-    try:
-        with tracer.start_as_current_span("fetch_twse_quotes") as span:
-            span.set_attribute("stock.symbols", clean_symbols)
-            response = _fetch_twse_response(url)
+    with tracer.start_as_current_span("twse_network_request") as span:
+        span.set_attribute("http.url", url)
+        span.set_attribute("stock.symbols", clean_symbols)
+        
+        try:
+            response = requests.get(url, timeout=10, verify=verify_ssl)
             response.raise_for_status()
+            
             raw_text = response.text
-            try:
-                data = _parse_twse_json(raw_text)
-            except TWSEapiError:
-                logger.error("TWSE 回傳解析失敗，raw prefix=%r", raw_text[:300])
-                raise
-
-            msg_array = data.get("msgArray")
-            if not isinstance(msg_array, list) or not msg_array:
-                logger.warning(f"TWSE API 未回傳任何股票數據: {data}")
+            text = raw_text.lstrip("\ufeff").strip()
+            
+            # 偵測 JSON 邊界處理 BOM
+            first_brace = text.find("{")
+            last_brace = text.rfind("}")
+            if first_brace == -1 or last_brace == -1:
+                logger.error(f"TWSE 回傳格式異常: {text[:200]}")
                 return {}
-
-            results = {}
+                
+            return json.loads(text[first_brace:last_brace + 1])
             
-            def to_decimal(val) -> Decimal:
-                if val is None or val == "" or val == "-":
-                    return Decimal("0.0")
-                try:
-                    return Decimal(str(val).replace(",", ""))
-                except (TypeError, ValueError, InvalidOperation):
-                    return Decimal("0.0")
+        except Exception as e:
+            logger.error(f"TWSE 網路請求失敗: {str(e)}")
+            return {}
 
-            for item in msg_array:
-                if not isinstance(item, dict):
-                    continue
-                symbol = item.get("c", "").strip()
-                if not symbol:
-                    continue
-                
-                # 取得各項價格欄位
-                z = item.get("z") # 成交
-                pz = item.get("pz") # 試算
-                y = item.get("y") # 昨收
-                
-                price_val = to_decimal(z)
-                if price_val == 0: price_val = to_decimal(pz)
-                if price_val == 0: price_val = to_decimal(y)
-                
-                y_close_val = to_decimal(y)
-                if y_close_val == 0: y_close_val = price_val
-
-                # 確保不被空數據覆蓋，且匹配原始請求的 symbol
-                if symbol in clean_symbols:
-                    if symbol not in results or price_val > 0:
-                        results[symbol] = {
-                            "symbol": symbol,
-                            "name": item.get("n"),
-                            "current_price": price_val,
-                            "yesterday_close": y_close_val,
-                            "time": item.get("t") or item.get("%")
-                        }
-                        logger.info(f"成功解析: {symbol}, 價格: {price_val}")
+def parse_twse_msg_array(msg_array: List[Dict], target_symbols: List[str]) -> Dict[str, Dict]:
+    """
+    第二階段：從 msgArray 中解析出精確報價，支援成交價缺失時自動備援至五檔報價
+    """
+    results = {}
+    clean_targets = [s.split('.')[0].upper().strip() for s in target_symbols]
+    
+    for item in msg_array:
+        if not isinstance(item, dict):
+            continue
             
-            return results
+        symbol = item.get("c", "").strip()
+        if not symbol or symbol not in clean_targets:
+            continue
+            
+        # 提取報價欄位
+        z = item.get("z")   # 成交價
+        pz = item.get("pz") # 試算成交價
+        a = item.get("a")   # 最佳買盤價 (五檔)
+        b = item.get("b")   # 最佳賣盤價 (五檔)
+        y = item.get("y")   # 昨收價
+        
+        # 優先順序策略：成交 > 試算 > 買價 > 賣價 > 昨收
+        price_val = _to_decimal(z)
+        source = "z (成交)"
+        
+        if price_val == 0:
+            price_val = _to_decimal(pz)
+            source = "pz (試算)"
+        if price_val == 0:
+            price_val = _to_decimal(a)
+            source = "a (最佳買入)"
+        if price_val == 0:
+            price_val = _to_decimal(b)
+            source = "b (最佳賣出)"
+        if price_val == 0:
+            price_val = _to_decimal(y)
+            source = "y (昨收)"
+        
+        y_close_val = _to_decimal(y)
+        # 如果昨收也沒了，拿目前的價格當基準 (漲跌為 0)
+        if y_close_val == 0:
+            y_close_val = price_val
 
-    except Exception as e:
-        logger.error(f"呼叫 TWSE API 失敗: {str(e)}", exc_info=True)
+        # 寫入結果，若重複 symbol 則優先保留有報價的物件
+        if symbol not in results or price_val > 0:
+            results[symbol] = {
+                "symbol": symbol,
+                "name": item.get("n"),
+                "current_price": price_val,
+                "yesterday_close": y_close_val,
+                "time": item.get("t") or item.get("%")
+            }
+            logger.info(f"解析股票 [{symbol}]: 價格={price_val}, 來源={source}, 昨收={y_close_val}")
+            
+    return results
+
+def get_stock_quotes(symbols: List[str]) -> Dict[str, Dict]:
+    """
+    進入點：協調發查與解析
+    """
+    raw_data = fetch_raw_quotes(symbols)
+    msg_array = raw_data.get("msgArray", [])
+    if not isinstance(msg_array, list) or not msg_array:
         return {}
+        
+    return parse_twse_msg_array(msg_array, symbols)
