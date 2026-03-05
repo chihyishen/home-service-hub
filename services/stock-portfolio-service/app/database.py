@@ -28,7 +28,11 @@ def get_database_url() -> str:
     return f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
 
 SQLALCHEMY_DATABASE_URL = get_database_url()
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True,  # 自動檢測失效連線，修復 500 報錯
+    pool_recycle=3600    # 一小時回收一次連線
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
