@@ -2,6 +2,9 @@ package com.inventory.item.controller;
 
 import com.inventory.item.dto.ItemRequest;
 import com.inventory.item.dto.ItemResponse;
+import com.inventory.item.dto.ItemTransactionResultResponse;
+import com.inventory.item.dto.InventoryTransactionRequest;
+import com.inventory.item.dto.InventoryTransactionResponse;
 import com.inventory.item.service.ItemService;
 import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,10 +42,13 @@ public class ItemController {
     @Operation(summary = "獲取所有品項", description = "取得目前系統中所有庫存品項的完整清單，可選用關鍵字搜尋")
 
     public ResponseEntity<List<ItemResponse>> getAllItems(
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean lowStockOnly,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String location
     ) {
 
-        return ResponseEntity.ok(itemService.getAllItems(keyword));
+        return ResponseEntity.ok(itemService.getAllItems(keyword, lowStockOnly, category, location));
 
     }
 
@@ -110,6 +116,22 @@ public class ItemController {
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(itemService.uploadImage(id, file));
+    }
+
+    @PostMapping("/{id}/transactions")
+    @Operation(summary = "建立庫存異動", description = "建立使用/補貨/盤點異動並更新品項數量")
+    public ResponseEntity<ItemTransactionResultResponse> createTransaction(
+            @PathVariable Long id,
+            @RequestBody InventoryTransactionRequest request) {
+        return ResponseEntity.ok(itemService.createTransaction(id, request));
+    }
+
+    @GetMapping("/{id}/transactions")
+    @Operation(summary = "查詢品項異動歷史", description = "取得指定品項的異動紀錄，依時間新到舊")
+    public ResponseEntity<List<InventoryTransactionResponse>> getTransactions(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok(itemService.getTransactionsByItemId(id, limit));
     }
 
     @PutMapping("/{id}")
