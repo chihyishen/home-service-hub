@@ -1,25 +1,26 @@
-import requests
-import random
+from app import schemas
+from app.services import billing_service, card_service
 
-BASE_URL = "http://127.0.0.1:8000/cards/"
 
-def test_card_crud():
-    name = f"卡片_{random.randint(1000, 9999)}"
-    # Create
-    card = requests.post(BASE_URL, json={"name": name, "billingDay": 10}).json()
-    cid = card["id"]
-    assert card["name"] == name
+def test_card_crud(db_session):
+    card = card_service.create_card(
+        db_session,
+        schemas.CreditCardCreate(name="測試卡", billing_day=10),
+    )
+    assert card.name == "測試卡"
 
-    # Update
-    new_name = f"新名_{random.randint(1000, 9999)}"
-    resp = requests.put(f"{BASE_URL}{cid}", json={"name": new_name})
-    assert resp.status_code == 200
-    updated = requests.get(f"{BASE_URL}{cid}").json()
-    assert updated["name"] == new_name
+    updated = card_service.update_card(
+        db_session,
+        card.id,
+        schemas.CreditCardUpdate(name="更新卡"),
+    )
+    assert updated.name == "更新卡"
 
-    # Status
-    status = requests.get(f"{BASE_URL}{cid}/status").json()
-    assert "currentCycleTotal" in status
+    fetched = card_service.get_card(db_session, card.id)
+    assert fetched.name == "更新卡"
 
-    # Cleanup
-    requests.delete(f"{BASE_URL}{cid}")
+    status = billing_service.get_card_status(db_session, card.id)
+    assert status is not None
+    assert status.current_cycle_total == 0
+
+    card_service.delete_card(db_session, card.id)
