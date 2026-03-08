@@ -18,7 +18,8 @@ import { ToastModule } from 'primeng/toast';
   standalone: true,
   imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, DatePickerModule, ConfirmDialogModule, ToastModule],
   providers: [ConfirmationService, MessageService],
-  templateUrl: './dividend-list.html'
+  templateUrl: './dividend-list.html',
+  styleUrl: './dividend-list.scss'
 })
 export class PortfolioDividendListComponent implements OnInit {
   private portfolioService = inject(PortfolioService);

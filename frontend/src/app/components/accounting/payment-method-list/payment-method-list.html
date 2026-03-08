@@ -1,11 +1,11 @@
 <p-toast></p-toast>
-<div class="card p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="card p-4 payment-method-page">
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <h3 class="m-0">支付方式維護</h3>
     <p-button label="新增支付方式" icon="pi pi-plus" (onClick)="showPMDialog()"></p-button>
   </div>
 
-  <p-table [value]="paymentMethods()" [rows]="10" [paginator]="true" responsiveLayout="scroll">
+  <p-table [value]="paymentMethods()" [rows]="10" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
     <ng-template pTemplate="header">
       <tr>
         <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
@@ -15,12 +15,17 @@
     </ng-template>
     <ng-template pTemplate="body" let-pm>
       <tr>
-        <td>{{ pm.name }}</td>
         <td>
+          <span class="p-column-title fw-bold">名稱</span>
+          {{ pm.name }}
+        </td>
+        <td>
+          <span class="p-column-title fw-bold">狀態</span>
           <p-tag [severity]="pm.isActive ? 'success' : 'secondary'" 
                  [value]="pm.isActive ? '啟用中' : '已停用'"></p-tag>
         </td>
-        <td>
+        <td class="action-cell">
+          <span class="p-column-title fw-bold">操作</span>
           <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showPMMenu($event, pm)"></p-button>
         </td>
       </tr>
@@ -30,7 +35,7 @@
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增支付方式 Dialog -->
-  <p-dialog [header]="isEditPM ? '編輯支付方式' : '新增支付方式'" [(visible)]="displayPMDialog" [modal]="true" [style]="{width: '30vw'}" [dismissableMask]="true">
+  <p-dialog [header]="isEditPM ? '編輯支付方式' : '新增支付方式'" [(visible)]="displayPMDialog" [modal]="true" [style]="{ width: '420px', maxWidth: '95vw' }" [breakpoints]="{ '767px': '92vw' }" [dismissableMask]="true">
     <div class="flex flex-column gap-3 mt-2">
       <div class="field">
         <label class="d-block mb-2">名稱</label>

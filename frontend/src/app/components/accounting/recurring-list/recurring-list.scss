@@ -24,9 +24,32 @@
   gap: 0.5rem;
 }
 
+.recurring-page {
+  .action-cell {
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 768px) {
+  .recurring-page {
+    padding: 1rem !important;
+  }
+
   .header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .header .p-button {
+    width: 100%;
+  }
+
+  .type-switcher .p-button {
+    flex: 1;
+  }
+
+  .recurring-page .action-cell {
+    display: flex;
+    justify-content: flex-end;
   }
 }
