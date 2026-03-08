@@ -1,18 +1,36 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { provideRouter } from '@angular/router';
+import { ItemListComponent } from './item-list';
+import { ItemService } from '../../services/item.service';
 
-import { ItemList } from './item-list';
+describe('ItemListComponent', () => {
+  let component: ItemListComponent;
+  let fixture: ComponentFixture<ItemListComponent>;
 
-describe('ItemList', () => {
-  let component: ItemList;
-  let fixture: ComponentFixture<ItemList>;
+  const itemServiceMock = {
+    getAll: () => of([]),
+    getCategories: () => of([]),
+    getLocations: () => of([]),
+    create: () => of({}),
+    update: () => of({}),
+    delete: () => of(undefined),
+    uploadImage: () => of({}),
+    createTransaction: () => of({}),
+    getTransactions: () => of([])
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ItemList]
+      imports: [ItemListComponent],
+      providers: [
+        provideRouter([]),
+        { provide: ItemService, useValue: itemServiceMock }
+      ]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ItemList);
+    fixture = TestBed.createComponent(ItemListComponent);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

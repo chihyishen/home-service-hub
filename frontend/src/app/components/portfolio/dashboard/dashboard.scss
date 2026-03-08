@@ -1,8 +1,77 @@
 .portfolio-dashboard {
   .summary-cards {
-    .h3 {
-      font-weight: bold;
-      margin-bottom: 0;
+    .kpi-card {
+      width: 100%;
+      min-height: 148px;
+    }
+
+    .kpi-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .kpi-header {
+      align-items: flex-start;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .kpi-title-group {
+      align-items: center;
+      display: flex;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .kpi-toggle-btn {
+      flex-shrink: 0;
+    }
+
+    .kpi-rate {
+      flex-shrink: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-top: 0.1rem;
+      white-space: nowrap;
+    }
+
+    .kpi-value {
+      font-size: clamp(1.45rem, 1.25rem + 0.9vw, 2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .kpi-meta {
+      color: var(--app-text-muted);
+      font-size: 0.85rem;
+      margin-top: 0.35rem;
+    }
+
+    @media (max-width: 1199.98px) {
+      .kpi-card {
+        min-height: 136px;
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      .kpi-card {
+        min-height: 124px;
+      }
+
+      .kpi-header {
+        align-items: center;
+      }
+
+      .kpi-value {
+        font-size: clamp(1.35rem, 1.15rem + 1vw, 1.8rem);
+      }
     }
   }
 
@@ -13,4 +82,153 @@
   .text-success {
     color: #66BB6A !important;
   }
+
+  .holdings-mobile-cards,
+  .holdings-mobile-empty,
+  .holdings-mobile-loading {
+    display: none;
+  }
+
+  .holding-card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .holding-card__header {
+    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+
+  .holding-card__symbol {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .holding-card__name {
+    color: var(--app-text-muted);
+    font-size: 0.85rem;
+  }
+
+  .holding-card__day {
+    font-size: 0.88rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .holding-card__main-pnl {
+    margin-bottom: 0.6rem;
+  }
+
+  .holding-card__main-pnl > div {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .holding-card__label {
+    color: var(--app-text-muted);
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+
+  .holding-card__grid {
+    display: grid;
+    gap: 0.45rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 0.55rem;
+  }
+
+  .holding-card__metric small {
+    color: var(--app-text-muted);
+    display: block;
+    font-size: 0.76rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .holding-card__metric div {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .holding-card__detail-row {
+    align-items: center;
+    display: flex;
+    font-size: 0.9rem;
+    justify-content: space-between;
+    padding: 0.2rem 0;
+  }
+
+  @media (max-width: 960px) {
+    .holdings-table-desktop {
+      display: none;
+    }
+
+    .holdings-mobile-cards,
+    .holdings-mobile-empty,
+    .holdings-mobile-loading {
+      display: block;
+    }
+  }
+
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  vertical-align: middle;
+}
+
+:host ::ng-deep .holdings-desktop-table .p-datatable-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th,
+:host ::ng-deep .holdings-desktop-table .p-datatable-tbody > tr > td {
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+:host ::ng-deep .holdings-desktop-table .holding-expand-row > td {
+  background: var(--app-surface-soft);
+  padding: 0.75rem 1rem !important;
+}
+
+.holding-expand-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.holding-expand-item small {
+  color: var(--app-text-muted);
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.holding-expand-item div {
+  font-weight: 600;
+}
+
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(1) { width: 56px; }
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(2) { width: 88px; }
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(3) { width: 21%; }
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(4) { width: 12%; }
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(5) { width: 14%; }
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(6) { width: 21%; }
+:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(7) { width: 22%; }
+
+:host ::ng-deep .holdings-desktop-table .holding-symbol-cell,
+:host ::ng-deep .holdings-desktop-table .holding-name-cell {
+  white-space: nowrap;
+}
+
+:host ::ng-deep .p-datatable-stacked .p-datatable-tbody > tr > td p-tag {
+  display: inline-flex;
+  justify-content: flex-end;
 }

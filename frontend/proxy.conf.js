@@ -44,6 +44,12 @@ module.exports = {
     "changeOrigin": true,
     "logLevel": "debug"
   },
+  "/api/shopping-list": {
+    "target": INVENTORY_TARGET,
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/api/accounting": {
     "target": ACCOUNTING_TARGET,
     "pathRewrite": { "^/api/accounting": "" },

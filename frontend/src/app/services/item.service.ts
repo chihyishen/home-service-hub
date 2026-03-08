@@ -1,6 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ItemRequest, ItemResponse } from '../models/item.model';
+import {
+  ItemRequest,
+  ItemResponse,
+  InventoryTransactionRequest,
+  InventoryTransactionResponse,
+  ItemTransactionResultResponse
+} from '../models/item.model';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -11,10 +17,19 @@ export class ItemService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/items`;
 
-  getAll(keyword?: string): Observable<ItemResponse[]> {
+  getAll(keyword?: string, lowStockOnly?: boolean, category?: string, location?: string): Observable<ItemResponse[]> {
     const params: any = {};
     if (keyword) {
       params.keyword = keyword;
+    }
+    if (lowStockOnly) {
+      params.lowStockOnly = lowStockOnly;
+    }
+    if (category) {
+      params.category = category;
+    }
+    if (location) {
+      params.location = location;
     }
     return this.http.get<ItemResponse[]>(this.apiUrl, { params });
   }
@@ -47,5 +62,13 @@ export class ItemService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  createTransaction(id: number, payload: InventoryTransactionRequest): Observable<ItemTransactionResultResponse> {
+    return this.http.post<ItemTransactionResultResponse>(`${this.apiUrl}/${id}/transactions`, payload);
+  }
+
+  getTransactions(id: number, limit: number = 50): Observable<InventoryTransactionResponse[]> {
+    return this.http.get<InventoryTransactionResponse[]>(`${this.apiUrl}/${id}/transactions`, { params: { limit } });
   }
 }

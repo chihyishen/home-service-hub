@@ -19,7 +19,8 @@ import { ToastModule } from 'primeng/toast';
   standalone: true,
   imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, SelectButtonModule, DatePickerModule, ConfirmDialogModule, ToastModule],
   providers: [ConfirmationService, MessageService],
-  templateUrl: './transaction-list.html'
+  templateUrl: './transaction-list.html',
+  styleUrl: './transaction-list.scss'
 })
 export class PortfolioTransactionListComponent implements OnInit {
   private portfolioService = inject(PortfolioService);

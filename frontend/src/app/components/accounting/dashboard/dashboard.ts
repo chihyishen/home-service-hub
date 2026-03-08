@@ -8,11 +8,12 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
 
 @Component({
   selector: 'app-accounting-dashboard',
   standalone: true,
-  imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule],
+  imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule, TableModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -24,6 +25,7 @@ export class AccountingDashboardComponent implements OnInit {
   compareReport = signal<MonthlyCompareReport | null>(null);
   cardUsage = signal<CardUsageSummary[]>([]);
   cardSortBy = signal<'usage' | 'name'>('usage');
+  cardUsageView = signal<'cards' | 'table'>('cards');
   
   chartData: any;
   paymentChartData: any;
@@ -77,7 +79,6 @@ export class AccountingDashboardComponent implements OnInit {
     const month = this.selectedMonth.getMonth() + 1;
 
     this.accountingService.getMonthlyReport(year, month).subscribe(data => {
-      console.log('Received Monthly Report:', data);
       this.report.set(data);
       this.prepareChartData(data);
       this.preparePaymentChartData(data);

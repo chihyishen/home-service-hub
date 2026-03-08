@@ -33,8 +33,18 @@ def get_database_url() -> str:
 SQLALCHEMY_DATABASE_URL = get_database_url()
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    pool_pre_ping=True,  # 自動檢測失效連線
-    pool_recycle=3600    # 一小時回收一次連線
+    pool_pre_ping=True,      # 自動檢測失效連線
+    pool_recycle=1800,       # 30 分鐘回收一次連線，降低 stale connection 風險
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_use_lifo=True,
+    connect_args={
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    }
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

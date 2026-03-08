@@ -58,6 +58,7 @@ export class App implements OnDestroy {
     else if (url.includes('accounting/cards')) this.title.set('信用卡管理');
     else if (url.includes('accounting/categories')) this.title.set('分類維護');
     else if (url.includes('accounting/recurring')) this.title.set('訂閱項目管理');
+    else if (url.includes('shopping-list')) this.title.set('採買清單');
     else if (url === '/') this.title.set('庫存管理');
     else this.title.set('家庭服務中心');
   }

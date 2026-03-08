@@ -15,6 +15,20 @@ public record ItemResponse(
         String location,
         @Schema(description = "庫存數量", example = "5")
         Integer quantity,
+        @Schema(description = "低庫存門檻", example = "2")
+        Integer minQuantity,
+        @Schema(description = "理想庫存量", example = "8")
+        Integer targetQuantity,
+        @Schema(description = "是否為可消耗品", example = "true")
+        Boolean isConsumable,
+        @Schema(description = "狀態", example = "ACTIVE")
+        String status,
+        @Schema(description = "最近補貨時間")
+        LocalDateTime lastRestockedAt,
+        @Schema(description = "是否低庫存")
+        Boolean isLowStock,
+        @Schema(description = "庫存狀態", example = "LOW")
+        String stockStatus,
         @Schema(description = "備註說明", example = "十字頭，帶磁性")
         String note,
         @Schema(description = "品項圖片 URL", example = "http://example.com/image.jpg")

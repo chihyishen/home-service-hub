@@ -1,0 +1,86 @@
+.portfolio-form-page {
+  .page-header {
+    gap: 0.75rem;
+  }
+
+  .form-label {
+    color: var(--app-text);
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .dialog-footer-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  .action-cell {
+    white-space: nowrap;
+  }
+}
+
+:host ::ng-deep {
+  .portfolio-form-content .p-inputtext,
+  .portfolio-form-content .p-inputnumber,
+  .portfolio-form-content .p-datepicker,
+  .portfolio-form-content .p-selectbutton {
+    width: 100%;
+  }
+
+  .portfolio-form-content .p-inputnumber-input {
+    width: 100%;
+  }
+
+  @media (max-width: 767.98px) {
+    .portfolio-form-page {
+      padding: 1rem !important;
+    }
+
+    .portfolio-form-page .page-header {
+      align-items: stretch !important;
+      flex-direction: column;
+    }
+
+    .portfolio-form-page .page-header .p-button {
+      width: 100%;
+    }
+
+    .portfolio-form-dialog .p-dialog-header {
+      padding: 1rem 1rem 0.5rem;
+    }
+
+    .portfolio-form-dialog .p-dialog-content {
+      padding: 0.75rem 1rem;
+    }
+
+    .portfolio-form-dialog .p-dialog-footer {
+      padding: 0.5rem 1rem 1rem;
+    }
+
+    .portfolio-form-page .dialog-footer-actions {
+      flex-direction: column-reverse;
+      width: 100%;
+    }
+
+    .portfolio-form-page .dialog-footer-actions .p-button {
+      width: 100%;
+    }
+
+    .portfolio-form-content .p-selectbutton {
+      display: flex;
+    }
+
+    .portfolio-form-content .p-selectbutton .p-togglebutton {
+      flex: 1;
+    }
+
+    .portfolio-form-page .action-cell {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: flex-end;
+    }
+  }
+}

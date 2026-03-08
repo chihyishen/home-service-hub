@@ -9,9 +9,11 @@ import { ManagementCenterComponent } from './components/accounting/management-ce
 import { PortfolioDashboardComponent } from './components/portfolio/dashboard/dashboard';
 import { PortfolioTransactionListComponent } from './components/portfolio/transaction-list/transaction-list';
 import { PortfolioDividendListComponent } from './components/portfolio/dividend-list/dividend-list';
+import { ShoppingListComponent } from './components/shopping-list/shopping-list';
 
 export const routes: Routes = [
   { path: '', component: ItemListComponent },
+  { path: 'shopping-list', component: ShoppingListComponent },
   
   // Portfolio routes
   { path: 'portfolio', component: PortfolioDashboardComponent },

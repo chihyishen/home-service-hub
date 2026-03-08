@@ -222,3 +222,42 @@ body {
       display: none !important;
   }
 }
+
+/* Shared Desktop UI Patterns */
+.ui-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.ui-kpi-grid .p-card {
+  min-height: 132px;
+}
+
+.ui-sticky-table .p-datatable-table-container {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.ui-sticky-table .p-datatable-thead > tr > th {
+  background: var(--app-surface-soft);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.ui-sticky-first-col .p-datatable-thead > tr > th:first-child,
+.ui-sticky-first-col .p-datatable-tbody > tr > td:first-child {
+  background: var(--app-surface);
+  left: 0;
+  position: sticky;
+  z-index: 6;
+}
+
+@media (max-width: 767.98px) {
+  .ui-kpi-grid .p-card {
+    min-height: auto;
+  }
+}

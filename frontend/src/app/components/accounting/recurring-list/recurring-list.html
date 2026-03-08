@@ -1,5 +1,5 @@
 <p-toast></p-toast>
-<div class="card p-4">
+<div class="card p-4 recurring-page">
   <div class="header mb-3">
     <div>
       <h3 class="mb-1">定期與分期管理</h3>
@@ -20,7 +20,7 @@
     </p-button>
   </div>
 
-  <p-table [value]="tableRows()" responsiveLayout="scroll" [sortField]="'name'">
+  <p-table [value]="tableRows()" responsiveLayout="stack" [breakpoint]="'960px'" [sortField]="'name'">
     <ng-template pTemplate="header">
       <tr>
         <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
@@ -38,19 +38,37 @@
 
     <ng-template pTemplate="body" let-item>
       <tr>
-        <td>{{ $any(item).name }}</td>
-        <td>{{ (isInstallmentView() ? $any(item).totalAmount : $any(item).amount) | currency:'TWD':'symbol':'1.0-0' }}</td>
+        <td>
+          <span class="p-column-title fw-bold">名稱</span>
+          {{ $any(item).name }}
+        </td>
+        <td class="text-end">
+          <span class="p-column-title fw-bold text-dark">{{ isInstallmentView() ? '總額' : '金額' }}</span>
+          {{ (isInstallmentView() ? $any(item).totalAmount : $any(item).amount) | currency:'TWD':'symbol':'1.0-0' }}
+        </td>
         <td *ngIf="!isInstallmentView()">
+          <span class="p-column-title fw-bold">分類</span>
           <p-tag [value]="$any(item).category" [style]="{ 'background-color': getCategoryColor($any(item).category) }"></p-tag>
         </td>
-        <td *ngIf="isInstallmentView()">{{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+        <td *ngIf="isInstallmentView()" class="text-end">
+          <span class="p-column-title fw-bold text-dark">每期金額</span>
+          {{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }}
+        </td>
         <td>
+          <span class="p-column-title fw-bold">支付方式</span>
           <div [class.fw-bold]="$any(item).cardId">{{ $any(item).cardName || $any(item).paymentMethod }}</div>
           <small class="text-muted d-block" *ngIf="$any(item).cardId">{{ $any(item).paymentMethod }}</small>
         </td>
-        <td *ngIf="!isInstallmentView()">每月 {{ $any(item).dayOfMonth }} 日</td>
-        <td *ngIf="isInstallmentView()">{{ $any(item).remainingPeriods }} / {{ $any(item).totalPeriods }}</td>
         <td *ngIf="!isInstallmentView()">
+          <span class="p-column-title fw-bold">扣款日</span>
+          每月 {{ $any(item).dayOfMonth }} 日
+        </td>
+        <td *ngIf="isInstallmentView()">
+          <span class="p-column-title fw-bold">剩餘期數</span>
+          {{ $any(item).remainingPeriods }} / {{ $any(item).totalPeriods }}
+        </td>
+        <td *ngIf="!isInstallmentView()">
+          <span class="p-column-title fw-bold">狀態</span>
           <p-tag
             [severity]="$any(item).active ? 'success' : 'secondary'"
             [value]="$any(item).active ? '啟用中' : '已停用'"
@@ -58,8 +76,12 @@
             class="status-tag">
           </p-tag>
         </td>
-        <td *ngIf="isInstallmentView()">{{ $any(item).startDate }}</td>
-        <td>
+        <td *ngIf="isInstallmentView()">
+          <span class="p-column-title fw-bold">開始日期</span>
+          {{ $any(item).startDate }}
+        </td>
+        <td class="action-cell">
+          <span class="p-column-title fw-bold">操作</span>
           <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showRowMenu($event, $any(item))"></p-button>
         </td>
       </tr>
@@ -77,7 +99,7 @@
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增訂閱 Dialog -->
-  <p-dialog [header]="(isEditSub ? '編輯' : '新增') + (newSub.subType === 'FIXED_EXPENSE' ? '固定支出' : '數位訂閱')" [(visible)]="displaySubDialog" [modal]="true" [style]="{width: '35vw'}" [dismissableMask]="true">
+  <p-dialog [header]="(isEditSub ? '編輯' : '新增') + (newSub.subType === 'FIXED_EXPENSE' ? '固定支出' : '數位訂閱')" [(visible)]="displaySubDialog" [modal]="true" [style]="{ width: '560px', maxWidth: '95vw' }" [breakpoints]="{ '991px': '80vw', '767px': '92vw' }" [dismissableMask]="true">
     <div class="flex flex-column gap-3 mt-2">
       <div class="field mb-2">
         <label class="d-block mb-2">名稱</label>
@@ -116,7 +138,7 @@
   </p-dialog>
 
   <!-- 新增分期 Dialog -->
-  <p-dialog [header]="isEditInst ? '編輯分期計畫' : '新增分期計畫'" [(visible)]="displayInstDialog" [modal]="true" [style]="{width: '40vw'}" [contentStyle]="{'overflow': 'visible'}" [dismissableMask]="true">
+  <p-dialog [header]="isEditInst ? '編輯分期計畫' : '新增分期計畫'" [(visible)]="displayInstDialog" [modal]="true" [style]="{ width: '640px', maxWidth: '95vw' }" [breakpoints]="{ '991px': '86vw', '767px': '92vw' }" [contentStyle]="{'overflow': 'visible'}" [dismissableMask]="true">
     <div class="row g-3 mt-1">
       <div class="col-12">
         <label class="d-block mb-2">計畫名稱</label>
