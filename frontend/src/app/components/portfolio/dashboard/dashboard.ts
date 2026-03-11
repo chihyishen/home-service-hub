@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortfolioService } from '../../../services/portfolio.service';
 import { PortfolioSummary } from '../../../models/portfolio.model';
@@ -8,13 +8,15 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { AccordionModule } from 'primeng/accordion';
+import { SkeletonModule } from 'primeng/skeleton';
 
 @Component({
   selector: 'app-portfolio-dashboard',
   standalone: true,
-  imports: [CommonModule, CardModule, TableModule, TagModule, ButtonModule, TooltipModule, AccordionModule],
+  imports: [CommonModule, CardModule, TableModule, TagModule, ButtonModule, TooltipModule, AccordionModule, SkeletonModule],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss'
+  styleUrl: './dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PortfolioDashboardComponent implements OnInit {
   private portfolioService = inject(PortfolioService);

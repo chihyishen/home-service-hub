@@ -1,234 +1,147 @@
-.portfolio-dashboard {
-  .summary-cards {
-    .kpi-card {
-      width: 100%;
-      min-height: 148px;
-    }
+@use "../../accounting/dashboard/dashboard.scss" as acct;
 
-    .kpi-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      line-height: 1.25;
-    }
 
-    .kpi-header {
-      align-items: flex-start;
-      display: flex;
-      gap: 0.75rem;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-    }
+/* 繼承 Bento Grid 基本樣式並客製化 */
 
-    .kpi-title-group {
-      align-items: center;
-      display: flex;
-      gap: 0.35rem;
-      min-width: 0;
-    }
+.market-value-card {
+  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-accent-soft) 100%);
+  border-left: 6px solid var(--app-accent);
+  .value { 
+    color: var(--app-text); 
+    text-shadow: none;
+  }
+}
 
-    .kpi-toggle-btn {
-      flex-shrink: 0;
-    }
-
-    .kpi-rate {
-      flex-shrink: 0;
-      font-size: 0.95rem;
-      font-weight: 600;
-      line-height: 1.3;
-      margin-top: 0.1rem;
-      white-space: nowrap;
-    }
-
-    .kpi-value {
-      font-size: clamp(1.45rem, 1.25rem + 0.9vw, 2rem);
-      font-weight: 700;
-      line-height: 1.2;
-      margin: 0;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .kpi-meta {
-      color: var(--app-text-muted);
-      font-size: 0.85rem;
-      margin-top: 0.35rem;
-    }
-
-    @media (max-width: 1199.98px) {
-      .kpi-card {
-        min-height: 136px;
-      }
-    }
-
-    @media (max-width: 767.98px) {
-      .kpi-card {
-        min-height: 124px;
-      }
-
-      .kpi-header {
-        align-items: center;
-      }
-
-      .kpi-value {
-        font-size: clamp(1.35rem, 1.15rem + 1vw, 1.8rem);
-      }
+.pnl-card, .day-pnl-card {
+  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-positive-soft) 100%);
+  border-left: 6px solid var(--app-trend-positive);
+  .value { 
+    color: var(--app-trend-positive); 
+    text-shadow: none;
+  }
+  
+  &.is-loss {
+    background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-negative-soft) 100%);
+    border-left-color: var(--app-trend-negative);
+    .value { 
+      color: var(--app-trend-negative);
+      text-shadow: none;
     }
   }
+}
 
-  .text-danger {
-    color: #EF5350 !important;
+.dividend-card {
+  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-state-dividend-bg) 100%);
+  border-left: 6px solid color-mix(in srgb, var(--app-dividend) 72%, var(--app-border));
+
+  .value {
+    color: var(--app-dividend) !important;
   }
 
-  .text-success {
-    color: #66BB6A !important;
-  }
-
-  .holdings-mobile-cards,
-  .holdings-mobile-empty,
-  .holdings-mobile-loading {
-    display: none;
-  }
-
-  .holding-card {
-    background: var(--app-surface);
-    border: 1px solid var(--app-border);
-    border-radius: 12px;
-    margin-bottom: 0.75rem;
-    padding: 0.85rem;
-  }
-
-  .holding-card__header {
-    align-items: flex-start;
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.6rem;
-  }
-
-  .holding-card__symbol {
-    font-size: 1.05rem;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-
-  .holding-card__name {
+  .meta {
     color: var(--app-text-muted);
-    font-size: 0.85rem;
   }
-
-  .holding-card__day {
-    font-size: 0.88rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .holding-card__main-pnl {
-    margin-bottom: 0.6rem;
-  }
-
-  .holding-card__main-pnl > div {
-    font-size: 1.2rem;
-    font-weight: 700;
-  }
-
-  .holding-card__label {
-    color: var(--app-text-muted);
-    display: block;
-    margin-bottom: 0.15rem;
-  }
-
-  .holding-card__grid {
-    display: grid;
-    gap: 0.45rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 0.55rem;
-  }
-
-  .holding-card__metric small {
-    color: var(--app-text-muted);
-    display: block;
-    font-size: 0.76rem;
-    margin-bottom: 0.1rem;
-  }
-
-  .holding-card__metric div {
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-
-  .holding-card__detail-row {
-    align-items: center;
-    display: flex;
-    font-size: 0.9rem;
-    justify-content: space-between;
-    padding: 0.2rem 0;
-  }
-
-  @media (max-width: 960px) {
-    .holdings-table-desktop {
-      display: none;
-    }
-
-    .holdings-mobile-cards,
-    .holdings-mobile-empty,
-    .holdings-mobile-loading {
-      display: block;
-    }
-  }
-
 }
 
-:host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-  vertical-align: middle;
+.pct-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: var(--app-trend-positive-soft);
+  border-radius: 999px;
+  margin-top: 0.5rem;
+  font-weight: 700;
 }
 
-:host ::ng-deep .holdings-desktop-table .p-datatable-table {
-  table-layout: fixed;
-  width: 100%;
+.is-loss .pct-badge {
+  background: var(--app-trend-negative-soft);
 }
 
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th,
-:host ::ng-deep .holdings-desktop-table .p-datatable-tbody > tr > td {
-  font-size: 0.92rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
-}
-
-:host ::ng-deep .holdings-desktop-table .holding-expand-row > td {
-  background: var(--app-surface-soft);
-  padding: 0.75rem 1rem !important;
-}
-
-.holding-expand-grid {
-  display: grid;
+/* Holdings List V2 */
+.hub-holdings-list {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.holding-expand-item small {
-  color: var(--app-text-muted);
-  display: block;
-  margin-bottom: 0.2rem;
+.hub-stock-row {
+  background: linear-gradient(180deg, var(--app-surface-soft) 0%, var(--app-surface) 100%);
+  border-radius: 16px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-card-shadow);
+
+  &:hover {
+    background: linear-gradient(180deg, var(--app-surface) 0%, var(--app-surface-soft) 100%);
+    border-color: var(--app-accent-soft-strong);
+    box-shadow: var(--app-raised-shadow);
+  }
+
+  .stock-main-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .stock-symbol-group {
+    display: flex;
+    flex-direction: column;
+    .symbol { font-weight: 800; font-size: 1.1rem; color: var(--app-text); }
+    .name { font-size: 0.8rem; color: var(--app-text-muted); max-width: 120px; }
+  }
+
+  .stock-price-group {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    .current-price { font-weight: 700; font-size: 1.1rem; color: var(--app-text); }
+    .day-change { 
+      font-size: 0.85rem; font-weight: 600; 
+      &.up { color: var(--app-trend-positive); }
+      &.down { color: var(--app-trend-negative); }
+    }
+  }
+
+  .stock-stats {
+    display: flex;
+    gap: 1.5rem;
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      .l { font-size: 0.7rem; color: var(--app-text-muted); font-weight: 600; }
+      .v { font-weight: 700; font-size: 0.9rem; color: var(--app-text); }
+    }
+  }
 }
 
-.holding-expand-item div {
-  font-weight: 600;
+.pnl-tag {
+  &.danger { color: var(--app-trend-positive); }
+  &.success { color: var(--app-trend-negative); }
 }
 
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(1) { width: 56px; }
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(2) { width: 88px; }
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(3) { width: 21%; }
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(4) { width: 12%; }
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(5) { width: 14%; }
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(6) { width: 21%; }
-:host ::ng-deep .holdings-desktop-table .p-datatable-thead > tr > th:nth-child(7) { width: 22%; }
-
-:host ::ng-deep .holdings-desktop-table .holding-symbol-cell,
-:host ::ng-deep .holdings-desktop-table .holding-name-cell {
-  white-space: nowrap;
+.stock-details-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-border);
+  animation: slideDown 0.3s ease-out;
 }
 
-:host ::ng-deep .p-datatable-stacked .p-datatable-tbody > tr > td p-tag {
-  display: inline-flex;
-  justify-content: flex-end;
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  
+  .d-item {
+    small { color: var(--app-text-muted); font-size: 0.75rem; }
+    div { font-weight: 700; font-size: 0.95rem; color: var(--app-text); }
+    .up { color: var(--app-trend-positive); }
+    .down { color: var(--app-trend-negative); }
+  }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

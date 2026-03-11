@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AccountingService } from '../../../services/accounting.service';
 import { MonthlyReport, CardUsageSummary, MonthlyCompareReport, CategoryDeltaSummary } from '../../../models/accounting.model';
@@ -9,13 +9,15 @@ import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-accounting-dashboard',
   standalone: true,
-  imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule, TableModule],
+  imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule, TableModule, RouterLink],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss'
+  styleUrl: './dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AccountingDashboardComponent implements OnInit {
   private accountingService = inject(AccountingService);
@@ -32,9 +34,18 @@ export class AccountingDashboardComponent implements OnInit {
   chartOptions = {
     plugins: {
         legend: {
-            position: 'bottom'
+            display: false
+        },
+        tooltip: {
+            enabled: true
         }
-    }
+    },
+    cutout: '60%', 
+    layout: {
+        padding: 0
+    },
+    maintainAspectRatio: false, // 關鍵：禁止鎖死比例
+    responsive: true
   };
 
   ngOnInit() {
@@ -66,12 +77,6 @@ export class AccountingDashboardComponent implements OnInit {
         }
     });
     this.cardUsage.set(sortedData);
-  }
-
-  getProgressBarColor(percentage: number): string {
-      if (percentage >= 100) return '#EF5350'; // Red
-      if (percentage >= 80) return '#FFA726'; // Orange
-      return '#66BB6A'; // Green
   }
 
   loadReport() {
@@ -108,15 +113,23 @@ export class AccountingDashboardComponent implements OnInit {
 
     const labels = report.expenseBreakdown.map(item => item.category);
     const data = report.expenseBreakdown.map(item => item.amount);
+    
+    // 擴充色票，確保分類多時不會沒顏色
+    const modernPalette = [
+      '#42A5F5', '#66BB6A', '#FFA726', '#AB47BC', '#EF5350', '#26A69A', '#EC407A', '#78909C',
+      '#5C6BC0', '#8D6E63', '#26C6DA', '#D4E157', '#FF7043', '#9CCC65', '#29B6F6', '#FFEE58'
+    ];
+    
+    // 根據分類數量循環生成背景色
+    const backgroundColors = labels.map((_, i) => modernPalette[i % modernPalette.length]);
 
     this.chartData = {
       labels: labels,
       datasets: [
         {
           data: data,
-          backgroundColor: [
-            '#42A5F5', '#66BB6A', '#FFA726', '#AB47BC', '#EF5350', '#26A69A', '#EC407A', '#78909C'
-          ]
+          backgroundColor: backgroundColors,
+          borderWidth: 0
         }
       ]
     };

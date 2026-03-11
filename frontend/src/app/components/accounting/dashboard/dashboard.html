@@ -1,156 +1,132 @@
-<div class="dashboard-container accounting-dashboard-mobile">
-  <div class="dashboard-topbar ui-toolbar mb-4">
-    <h3 class="m-0 dashboard-title">分析儀表板</h3>
-    <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
-                (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"
-                styleClass="w-100-mobile"></p-datepicker>
-  </div>
-
-  <div class="kpi-block ui-kpi-grid mb-4" *ngIf="report()">
-    <div class="row g-3">
-      <div class="col-12 col-md-6 col-lg-3">
-        <p-card header="總支出" subheader="本月合計" styleClass="h-100 border-start border-4 border-danger">
-          <h2 class="text-danger m-0">{{ report()?.summary?.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</h2>
-        </p-card>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <p-card header="結餘" subheader="收入 - 支出" styleClass="h-100 border-start border-4 border-info">
-          <h2 class="text-info m-0">{{ report()?.summary?.surplus | currency:'TWD':'symbol':'1.0-0' }}</h2>
-        </p-card>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <p-card header="總收入" subheader="本月合計" styleClass="h-100 border-start border-4 border-success">
-          <h2 class="text-success m-0">{{ report()?.summary?.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</h2>
-        </p-card>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <p-card header="儲蓄率" subheader="百分比" styleClass="h-100 border-start border-4 border-warning">
-          <h2 class="text-warning m-0">{{ report()?.summary?.savingsRate | number:'1.1-1' }}%</h2>
-        </p-card>
-      </div>
+<div class="hub-dashboard-container">
+  <!-- 頂部切換區 - 移除標題，保留日期切換 -->
+  <div class="hub-dashboard-header mb-4 justify-content-end">
+    <div class="header-right">
+      <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
+                  (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"
+                  styleClass="hub-month-picker"></p-datepicker>
     </div>
   </div>
 
-  <div class="row g-3 analytics-block">
-    <div class="col-12 col-lg-6 col-xl-4">
-      <div class="card p-4 h-100 analytics-card">
-        <h5 class="mb-4 section-title">消費種類佔比</h5>
-        <div *ngIf="chartData" class="chart-wrapper">
-          <p-chart type="pie" [data]="chartData" [options]="chartOptions"></p-chart>
+  @if (report()) {
+    <!-- Bento Grid 佈局 -->
+    <div class="hub-bento-grid">
+      
+      <!-- 主卡片：總支出 (大區塊) -->
+      <div class="bento-item bento-hero expense-card">
+        <div class="bento-content">
+          <div class="label">本月總支出</div>
+          <div class="value">{{ report()?.summary?.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</div>
+          <div class="meta">
+            @if (compareReport()?.summary?.totalExpenseDelta; as delta) {
+              <span [class.up]="delta > 0" [class.down]="delta <= 0">
+                <i class="pi" [ngClass]="delta > 0 ? 'pi-arrow-up' : 'pi-arrow-down'"></i>
+                {{ (delta < 0 ? -delta : delta) | currency:'TWD':'symbol':'1.0-0' }} 較上月
+              </span>
+            }
+          </div>
         </div>
-        <div *ngIf="!chartData" class="text-center p-5 text-muted">本月無支出數據</div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-6 col-xl-4">
-      <div class="card p-4 h-100 analytics-card">
-        <h5 class="mb-4 section-title">支付方式分佈</h5>
-        <div *ngIf="paymentChartData" class="chart-wrapper">
-          <p-chart type="doughnut" [data]="paymentChartData" [options]="chartOptions"></p-chart>
-        </div>
-        <div *ngIf="!paymentChartData" class="text-center p-5 text-muted">本月無數據</div>
-      </div>
-    </div>
-    <div class="col-12 col-xl-4">
-      <div class="card p-4 h-100 analytics-card">
-        <h5 class="mb-4 section-title">本月 vs 上月類別變化</h5>
-        <ul class="list-group list-group-flush" *ngIf="getTopCategoryChanges().length">
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0"
-              *ngFor="let c of getTopCategoryChanges()">
-            <div>
-              <div class="fw-bold text-truncate" style="max-width: 180px;">{{ c.category }}</div>
-              <small class="text-muted">{{ c.previousAmount | currency:'TWD':'symbol':'1.0-0' }} -> {{ c.currentAmount | currency:'TWD':'symbol':'1.0-0' }}</small>
-            </div>
-            <span class="fw-bold d-flex align-items-center" [class.text-danger]="c.deltaAmount > 0" [class.text-success]="c.deltaAmount < 0">
-              {{ getDeltaSign(c.deltaAmount) }}{{ (c.deltaAmount < 0 ? -c.deltaAmount : c.deltaAmount) | currency:'TWD':'symbol':'1.0-0' }}
-            </span>
-          </li>
-        </ul>
-        <div *ngIf="!getTopCategoryChanges().length" class="text-center p-5 text-muted">
-          與上月相比無明顯變化
+        <div class="bento-bg-icon">
+          <i class="pi pi-shopping-cart"></i>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="row g-4 mt-1">
-    <div class="col-12">
-        <div class="card p-4 shadow-sm">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-              <h5 class="m-0 section-title"><i class="pi pi-credit-card me-2"></i>信用卡本期額度監控</h5>
-              <div class="d-flex align-items-center gap-2 card-actions">
-                <p-button [label]="cardUsageView() === 'cards' ? '卡片' : '表格'"
-                          [icon]="cardUsageView() === 'cards' ? 'pi pi-th-large' : 'pi pi-table'"
-                          [text]="true" [rounded]="true" size="small"
-                          (onClick)="cardUsageView.set(cardUsageView() === 'cards' ? 'table' : 'cards')" severity="secondary"></p-button>
-                <p-button [label]="cardSortBy() === 'usage' ? '依使用率' : '依名稱'" 
-                          [icon]="'pi ' + (cardSortBy() === 'usage' ? 'pi-sort-amount-down' : 'pi-sort-alpha-down')"
-                          [text]="true" [rounded]="true" size="small"
-                          (onClick)="toggleCardSort()" severity="secondary"></p-button>
+      <!-- 結餘卡片 -->
+      <div class="bento-item bento-normal surplus-card">
+        <div class="bento-content">
+          <div class="label">本月結餘</div>
+          <div class="value">{{ report()?.summary?.surplus | currency:'TWD':'symbol':'1.0-0' }}</div>
+          <div class="progress-mini">
+            <div class="progress-bar" [style.width.%]="report()?.summary?.savingsRate"></div>
+          </div>
+          <div class="meta">儲蓄率 {{ report()?.summary?.savingsRate | number:'1.1-1' }}%</div>
+        </div>
+      </div>
+
+      <!-- 收入卡片 -->
+      <div class="bento-item bento-normal income-card">
+        <div class="bento-content">
+          <div class="label">本月總收入</div>
+          <div class="value">{{ report()?.summary?.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</div>
+        </div>
+        <div class="bento-bg-icon-small">
+          <i class="pi pi-wallet"></i>
+        </div>
+      </div>
+
+      <!-- 圖表區塊：支出比例 -->
+      <div class="bento-item bento-wide chart-card">
+        <h3 class="card-title">支出分類</h3>
+        @if (chartData) {
+          <div class="hub-chart-layout">
+            <div class="hub-chart-wrap">
+              <p-chart type="doughnut" [data]="chartData" [options]="chartOptions"></p-chart>
+              <div class="chart-center-label">
+                <span class="l">總額</span>
+                <span class="v">{{ report()?.summary?.totalExpense | currency:'TWD':'':'1.0-0' }}</span>
               </div>
             </div>
-            
-            <div *ngIf="cardUsage().length === 0" class="text-center py-5 text-muted">
-                目前沒有信用卡資料或尚無預警設定。
-            </div>
-
-            <div class="row g-3" *ngIf="cardUsage().length > 0 && cardUsageView() === 'cards'">
-                <div class="col-12 col-md-6 col-lg-4" *ngFor="let card of cardUsage()">
-                    <div class="border rounded p-3 h-100 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="m-0 fw-bold text-truncate card-usage-name" [title]="card.cardName">{{ card.cardName }}</h6>
-                            <span class="badge" [ngClass]="{
-                                'bg-success': card.usagePercentage < 80,
-                                'bg-warning text-dark': card.usagePercentage >= 80 && card.usagePercentage < 100,
-                                'bg-danger': card.usagePercentage >= 100
-                            }">
-                                {{ card.usagePercentage | number:'1.0-1' }}%
-                            </span>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between text-muted small mb-1">
-                            <span>本期: {{ card.currentUsage | currency:'TWD':'symbol':'1.0-0' }}</span>
-                            <span>上限: {{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</span>
-                        </div>
-                        <div class="text-muted small mb-1">
-                            剩餘額度: {{ card.remainingToThreshold | currency:'TWD':'symbol':'1.0-0' }}
-                        </div>
-                        
-                        <p-progressBar [value]="card.usagePercentage" [showValue]="false" 
-                                       [color]="getProgressBarColor(card.usagePercentage)" 
-                                       [style]="{'height': '8px'}"></p-progressBar>
-                        
-                        <div class="text-end mt-2">
-                            <small class="text-muted" style="font-size: 0.75rem;">
-                                週期: {{ card.billingCycleStart | date:'MM/dd' }} ~ {{ card.billingCycleEnd | date:'MM/dd' }}
-                            </small>
-                        </div>
-                    </div>
+            <div class="hub-custom-legend">
+              @for (item of report()?.expenseBreakdown; track item.category; let i = $index) {
+                <div class="legend-item">
+                  <span class="dot" [style.background-color]="chartData.datasets[0].backgroundColor[i]"></span>
+                  <span class="name">{{ item.category }}</span>
+                  <span class="val">{{ item.percentage | number:'1.0-0' }}%</span>
                 </div>
+              }
             </div>
+          </div>
+        } @else {
+          <div class="hub-empty-chart">無數據</div>
+        }
+      </div>
 
-            <p-table *ngIf="cardUsage().length > 0 && cardUsageView() === 'table'" [value]="cardUsage()" styleClass="desktop-usage-table ui-sticky-table">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th>卡片名稱</th>
-                  <th class="text-end">使用率</th>
-                  <th class="text-end">本期金額</th>
-                  <th class="text-end">上限</th>
-                  <th class="text-end">剩餘額度</th>
-                  <th class="text-end">週期</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-card>
-                <tr>
-                  <td><b>{{ card.cardName }}</b></td>
-                  <td class="text-end">{{ card.usagePercentage | number:'1.0-1' }}%</td>
-                  <td class="text-end">{{ card.currentUsage | currency:'TWD':'symbol':'1.0-0' }}</td>
-                  <td class="text-end">{{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</td>
-                  <td class="text-end">{{ card.remainingToThreshold | currency:'TWD':'symbol':'1.0-0' }}</td>
-                  <td class="text-end">{{ card.billingCycleStart | date:'MM/dd' }} ~ {{ card.billingCycleEnd | date:'MM/dd' }}</td>
-                </tr>
-              </ng-template>
-            </p-table>
+      <!-- 趨勢變化區塊 -->
+      <div class="bento-item bento-tall trends-card">
+        <h3 class="card-title">類別變化</h3>
+        <div class="trends-list">
+          @for (c of getTopCategoryChanges(); track c.category) {
+            <div class="trend-row">
+              <div class="trend-info">
+                <span class="cat-name">{{ c.category }}</span>
+                <span class="cat-amounts">{{ c.currentAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="trend-badge" [class.danger]="c.deltaAmount > 0" [class.success]="c.deltaAmount < 0">
+                {{ getDeltaSign(c.deltaAmount) }}{{ (c.deltaAmount < 0 ? -c.deltaAmount : c.deltaAmount) | currency:'TWD':'symbol':'1.0-0' }}
+              </div>
+            </div>
+          } @empty {
+            <div class="text-center p-4 text-muted">無明顯變化</div>
+          }
         </div>
+      </div>
+
+      <!-- 信用卡監控 (底部長條區塊) -->
+      <div class="bento-item bento-full credit-monitor-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="card-title m-0">信用卡額度監控</h3>
+          <p-button icon="pi pi-cog" [text]="true" routerLink="/accounting/settings"></p-button>
+        </div>
+        
+        <div class="hub-credit-grid">
+          @for (card of cardUsage(); track card.cardName) {
+            <div class="hub-credit-widget">
+              <div class="widget-header">
+                <span class="card-name">{{ card.cardName }}</span>
+                <span class="usage-pct" [class.warning]="card.usagePercentage >= 80" [class.danger]="card.usagePercentage >= 100">
+                  {{ card.usagePercentage | number:'1.0-0' }}%
+                </span>
+              </div>
+              <p-progressBar [value]="card.usagePercentage" [showValue]="false" 
+                             [styleClass]="card.usagePercentage >= 100 ? 'hub-progress progress-alert' : (card.usagePercentage >= 80 ? 'hub-progress progress-caution' : 'hub-progress progress-safe')"></p-progressBar>
+              <div class="widget-footer">
+                <span>剩餘 {{ card.remainingToThreshold | currency:'TWD':'symbol':'1.0-0' }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
     </div>
-  </div>
+  }
 </div>

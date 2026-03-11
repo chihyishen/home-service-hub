@@ -1,111 +1,288 @@
-.dashboard-title {
-  color: var(--app-text);
-  font-weight: 700;
+.hub-dashboard-container {
+  padding-bottom: 2rem;
 }
 
-.section-title {
+.hub-title {
+  font-size: 1.75rem;
+  font-weight: 800;
   color: var(--app-text);
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.25rem;
 }
 
-.card-usage-name {
-  color: var(--app-text);
+.hub-subtitle {
+  color: var(--app-text-muted);
+  font-size: 0.95rem;
+  margin: 0;
 }
 
-.chart-wrapper {
+.hub-dashboard-header {
   display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* ==========================================================================
+   Bento Grid Core
+   ========================================================================== */
+.hub-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(140px, auto);
+  gap: 1.25rem;
+}
+
+.bento-hero { grid-column: span 3; grid-row: span 2; }
+.bento-normal { grid-column: span 3; grid-row: span 1; }
+.bento-wide { grid-column: span 4; grid-row: span 2; }
+.bento-tall { grid-column: span 2; grid-row: span 2; }
+.bento-full { grid-column: span 6; }
+
+@media (max-width: 1200px) {
+  .hub-bento-grid { grid-template-columns: repeat(4, 1fr); }
+  .bento-hero { grid-column: span 4; }
+  .bento-normal { grid-column: span 2; }
+  .bento-wide { grid-column: span 4; }
+  .bento-tall { grid-column: span 4; }
+  .bento-full { grid-column: span 4; }
+}
+
+.bento-item {
+  background-color: var(--app-surface);
+  border-radius: 20px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--app-text-muted);
+    transform: translateY(-2px);
+  }
+}
+
+/* Content Styles */
+.bento-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-  
-  p-chart {
-    width: 85%;
-    
-    @media (max-width: 576px) {
-      width: 100%;
-    }
-  }
-}
 
-.dashboard-topbar {
-  margin-bottom: 1rem;
-}
-
-.analytics-card {
-  min-height: 100%;
-}
-
-:host ::ng-deep {
-  .analytics-block .analytics-card {
-    min-height: 360px;
-  }
-
-  .card {
-    background-color: var(--app-surface);
-    border-color: var(--app-border);
-  }
-
-  .list-group,
-  .list-group-flush {
-    background-color: var(--app-surface);
-  }
-
-  .list-group-item {
-    background-color: var(--app-surface);
-    border-color: var(--app-border);
-    color: var(--app-text);
-  }
-
-  .text-muted {
-    color: var(--app-text-muted) !important;
-  }
-
-  .border {
-    border-color: var(--app-border) !important;
-  }
-
-  .w-100-mobile {
-    @media (max-width: 576px) {
-      width: 100%;
-      .p-datepicker {
-        width: 100%;
-      }
-      .p-inputtext {
-        width: 100%;
-      }
-    }
-  }
-
-  .desktop-usage-table .p-datatable-thead > tr > th {
+  .label {
+    font-size: 0.75rem;
+    font-weight: 700;
     color: var(--app-text-muted);
-    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  .value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--app-text);
+    line-height: 1.1;
+  }
+
+  .meta {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+
+    .up { color: var(--app-trend-positive); }
+    .down { color: var(--app-trend-negative); }
   }
 }
 
-@media (max-width: 767.98px) {
-  .accounting-dashboard-mobile {
-    .dashboard-topbar {
-      align-items: stretch !important;
-      flex-direction: column;
-      gap: 0.65rem !important;
-    }
+/* 極簡卡片修飾 - 僅保留側邊細線 */
+.expense-card { border-left: 4px solid var(--app-trend-negative); }
+.income-card { border-left: 4px solid var(--app-trend-positive); }
+.surplus-card { border-left: 4px solid var(--app-accent); }
+.market-value-card { border-left: 4px solid var(--app-accent); }
 
-    .analytics-card {
-      padding: 1rem !important;
-      min-height: auto !important;
-    }
+.pnl-card, .day-pnl-card {
+  border-left: 4px solid var(--app-trend-positive);
+  &.is-loss { border-left-color: var(--app-trend-negative); }
+}
 
-    .chart-wrapper {
-      p-chart {
-        width: 100%;
-      }
-    }
+.bento-bg-icon, .bento-bg-icon-small {
+  display: none; /* 移除背景大圖示，回歸純淨 */
+}
 
-    .card-actions {
-      width: 100%;
-    }
+/* Charts & Lists */
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: var(--app-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
-    .card-actions .p-button {
-      flex: 1;
-    }
+.chart-card {
+  padding: 1.5rem !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-chart-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex: 1;
+  width: 100%;
+}
+
+.hub-chart-wrap {
+  position: relative;
+  width: 240px; 
+  height: 240px; 
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  p-chart, canvas {
+    width: 100% !important;
+    height: 100% !important;
   }
+  
+  .chart-center-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    
+    .l { font-size: 0.7rem; font-weight: 700; color: var(--app-text-muted); }
+    .v { font-size: 1.1rem; font-weight: 800; color: var(--app-text); }
+  }
+}
+
+.hub-custom-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.6rem;
+  min-width: 0;
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    
+    .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .name { font-weight: 600; color: var(--app-text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .val { font-weight: 700; color: var(--app-text); }
+  }
+}
+
+@media (max-width: 768px) {
+  .hub-chart-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    height: auto;
+  }
+  .hub-chart-wrap {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+  }
+}
+
+.trends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--app-border);
+  &:last-child { border-bottom: none; }
+
+  .trend-info {
+    display: flex;
+    flex-direction: column;
+    .cat-name { font-weight: 600; font-size: 0.9rem; color: var(--app-text); }
+    .cat-amounts { font-size: 0.7rem; color: var(--app-text-muted); }
+  }
+
+  .trend-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    &.danger { color: var(--app-trend-positive); }
+    &.success { color: var(--app-trend-negative); }
+  }
+}
+
+/* Credit Monitor */
+.hub-credit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.hub-credit-widget {
+  background: var(--app-surface-soft);
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  
+  .widget-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    .card-name { font-weight: 700; font-size: 0.85rem; color: var(--app-text); }
+    .usage-pct { font-weight: 800; font-size: 0.85rem; }
+  }
+}
+
+:host ::ng-deep .hub-progress .p-progressbar {
+  height: 4px !important;
+  background: var(--app-border);
+}
+
+:host ::ng-deep .hub-progress .p-progressbar-value {
+  background: var(--hub-progress-fill) !important;
+}
+
+/* Dark Mode Adjustments */
+:host-context(.app-dark-mode) {
+  .bento-item {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    &:hover { border-color: var(--app-text-muted); }
+  }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .hub-bento-grid { grid-template-columns: repeat(2, 1fr); }
+  .bento-full { grid-column: span 2; }
+}
+
+@media (max-width: 768px) {
+  .hub-bento-grid { 
+    grid-template-columns: 1fr; 
+    grid-auto-rows: auto;
+  }
+  .bento-hero, .bento-normal, .bento-wide, .bento-tall, .bento-full {
+    grid-column: span 1;
+  }
+  .hub-title { font-size: 1.5rem; }
 }
