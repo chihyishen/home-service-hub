@@ -132,9 +132,20 @@ def get_stock_quotes(symbols: List[str]) -> Dict[str, Dict]:
     """
     進入點：協調發查與解析
     """
-    raw_data = fetch_raw_quotes(symbols)
-    msg_array = raw_data.get("msgArray", [])
-    if not isinstance(msg_array, list) or not msg_array:
+    if not symbols:
         return {}
         
-    return parse_twse_msg_array(msg_array, symbols)
+    with tracer.start_as_current_span("twse_get_quotes") as span:
+        span.set_attribute("stock.request_symbols", symbols)
+        
+        raw_data = fetch_raw_quotes(symbols)
+        msg_array = raw_data.get("msgArray", [])
+        
+        if not isinstance(msg_array, list) or not msg_array:
+            logger.warning(f"TWSE 回傳資料為空或格式不正確: {symbols}")
+            span.set_attribute("stock.result_count", 0)
+            return {}
+            
+        results = parse_twse_msg_array(msg_array, symbols)
+        span.set_attribute("stock.result_count", len(results))
+        return results

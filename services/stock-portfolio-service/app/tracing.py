@@ -9,6 +9,7 @@ from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 def setup_tracing(app=None, engine=None):
     # 嚴格讀取環境變數
@@ -19,12 +20,17 @@ def setup_tracing(app=None, engine=None):
         logging.warning("⚠️ 缺少 OpenTelemetry 環境變數，將不啟用追蹤功能")
         return None
 
+    # 設定全域日誌層級，確保 INFO 級別能被採集
+    logging.getLogger().setLevel(logging.INFO)
+
     resource = Resource.create({"service.name": service_name})
 
     # --- 1. Tracing ---
     trace_provider = TracerProvider(resource=resource)
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-    trace_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
+    # 移除 http:// 前綴，gRPC Exporter 通常只需要 host:port
+    clean_endpoint = otlp_endpoint.replace("http://", "").replace("https://", "")
+    trace_exporter = OTLPSpanExporter(endpoint=clean_endpoint, insecure=True)
     trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
     trace.set_tracer_provider(trace_provider)
 
@@ -32,17 +38,20 @@ def setup_tracing(app=None, engine=None):
     logger_provider = LoggerProvider(resource=resource)
     _logs.set_logger_provider(logger_provider)
     from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-    log_exporter = OTLPLogExporter(endpoint=otlp_endpoint, insecure=True)
+    log_exporter = OTLPLogExporter(endpoint=clean_endpoint, insecure=True)
     logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
     # 掛載 Handler
     otel_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
     logging.getLogger().addHandler(otel_handler)
     for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access", "fastapi"]:
-        logging.getLogger(logger_name).addHandler(otel_handler)
+        l = logging.getLogger(logger_name)
+        l.setLevel(logging.INFO)
+        l.addHandler(otel_handler)
 
     # 3. 自動儀表化
     LoggingInstrumentor().instrument(set_logging_format=True)
+    RequestsInstrumentor().instrument()
     if app:
         FastAPIInstrumentor.instrument_app(app)
     if engine:
