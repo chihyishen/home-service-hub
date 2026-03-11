@@ -3,12 +3,13 @@
 }
 
 :host ::ng-deep .status-tag.p-tag-success {
-  background-color: #1f8a4d !important;
-  color: #ffffff !important;
+  background-color: var(--app-state-success-bg) !important;
+  color: var(--app-success) !important;
 }
 
 :host-context(.app-dark-mode) ::ng-deep .status-tag.p-tag-success {
-  background-color: #2b9c5f !important;
+  background-color: var(--app-success) !important;
+  color: var(--app-bg) !important;
 }
 
 .header {

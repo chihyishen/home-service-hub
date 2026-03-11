@@ -22,6 +22,14 @@
   }
 }
 
+.txn-type-buy {
+  color: var(--app-danger);
+}
+
+.txn-type-sell {
+  color: var(--app-success);
+}
+
 :host ::ng-deep {
   .portfolio-form-content .p-inputtext,
   .portfolio-form-content .p-inputnumber,

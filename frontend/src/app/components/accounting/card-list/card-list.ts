@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ViewChild, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
@@ -31,7 +31,8 @@ import { Menu } from 'primeng/menu';
   ],
   providers: [MessageService],
   templateUrl: './card-list.html',
-  styleUrl: './card-list.scss'
+  styleUrl: './card-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CardListComponent implements OnInit {
   private accountingService = inject(AccountingService);

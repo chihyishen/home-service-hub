@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortfolioService } from '../../../services/portfolio.service';
 import { Dividend } from '../../../models/portfolio.model';
@@ -9,22 +9,28 @@ import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DatePickerModule } from 'primeng/datepicker';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
+import { MenuModule } from 'primeng/menu';
+import { Menu } from 'primeng/menu';
 
 @Component({
   selector: 'app-portfolio-dividends',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, DatePickerModule, ConfirmDialogModule, ToastModule],
+  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, DatePickerModule, ConfirmDialogModule, ToastModule, MenuModule],
   providers: [ConfirmationService, MessageService],
   templateUrl: './dividend-list.html',
-  styleUrl: './dividend-list.scss'
+  styleUrl: './dividend-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PortfolioDividendListComponent implements OnInit {
   private portfolioService = inject(PortfolioService);
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
+
+  @ViewChild('menu') menu!: Menu;
+  menuItems: MenuItem[] = [];
 
   dividends = signal<Dividend[]>([]);
   showDialog = signal<boolean>(false);
@@ -36,6 +42,15 @@ export class PortfolioDividendListComponent implements OnInit {
 
   ngOnInit() {
     this.loadDividends();
+  }
+
+  showMenu(event: MouseEvent, dividend: Dividend) {
+    this.menuItems = [
+      { label: '編輯', icon: 'pi pi-pencil', command: () => this.editDividend(dividend) },
+      { separator: true },
+      { label: '刪除', icon: 'pi pi-trash', styleClass: 'text-danger', command: () => this.deleteDividend(dividend) }
+    ];
+    this.menu.toggle(event);
   }
 
   loadDividends() {

@@ -1,10 +1,13 @@
 .color-indicator {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   display: inline-block;
-  margin-right: 10px;
   border: 1px solid var(--app-border);
+}
+
+.category-color-code {
+  text-transform: uppercase;
 }
 
 .category-page {

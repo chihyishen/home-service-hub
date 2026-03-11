@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
@@ -31,7 +31,8 @@ import { forkJoin } from 'rxjs';
   ],
   providers: [MessageService],
   templateUrl: './category-list.html',
-  styleUrl: './category-list.scss'
+  styleUrl: './category-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CategoryListComponent implements OnInit {
   private accountingService = inject(AccountingService);

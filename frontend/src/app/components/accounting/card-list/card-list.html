@@ -2,50 +2,35 @@
 <div class="card p-3 p-lg-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h3 class="m-0">信用卡管理</h3>
-    <p-button label="新增卡片" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile"></p-button>
+    <p-button label="新增卡片" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile hub-btn-primary"></p-button>
   </div>
 
-  <p-table [value]="cards()" [rows]="10" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
-        <th pSortableColumn="billingDay">結帳日 <p-sortIcon field="billingDay"></p-sortIcon></th>
-        <th pSortableColumn="defaultPaymentMethod">預設工具 <p-sortIcon field="defaultPaymentMethod"></p-sortIcon></th>
-        <th pSortableColumn="alertThreshold">預警門檻 <p-sortIcon field="alertThreshold"></p-sortIcon></th>
-        <th style="width: 100px">操作</th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-card>
-      <tr>
-        <td>
-          <span class="p-column-title fw-bold">名稱</span>
-          {{ card.name }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">結帳日</span>
-          每月 {{ card.billingDay }} 日
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">預設工具</span>
-          {{ card.defaultPaymentMethod }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">預警門檻</span>
-          {{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">操作</span>
-          <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showMenu($event, card)"></p-button>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+  <div class="hub-modern-list">
+    @for (card of cards(); track card.id) {
+      <div class="hub-list-item clickable-row" (click)="showMenu($event, card)">
+        <div class="item-left">
+          <div class="main-text">{{ card.name }}</div>
+          <div class="sub-text">預設：{{ card.defaultPaymentMethod || '無' }}</div>
+        </div>
+        <div class="item-right">
+          <div class="amount-text">{{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</div>
+          <div class="sub-text">結帳日：每月 {{ card.billingDay }} 日</div>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <i class="pi pi-credit-card"></i>
+        <h4>無信用卡資料</h4>
+        <p>尚未新增任何信用卡。</p>
+      </div>
+    }
+  </div>
 
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <p-dialog [header]="isEdit ? '編輯信用卡' : '新增信用卡'" [(visible)]="displayDialog" [modal]="true" 
-            [style]="{width: '450px', maxWidth: '95vw'}" [dismissableMask]="true">
-    <div class="flex flex-column gap-3 mt-2">
+            styleClass="hub-dialog-md" [dismissableMask]="true">
+    <div class="flex flex-column gap-3 mt-2 hub-form-grid">
       <div class="field mb-1">
         <label for="name" class="d-block mb-1 fw-bold small">卡片名稱</label>
         <input pInputText id="name" [(ngModel)]="newCard.name" class="w-100" placeholder="例如：台新 FlyGo" />
@@ -75,7 +60,7 @@
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
-      <p-button label="儲存" icon="pi pi-check" (onClick)="saveCard()" [disabled]="!newCard.name"></p-button>
+      <p-button label="儲存" icon="pi pi-check" (onClick)="saveCard()" [disabled]="!newCard.name" styleClass="hub-btn-primary"></p-button>
     </ng-template>
   </p-dialog>
 </div>
