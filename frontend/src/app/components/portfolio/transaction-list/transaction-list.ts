@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortfolioService } from '../../../services/portfolio.service';
 import { Transaction, TransactionType } from '../../../models/portfolio.model';
@@ -10,22 +10,28 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { DatePickerModule } from 'primeng/datepicker';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
+import { MenuModule } from 'primeng/menu';
+import { Menu } from 'primeng/menu';
 
 @Component({
   selector: 'app-portfolio-transactions',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, SelectButtonModule, DatePickerModule, ConfirmDialogModule, ToastModule],
+  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, SelectButtonModule, DatePickerModule, ConfirmDialogModule, ToastModule, MenuModule],
   providers: [ConfirmationService, MessageService],
   templateUrl: './transaction-list.html',
-  styleUrl: './transaction-list.scss'
+  styleUrl: './transaction-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PortfolioTransactionListComponent implements OnInit {
   private portfolioService = inject(PortfolioService);
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
+
+  @ViewChild('menu') menu!: Menu;
+  menuItems: MenuItem[] = [];
 
   transactions = signal<Transaction[]>([]);
   showDialog = signal<boolean>(false);
@@ -52,6 +58,15 @@ export class PortfolioTransactionListComponent implements OnInit {
     this.portfolioService.getTransactions().subscribe(data => {
       this.transactions.set(data);
     });
+  }
+
+  showMenu(event: MouseEvent, transaction: Transaction) {
+    this.menuItems = [
+      { label: '編輯', icon: 'pi pi-pencil', command: () => this.editTransaction(transaction) },
+      { separator: true },
+      { label: '刪除', icon: 'pi pi-trash', styleClass: 'text-danger', command: () => this.deleteTransaction(transaction) }
+    ];
+    this.menu.toggle(event);
   }
 
   openNew() {

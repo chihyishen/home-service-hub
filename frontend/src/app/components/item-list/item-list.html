@@ -1,0 +1,185 @@
+<p-toast></p-toast>
+<div class="hub-page-header mb-4 justify-content-end">
+  <div class="header-actions">
+    <p-button label="新增物品" icon="pi pi-plus" (onClick)="showDialog()" styleClass="hub-btn-primary"></p-button>
+  </div>
+</div>
+
+<div class="hub-card p-3 mb-4 search-filter-bar">
+  <div class="row g-3 align-items-center">
+    <div class="col-12 col-md-8">
+      <div class="hub-search-box">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchKeyword" (ngModelChange)="loadItems()" placeholder="搜尋物品名稱、類別或位置..." />
+      </div>
+    </div>
+    <div class="col-12 col-md-4 d-flex justify-content-md-end">
+      <div class="hub-toggle-pill">
+        <input type="checkbox" id="lowStockOnly" [(ngModel)]="lowStockOnly" (change)="loadItems()" />
+        <label for="lowStockOnly">
+          <i class="pi pi-exclamation-triangle mr-1"></i> 只看低庫存
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hub-inventory-grid">
+  @for (item of items(); track item.id) {
+    <div class="hub-inventory-card" [class.low-stock]="item.stockStatus === 'LOW' || item.stockStatus === 'OUT'">
+      <div class="item-visual">
+        @if (item.imageUrl) {
+          <p-image [src]="item.imageUrl" [preview]="true" width="64" height="64" styleClass="hub-item-image"></p-image>
+        } @else {
+          <div class="item-icon-placeholder">
+            <i class="pi pi-box"></i>
+          </div>
+        }
+        <div class="stock-badge" [ngClass]="getStockStatusSeverity(item)">
+          {{ getStockStatusLabel(item) }}
+        </div>
+      </div>
+
+      <div class="item-body">
+        <div class="item-main">
+          <h3 class="item-name">{{ item.name }}</h3>
+          <div class="item-tags">
+            <span class="hub-tag secondary"><i class="pi pi-tag"></i> {{ item.category || '未分類' }}</span>
+            <span class="hub-tag secondary"><i class="pi pi-map-marker"></i> {{ item.location || '未知位置' }}</span>
+          </div>
+        </div>
+
+        <div class="item-stock-info">
+          <div class="qty-display">
+            <span class="current">{{ item.quantity }}</span>
+            <span class="target">/ {{ item.targetQuantity || '-' }}</span>
+          </div>
+          <p-progressbar [value]="calculateStockPercentage(item)" [showValue]="false"
+                         [styleClass]="(item.stockStatus === 'LOW' || item.stockStatus === 'OUT') ? 'hub-mini-progress progress-alert' : 'hub-mini-progress progress-safe'"></p-progressbar>
+        </div>
+      </div>
+
+      <div class="item-actions">
+        <div class="action-group main-actions">
+          <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="danger" (onClick)="consumeOne(item)" pTooltip="使用 -1"></p-button>
+          <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="success" (onClick)="openQuickAction(item, 'RESTOCK')" pTooltip="快速補貨"></p-button>
+        </div>
+        <div class="action-group more-actions">
+          <p-button icon="pi pi-history" [rounded]="true" [text]="true" severity="secondary" (onClick)="openHistory(item)" pTooltip="歷史紀錄"></p-button>
+          <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="secondary" (onClick)="editItem(item)" pTooltip="編輯"></p-button>
+          <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="secondary" (onClick)="deleteItem(item.id)" pTooltip="刪除"></p-button>
+        </div>
+      </div>
+    </div>
+  } @empty {
+    <div class="empty-state full-width">
+      <i class="pi pi-box"></i>
+      <h4>空空如也</h4>
+      <p>目前沒有符合條件的庫存物品，點擊右上方按鈕新增一個吧！</p>
+    </div>
+  }
+</div>
+
+<!-- Dialogs -->
+<p-dialog [header]="isEdit ? '編輯物品' : '新增物品'" [(visible)]="displayDialog" [modal]="true"
+          styleClass="hub-dialog-form" [dismissableMask]="true">
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <label class="d-block mb-2 fw-bold">名稱</label>
+      <input pInputText [(ngModel)]="newItem.name" class="w-100" placeholder="例如：衛生紙" />
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="d-block mb-2 fw-bold">類別</label>
+      <p-autoComplete [(ngModel)]="newItem.category" [suggestions]="filteredCategories" (completeMethod)="filterCategories($event)" [dropdown]="true" styleClass="w-100"></p-autoComplete>
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="d-block mb-2 fw-bold">位置</label>
+      <p-autoComplete [(ngModel)]="newItem.location" [suggestions]="filteredLocations" (completeMethod)="filterLocations($event)" [dropdown]="true" styleClass="w-100"></p-autoComplete>
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="d-block mb-2 fw-bold">目前數量</label>
+      <p-inputNumber [(ngModel)]="newItem.quantity" [min]="0" class="w-100"></p-inputNumber>
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="d-block mb-2 fw-bold">低庫存門檻</label>
+      <p-inputNumber [(ngModel)]="newItem.minQuantity" [min]="0" class="w-100"></p-inputNumber>
+    </div>
+    <div class="col-12">
+      <label class="d-block mb-2 fw-bold">理想庫存量</label>
+      <p-inputNumber [(ngModel)]="newItem.targetQuantity" [min]="0" class="w-100"></p-inputNumber>
+    </div>
+    <div class="col-12">
+      <label class="d-block mb-2 fw-bold">備註</label>
+      <textarea pTextarea [(ngModel)]="newItem.note" rows="3" class="w-100"></textarea>
+    </div>
+  </div>
+
+  @if (isEdit) {
+    <div class="field mt-3">
+      <label class="d-block mb-2 fw-bold">圖片</label>
+      <div class="d-flex align-items-center gap-3">
+        @if (newItem.imageUrl) {
+          <p-image [src]="newItem.imageUrl" [preview]="true" width="100" styleClass="rounded shadow-sm"></p-image>
+        }
+        <p-fileUpload mode="basic" chooseLabel="上傳圖片" name="file" accept="image/*" [auto]="true" [customUpload]="true" (uploadHandler)="onUpload($event)"></p-fileUpload>
+      </div>
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
+    <p-button label="儲存" icon="pi pi-check" (onClick)="saveItem()" [disabled]="!canSaveItem()"></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog [header]="quickActionTitle" [(visible)]="displayActionDialog" [modal]="true" styleClass="hub-dialog-sm">
+  <div class="mb-2"><b>{{ selectedItem?.name }}</b></div>
+  <div class="text-muted mb-3">目前數量：{{ selectedItem?.quantity }}</div>
+  @if (actionType !== 'ADJUST') {
+    <div class="mb-3">
+      <label class="d-block mb-2">異動量</label>
+      <p-inputNumber [(ngModel)]="actionAmount" [min]="1" class="w-100"></p-inputNumber>
+    </div>
+  }
+  @if (actionType === 'ADJUST') {
+    <div class="mb-3">
+      <label class="d-block mb-2">盤點後實際數量</label>
+      <p-inputNumber [(ngModel)]="actualAmount" [min]="0" class="w-100"></p-inputNumber>
+    </div>
+  }
+  <div class="mb-3">
+    <label class="d-block mb-2">原因（選填）</label>
+    <input pInputText [(ngModel)]="actionReason" class="w-100" />
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button label="取消" [text]="true" (onClick)="displayActionDialog = false"></p-button>
+    <p-button label="送出" (onClick)="submitAction()"></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog header="異動歷史" [(visible)]="displayHistoryDialog" [modal]="true" styleClass="hub-dialog-history">
+  <p-table [value]="history()" [rows]="10" [paginator]="true">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>時間</th>
+        <th>類型</th>
+        <th>前</th>
+        <th>後</th>
+        <th>差額</th>
+        <th>原因</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>{{ row.occurredAt | date: 'MM/dd HH:mm' }}</td>
+        <td>{{ row.type }}</td>
+        <td>{{ row.beforeQuantity }}</td>
+        <td>{{ row.afterQuantity }}</td>
+        <td [class.history-delta-negative]="row.deltaQuantity < 0" [class.history-delta-positive]="row.deltaQuantity > 0">
+          {{ row.deltaQuantity > 0 ? '+' : '' }}{{ row.deltaQuantity }}
+        </td>
+        <td>{{ row.reason || '-' }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-dialog>

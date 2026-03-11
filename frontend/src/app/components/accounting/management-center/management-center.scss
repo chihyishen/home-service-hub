@@ -76,9 +76,9 @@ h2 {
 }
 
 .quick-tab-btn.active {
-  background: linear-gradient(180deg, #eef6ff 0%, #e5f1ff 100%);
-  border-color: #9bc7ff;
-  color: #0b63ce;
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent);
+  color: var(--app-accent);
 }
 
 .management-content {

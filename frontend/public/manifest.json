@@ -1,0 +1,16 @@
+{
+  "name": "Home Service Hub",
+  "short_name": "HomeHub",
+  "theme_color": "#007AFF",
+  "background_color": "#F2F2F7",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

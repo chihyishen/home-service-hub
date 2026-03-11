@@ -1,47 +1,38 @@
 <p-toast></p-toast>
 <div class="card p-4 category-page">
-  <div class="page-header d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
     <h3 class="m-0">交易分類維護</h3>
     <div class="d-flex gap-2 page-actions">
-      <p-button label="套用現代色票" icon="pi pi-palette" severity="secondary" (onClick)="applyModernPalette()"></p-button>
-      <p-button label="新增分類" icon="pi pi-plus" (onClick)="showCategoryDialog()"></p-button>
+      <p-button label="套用現代色票" icon="pi pi-palette" severity="secondary" (onClick)="applyModernPalette()" styleClass="hub-btn-secondary"></p-button>
+      <p-button label="新增分類" icon="pi pi-plus" (onClick)="showCategoryDialog()" styleClass="hub-btn-primary"></p-button>
     </div>
   </div>
 
-  <p-table [value]="categories()" [rows]="10" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
-        <th pSortableColumn="color">顏色 <p-sortIcon field="color"></p-sortIcon></th>
-        <th style="width: 100px">操作</th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-category>
-      <tr>
-        <td>
-          <span class="p-column-title fw-bold">名稱</span>
-          {{ category.name }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">顏色</span>
-          <div class="d-flex align-items-center">
-            <span [style.background-color]="category.color" class="color-indicator"></span>
-            {{ category.color }}
-          </div>
-        </td>
-        <td class="action-cell">
-          <span class="p-column-title fw-bold">操作</span>
-          <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showCategoryMenu($event, category)"></p-button>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+  <div class="hub-modern-list">
+    @for (category of categories(); track category.id) {
+      <div class="hub-list-item clickable-row" (click)="showCategoryMenu($event, category)">
+        <div class="item-left d-flex align-items-center gap-3">
+          <span [style.background-color]="category.color" class="color-indicator"></span>
+          <div class="main-text m-0">{{ category.name }}</div>
+        </div>
+        <div class="item-right">
+          <div class="sub-text category-color-code">{{ category.color }}</div>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <i class="pi pi-tags"></i>
+        <h4>無分類資料</h4>
+        <p>尚未新增任何交易分類。</p>
+      </div>
+    }
+  </div>
 
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增分類 Dialog -->
-  <p-dialog [header]="isEditCategory ? '編輯分類' : '新增分類'" [(visible)]="displayCategoryDialog" [modal]="true" [style]="{ width: '460px', maxWidth: '95vw' }" [breakpoints]="{ '767px': '92vw' }" [dismissableMask]="true">
-    <div class="flex flex-column gap-3 mt-2">
+  <p-dialog [header]="isEditCategory ? '編輯分類' : '新增分類'" [(visible)]="displayCategoryDialog" [modal]="true" styleClass="hub-dialog-md" [breakpoints]="{ '767px': '92vw' }" [dismissableMask]="true">
+    <div class="flex flex-column gap-3 mt-2 hub-form-grid">
       <div class="field">
         <label class="d-block mb-2">分類名稱</label>
         <input pInputText [(ngModel)]="newCategory.name" class="w-100" placeholder="例如：飲食、交通" />
@@ -53,7 +44,7 @@
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayCategoryDialog = false"></p-button>
-      <p-button label="儲存" icon="pi pi-check" (onClick)="saveCategory()" [disabled]="!newCategory.name"></p-button>
+      <p-button label="儲存" icon="pi pi-check" (onClick)="saveCategory()" [disabled]="!newCategory.name" styleClass="hub-btn-primary"></p-button>
     </ng-template>
   </p-dialog>
 </div>

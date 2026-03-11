@@ -22,6 +22,15 @@
   }
 }
 
+.dividend-amount {
+  color: var(--app-dividend);
+}
+
+.list-chevron {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
 :host ::ng-deep {
   .portfolio-form-content .p-inputtext,
   .portfolio-form-content .p-inputnumber,

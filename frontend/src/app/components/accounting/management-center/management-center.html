@@ -1,38 +1,42 @@
 <div class="container-fluid p-4">
-    <div class="page-header mb-4">
-        <i class="pi pi-cog me-2 fs-3"></i>
-        <div>
-            <h2 class="m-0">會計管理中心</h2>
-            <small class="text-muted">統一管理卡片、付款方式、分類與定期支出</small>
-        </div>
-    </div>
-
     <div class="mobile-quick-switch mb-3">
-        <button *ngFor="let section of sections"
-            type="button"
-            class="quick-tab-btn"
-            [class.active]="activeTab() === section.value"
-            (click)="activeTab.set(section.value)">
-            <i class="pi" [ngClass]="section.icon"></i>
-            <span>{{ section.shortLabel }}</span>
-        </button>
+        @for (section of sections; track section.value) {
+            <button
+                type="button"
+                class="quick-tab-btn"
+                [class.active]="activeTab() === section.value"
+                (click)="activeTab.set(section.value)">
+                <i class="pi" [ngClass]="section.icon"></i>
+                <span>{{ section.shortLabel }}</span>
+            </button>
+        }
     </div>
 
     <div class="desktop-tabbar mb-3">
-        <button *ngFor="let section of sections"
-            type="button"
-            class="desktop-tab-btn"
-            [class.active]="activeTab() === section.value"
-            (click)="activeTab.set(section.value)">
-            <i class="pi me-2" [ngClass]="section.icon"></i>
-            {{ section.label }}
-        </button>
+        @for (section of sections; track section.value) {
+            <button
+                type="button"
+                class="desktop-tab-btn"
+                [class.active]="activeTab() === section.value"
+                (click)="activeTab.set(section.value)">
+                <i class="pi me-2" [ngClass]="section.icon"></i>
+                {{ section.label }}
+            </button>
+        }
     </div>
 
     <section class="management-content">
-        <app-card-list *ngIf="activeTab() === 'cards'"></app-card-list>
-        <app-payment-method-list *ngIf="activeTab() === 'payments'"></app-payment-method-list>
-        <app-category-list *ngIf="activeTab() === 'categories'"></app-category-list>
-        <app-recurring-list *ngIf="activeTab() === 'recurring'"></app-recurring-list>
+        @if (activeTab() === 'cards') {
+            <app-card-list></app-card-list>
+        }
+        @if (activeTab() === 'payments') {
+            <app-payment-method-list></app-payment-method-list>
+        }
+        @if (activeTab() === 'categories') {
+            <app-category-list></app-category-list>
+        }
+        @if (activeTab() === 'recurring') {
+            <app-recurring-list></app-recurring-list>
+        }
     </section>
 </div>

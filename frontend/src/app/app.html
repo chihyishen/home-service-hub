@@ -1,86 +1,96 @@
-<div class="layout-wrapper" [class.sidebar-open]="isSidebarOpen()">
-  <!-- Mobile Backdrop Overlay -->
-  <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
-
-  <div class="sidebar shadow-sm" [class.show]="isSidebarOpen()">
-    <div class="sidebar-header p-3 border-bottom mb-3 d-flex justify-content-between align-items-center">
-      <h5 class="m-0"><i class="pi pi-home me-2"></i>Home Hub</h5>
-      <button class="btn btn-link d-lg-none text-dark p-0" (click)="closeSidebar()">
-        <i class="pi pi-times"></i>
-      </button>
+<div class="hub-layout-wrapper">
+  <!-- 桌面端：懸浮側邊欄 (維持現狀) -->
+  <aside class="hub-dock d-none d-lg-flex">
+    <div class="dock-header mb-4">
+      <div class="app-logo">
+        <i class="pi pi-home"></i>
+      </div>
     </div>
     
-    <div class="menu-section px-2">
-      <small class="text-muted px-3 text-uppercase fw-bold" style="font-size: 0.7rem;">通用</small>
-      <ul class="nav flex-column mt-2">
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-            <i class="pi pi-box me-2"></i>庫存管理
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/shopping-list" routerLinkActive="active">
-            <i class="pi pi-shopping-cart me-2"></i>採買清單
-          </a>
-        </li>
-      </ul>
+    <nav class="dock-nav">
+      <a class="dock-item" [class.active]="activeTab() === 'inventory'" (click)="setTab('inventory')" pTooltip="庫存管理" tooltipPosition="right">
+        <i class="pi pi-box"></i>
+      </a>
+      <a class="dock-item" [class.active]="activeTab() === 'shopping'" (click)="setTab('shopping')" pTooltip="採買清單" tooltipPosition="right">
+        <i class="pi pi-shopping-cart"></i>
+      </a>
+      <div class="dock-divider"></div>
+      <a class="dock-item" [class.active]="activeTab() === 'portfolio'" (click)="setTab('portfolio')" pTooltip="投資概覽" tooltipPosition="right">
+        <i class="pi pi-chart-line"></i>
+      </a>
+      <a class="dock-item sub-item" [class.active]="activeTab() === 'portfolio-transactions'" (click)="setTab('portfolio-transactions')" pTooltip="股票交易紀錄" tooltipPosition="right">
+        <i class="pi pi-list"></i>
+      </a>
+      <a class="dock-item sub-item" [class.active]="activeTab() === 'portfolio-dividends'" (click)="setTab('portfolio-dividends')" pTooltip="股利領取紀錄" tooltipPosition="right">
+        <i class="pi pi-percentage"></i>
+      </a>
+      <div class="dock-divider"></div>
+      <a class="dock-item" [class.active]="activeTab() === 'acc-transactions'" (click)="setTab('acc-transactions')" pTooltip="交易紀錄" tooltipPosition="right">
+        <i class="pi pi-wallet"></i>
+      </a>
+      <a class="dock-item sub-item" [class.active]="activeTab() === 'acc-dashboard'" (click)="setTab('acc-dashboard')" pTooltip="記帳分析" tooltipPosition="right">
+        <i class="pi pi-chart-pie"></i>
+      </a>
+      <a class="dock-item sub-item" [class.active]="activeTab() === 'settings'" (click)="setTab('settings')" pTooltip="會計設定" tooltipPosition="right">
+        <i class="pi pi-cog"></i>
+      </a>
+    </nav>
+  </aside>
 
-      <small class="text-muted px-3 text-uppercase fw-bold mt-4 d-block" style="font-size: 0.7rem;">投資理財</small>
-      <ul class="nav flex-column mt-2">
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/portfolio" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-            <i class="pi pi-chart-line me-2"></i>投資組合
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/portfolio/transactions" routerLinkActive="active">
-            <i class="pi pi-list me-2"></i>股票交易紀錄
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/portfolio/dividends" routerLinkActive="active">
-            <i class="pi pi-percentage me-2"></i>股利領取紀錄
-          </a>
-        </li>
-      </ul>
+  <!-- 主要內容區塊 -->
+  <div class="hub-main-content">
+    <header class="hub-top-header">
+      <div class="header-container px-3 px-lg-4">
+        <h1 class="header-title m-0 text-truncate">{{ title() }}</h1>
+      </div>
+    </header>
 
-      <small class="text-muted px-3 text-uppercase fw-bold mt-4 d-block" style="font-size: 0.7rem;">財務記帳</small>
-      <ul class="nav flex-column mt-2">
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/accounting/dashboard" routerLinkActive="active">
-            <i class="pi pi-chart-pie me-2"></i>分析儀表板
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/accounting/transactions" routerLinkActive="active">
-            <i class="pi pi-list me-2"></i>交易紀錄
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/accounting/settings" routerLinkActive="active">
-            <i class="pi pi-cog me-2"></i>會計管理中心
-          </a>
-        </li>
-      </ul>
-    </div>
+    <main class="hub-page-container px-3 px-lg-4 pb-5 pb-lg-4">
+      <!-- 元件容器 (同前) -->
+      <div class="tab-container" [hidden]="activeTab() !== 'inventory'"><app-item-list></app-item-list></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'shopping'"><app-shopping-list></app-shopping-list></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'portfolio'"><app-portfolio-dashboard></app-portfolio-dashboard></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'portfolio-transactions'"><app-portfolio-transactions></app-portfolio-transactions></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'portfolio-dividends'"><app-portfolio-dividends></app-portfolio-dividends></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'acc-dashboard'"><app-accounting-dashboard></app-accounting-dashboard></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'acc-transactions'"><app-transaction-list></app-transaction-list></div>
+      <div class="tab-container" [hidden]="activeTab() !== 'settings'"><app-management-center></app-management-center></div>
+    </main>
   </div>
 
-  <div class="main-content">
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4 px-3 px-lg-4 sticky-top">
-      <div class="container-fluid d-flex align-items-center">
-        <!-- Mobile Toggle Button -->
-        <button class="btn btn-link d-lg-none me-2 text-dark p-0" (click)="toggleSidebar()">
-          <i class="pi pi-bars" style="font-size: 1.25rem;"></i>
-        </button>
-
-        <span class="navbar-text fw-bold text-dark flex-grow-1 overflow-hidden text-nowrap text-truncate">
-          {{ title() }}
-        </span>
+  <!-- 手機端：整合式底部控制中心 -->
+  <div class="hub-mobile-nav-shell d-lg-none glass-effect">
+    <!-- 二級導覽 (搬到下面) -->
+    <div class="hub-sub-nav">
+      <div class="segmented-control">
+        @if (mainTab() === 'supplies') {
+          <button [class.active]="activeTab() === 'inventory'" (click)="setTab('inventory')">庫存</button>
+          <button [class.active]="activeTab() === 'shopping'" (click)="setTab('shopping')">採買</button>
+        }
+        @if (mainTab() === 'portfolio') {
+          <button [class.active]="activeTab() === 'portfolio'" (click)="setTab('portfolio')">概覽</button>
+          <button [class.active]="activeTab() === 'portfolio-transactions'" (click)="setTab('portfolio-transactions')">交易</button>
+          <button [class.active]="activeTab() === 'portfolio-dividends'" (click)="setTab('portfolio-dividends')">股利</button>
+        }
+        @if (mainTab() === 'accounting') {
+          <button [class.active]="activeTab() === 'acc-transactions'" (click)="setTab('acc-transactions')">紀錄</button>
+          <button [class.active]="activeTab() === 'acc-dashboard'" (click)="setTab('acc-dashboard')">分析</button>
+          <button [class.active]="activeTab() === 'settings'" (click)="setTab('settings')">管理</button>
+        }
       </div>
-    </nav>
+    </div>
 
-    <main class="container-fluid px-3 px-lg-4 pb-4">
-      <router-outlet />
-    </main>
+    <!-- 底部主標籤列 -->
+    <nav class="hub-bottom-tab-bar">
+      <a class="tab-item" [class.active]="mainTab() === 'supplies'" (click)="setTab('inventory')">
+        <i class="pi pi-box"></i><span>物資</span>
+      </a>
+      <a class="tab-item" [class.active]="mainTab() === 'portfolio'" (click)="setTab('portfolio')">
+        <i class="pi pi-chart-line"></i><span>投資</span>
+      </a>
+      <a class="tab-item" [class.active]="mainTab() === 'accounting'" (click)="setTab('acc-transactions')">
+        <i class="pi pi-wallet"></i><span>財務</span>
+      </a>
+    </nav>
   </div>
 </div>

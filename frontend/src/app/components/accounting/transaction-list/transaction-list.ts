@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ViewChild, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
@@ -40,7 +40,8 @@ import { Menu } from 'primeng/menu';
   ],
   providers: [MessageService],
   templateUrl: './transaction-list.html',
-  styleUrl: './transaction-list.scss'
+  styleUrl: './transaction-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TransactionListComponent implements OnInit {
   private accountingService = inject(AccountingService);
@@ -188,6 +189,13 @@ export class TransactionListComponent implements OnInit {
     this.selectedPaymentMethod.set(undefined);
     this.selectedType.set('ALL');
     this.selectedKeyword.set('');
+  }
+
+  isNewDay(index: number): boolean {
+    if (index === 0) return true;
+    const current = this.filteredTransactions()[index];
+    const previous = this.filteredTransactions()[index - 1];
+    return current.date !== previous.date;
   }
 
   loadData() {

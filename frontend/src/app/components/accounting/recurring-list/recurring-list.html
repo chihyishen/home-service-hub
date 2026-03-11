@@ -5,102 +5,70 @@
       <h3 class="mb-1">定期與分期管理</h3>
       <small class="text-muted">管理固定扣款、數位訂閱與分期計畫</small>
     </div>
-    <p-button [label]="'新增' + getCurrentTypeLabel()" icon="pi pi-plus" (onClick)="handleAddByType()"></p-button>
+    <p-button [label]="'新增' + getCurrentTypeLabel()" icon="pi pi-plus" (onClick)="handleAddByType()" styleClass="hub-btn-primary"></p-button>
   </div>
 
-  <div class="type-switcher mb-3">
-    <p-button
-      *ngFor="let option of recurringTypeOptions"
-      [label]="option.label"
-      [text]="!isActiveType(option.value)"
-      [outlined]="!isActiveType(option.value)"
-      [severity]="isActiveType(option.value) ? 'primary' : 'secondary'"
-      size="small"
-      (onClick)="setActiveType(option.value)">
-    </p-button>
+  <div class="type-switcher mb-4">
+    @for (option of recurringTypeOptions; track option.value) {
+      <p-button
+        [label]="option.label"
+        [text]="!isActiveType(option.value)"
+        [outlined]="!isActiveType(option.value)"
+        [severity]="isActiveType(option.value) ? 'primary' : 'secondary'"
+        size="small"
+        (onClick)="setActiveType(option.value)">
+      </p-button>
+    }
   </div>
 
-  <p-table [value]="tableRows()" responsiveLayout="stack" [breakpoint]="'960px'" [sortField]="'name'">
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="name">名稱 <p-sortIcon field="name"></p-sortIcon></th>
-        <th pSortableColumn="amount">{{ isInstallmentView() ? '總額' : '金額' }} <p-sortIcon [field]="isInstallmentView() ? 'totalAmount' : 'amount'"></p-sortIcon></th>
-        <th *ngIf="!isInstallmentView()" pSortableColumn="category">分類 <p-sortIcon field="category"></p-sortIcon></th>
-        <th *ngIf="isInstallmentView()" pSortableColumn="monthlyAmount">每期金額 <p-sortIcon field="monthlyAmount"></p-sortIcon></th>
-        <th pSortableColumn="cardName" style="width: 150px">支付方式 <p-sortIcon field="cardName"></p-sortIcon></th>
-        <th *ngIf="!isInstallmentView()" pSortableColumn="dayOfMonth">扣款日 <p-sortIcon field="dayOfMonth"></p-sortIcon></th>
-        <th *ngIf="isInstallmentView()" pSortableColumn="remainingPeriods">剩餘期數 <p-sortIcon field="remainingPeriods"></p-sortIcon></th>
-        <th *ngIf="!isInstallmentView()" pSortableColumn="active">狀態 <p-sortIcon field="active"></p-sortIcon></th>
-        <th *ngIf="isInstallmentView()" pSortableColumn="startDate">開始日期 <p-sortIcon field="startDate"></p-sortIcon></th>
-        <th style="width: 100px">操作</th>
-      </tr>
-    </ng-template>
-
-    <ng-template pTemplate="body" let-item>
-      <tr>
-        <td>
-          <span class="p-column-title fw-bold">名稱</span>
-          {{ $any(item).name }}
-        </td>
-        <td class="text-end">
-          <span class="p-column-title fw-bold text-dark">{{ isInstallmentView() ? '總額' : '金額' }}</span>
-          {{ (isInstallmentView() ? $any(item).totalAmount : $any(item).amount) | currency:'TWD':'symbol':'1.0-0' }}
-        </td>
-        <td *ngIf="!isInstallmentView()">
-          <span class="p-column-title fw-bold">分類</span>
-          <p-tag [value]="$any(item).category" [style]="{ 'background-color': getCategoryColor($any(item).category) }"></p-tag>
-        </td>
-        <td *ngIf="isInstallmentView()" class="text-end">
-          <span class="p-column-title fw-bold text-dark">每期金額</span>
-          {{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">支付方式</span>
-          <div [class.fw-bold]="$any(item).cardId">{{ $any(item).cardName || $any(item).paymentMethod }}</div>
-          <small class="text-muted d-block" *ngIf="$any(item).cardId">{{ $any(item).paymentMethod }}</small>
-        </td>
-        <td *ngIf="!isInstallmentView()">
-          <span class="p-column-title fw-bold">扣款日</span>
-          每月 {{ $any(item).dayOfMonth }} 日
-        </td>
-        <td *ngIf="isInstallmentView()">
-          <span class="p-column-title fw-bold">剩餘期數</span>
-          {{ $any(item).remainingPeriods }} / {{ $any(item).totalPeriods }}
-        </td>
-        <td *ngIf="!isInstallmentView()">
-          <span class="p-column-title fw-bold">狀態</span>
-          <p-tag
-            [severity]="$any(item).active ? 'success' : 'secondary'"
-            [value]="$any(item).active ? '啟用中' : '已停用'"
-            (click)="toggleSub($any(item).id)"
-            class="status-tag">
-          </p-tag>
-        </td>
-        <td *ngIf="isInstallmentView()">
-          <span class="p-column-title fw-bold">開始日期</span>
-          {{ $any(item).startDate }}
-        </td>
-        <td class="action-cell">
-          <span class="p-column-title fw-bold">操作</span>
-          <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showRowMenu($event, $any(item))"></p-button>
-        </td>
-      </tr>
-    </ng-template>
-
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td [attr.colspan]="isInstallmentView() ? 7 : 8" class="text-center py-4 text-muted">
-          {{ getCurrentEmptyMessage() }}
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+  <div class="hub-modern-list">
+    @for (item of tableRows(); track $any(item).id) {
+      <div class="hub-list-item clickable-row" (click)="showRowMenu($event, $any(item))">
+        <div class="item-left">
+          <div class="main-text d-flex align-items-center gap-2">
+            {{ $any(item).name }}
+            @if (!isInstallmentView()) {
+              <p-tag [severity]="$any(item).active ? 'success' : 'secondary'" [value]="$any(item).active ? '啟用' : '停用'" (click)="toggleSub($any(item).id); $event.stopPropagation();" class="status-tag" styleClass="text-xs px-2 py-1"></p-tag>
+            }
+          </div>
+          <div class="sub-text d-flex align-items-center gap-2 mt-1">
+            @if (!isInstallmentView()) {
+              <span class="hub-tag secondary" [style.border-color]="getCategoryColor($any(item).category)"><i class="pi pi-tag" [style.color]="getCategoryColor($any(item).category)"></i> {{ $any(item).category }}</span>
+              <span>•</span>
+              <span>每月 {{ $any(item).dayOfMonth }} 日</span>
+            } @else {
+              <span>始於 {{ $any(item).startDate }}</span>
+              <span>•</span>
+              <span>剩 {{ $any(item).remainingPeriods }} / {{ $any(item).totalPeriods }} 期</span>
+            }
+            <span>•</span>
+            <span class="fw-bold"><i class="pi pi-credit-card me-1"></i>{{ $any(item).cardName || $any(item).paymentMethod }}</span>
+          </div>
+        </div>
+        
+        <div class="item-right text-end">
+          @if (!isInstallmentView()) {
+            <div class="amount-text">{{ $any(item).amount | currency:'TWD':'symbol':'1.0-0' }}</div>
+          } @else {
+            <div class="amount-text">{{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }} <small class="text-muted fw-normal">/期</small></div>
+            <div class="sub-text">總額 {{ $any(item).totalAmount | currency:'TWD':'symbol':'1.0-0' }}</div>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <i class="pi pi-refresh"></i>
+        <h4>{{ getCurrentEmptyMessage() }}</h4>
+        <p>點擊右上方按鈕開始新增您的定期扣款項目。</p>
+      </div>
+    }
+  </div>
 
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增訂閱 Dialog -->
-  <p-dialog [header]="(isEditSub ? '編輯' : '新增') + (newSub.subType === 'FIXED_EXPENSE' ? '固定支出' : '數位訂閱')" [(visible)]="displaySubDialog" [modal]="true" [style]="{ width: '560px', maxWidth: '95vw' }" [breakpoints]="{ '991px': '80vw', '767px': '92vw' }" [dismissableMask]="true">
-    <div class="flex flex-column gap-3 mt-2">
+  <p-dialog [header]="(isEditSub ? '編輯' : '新增') + (newSub.subType === 'FIXED_EXPENSE' ? '固定支出' : '數位訂閱')" [(visible)]="displaySubDialog" [modal]="true" styleClass="hub-dialog-form" [breakpoints]="{ '991px': '80vw', '767px': '92vw' }" [dismissableMask]="true">
+    <div class="flex flex-column gap-3 mt-2 hub-form-grid">
       <div class="field mb-2">
         <label class="d-block mb-2">名稱</label>
         <input pInputText [(ngModel)]="newSub.name" class="w-100" placeholder="例如：Netflix" />
@@ -133,13 +101,13 @@
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displaySubDialog = false"></p-button>
-      <p-button label="儲存" icon="pi pi-check" (onClick)="saveSub()" [disabled]="!newSub.name"></p-button>
+      <p-button label="儲存" icon="pi pi-check" (onClick)="saveSub()" [disabled]="!newSub.name" styleClass="hub-btn-primary"></p-button>
     </ng-template>
   </p-dialog>
 
   <!-- 新增分期 Dialog -->
-  <p-dialog [header]="isEditInst ? '編輯分期計畫' : '新增分期計畫'" [(visible)]="displayInstDialog" [modal]="true" [style]="{ width: '640px', maxWidth: '95vw' }" [breakpoints]="{ '991px': '86vw', '767px': '92vw' }" [contentStyle]="{'overflow': 'visible'}" [dismissableMask]="true">
-    <div class="row g-3 mt-1">
+  <p-dialog [header]="isEditInst ? '編輯分期計畫' : '新增分期計畫'" [(visible)]="displayInstDialog" [modal]="true" styleClass="hub-dialog-xl" [breakpoints]="{ '991px': '86vw', '767px': '92vw' }" [contentStyle]="{'overflow': 'visible'}" [dismissableMask]="true">
+    <div class="row g-3 mt-1 hub-form-grid">
       <div class="col-12">
         <label class="d-block mb-2">計畫名稱</label>
         <input pInputText [(ngModel)]="newInst.name" class="w-100" placeholder="例如：iPhone 15" />
@@ -177,7 +145,7 @@
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayInstDialog = false"></p-button>
-      <p-button label="儲存" icon="pi pi-check" (onClick)="saveInst()" [disabled]="!newInst.name || !newInst.totalAmount"></p-button>
+      <p-button label="儲存" icon="pi pi-check" (onClick)="saveInst()" [disabled]="!newInst.name || !newInst.totalAmount" styleClass="hub-btn-primary"></p-button>
     </ng-template>
   </p-dialog>
 </div>

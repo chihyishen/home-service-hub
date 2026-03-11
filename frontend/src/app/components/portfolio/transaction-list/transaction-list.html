@@ -1,73 +1,49 @@
 <div class="p-4 portfolio-form-page">
   <p-toast></p-toast>
-  <p-confirmDialog [style]="{ width: '450px' }"></p-confirmDialog>
+  <p-confirmDialog styleClass="hub-dialog-md"></p-confirmDialog>
 
-  <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h2 class="m-0">交易紀錄</h2>
-    <p-button label="新增交易" icon="pi pi-plus" (onClick)="openNew()"></p-button>
+  <div class="hub-page-header mb-4 justify-content-end">
+    <div class="header-actions">
+      <p-button label="新增交易" icon="pi pi-plus" (onClick)="openNew()" styleClass="hub-btn-primary"></p-button>
+    </div>
   </div>
 
-  <p-table [value]="transactions()" responsiveLayout="stack" [breakpoint]="'960px'">
-    <ng-template pTemplate="header">
-      <tr>
-        <th>日期</th>
-        <th>股票代碼</th>
-        <th>類型</th>
-        <th>數量</th>
-        <th>單價</th>
-        <th>手續費</th>
-        <th>交易稅</th>
-        <th>操作</th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-t>
-      <tr>
-        <td>
-          <span class="p-column-title fw-bold">日期</span>
-          {{ t.trade_date | date:'yyyy-MM-dd' }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">股票代碼</span>
-          {{ t.symbol }}
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">類型</span>
-          <span [ngClass]="{'text-danger': t.type === 'BUY', 'text-success': t.type === 'SELL'}">
-            {{ t.type === 'BUY' ? '買進' : '賣出' }}
-          </span>
-        </td>
-        <td class="text-end">
-          <span class="p-column-title fw-bold text-dark">數量</span>
-          {{ t.quantity | number }}
-        </td>
-        <td class="text-end">
-          <span class="p-column-title fw-bold text-dark">單價</span>
-          {{ t.price | number:'1.1-2' }}
-        </td>
-        <td class="text-end">
-          <span class="p-column-title fw-bold text-dark">手續費</span>
-          {{ t.fee | number }}
-        </td>
-        <td class="text-end">
-          <span class="p-column-title fw-bold text-dark">交易稅</span>
-          {{ t.tax | number }}
-        </td>
-        <td class="action-cell">
-          <span class="p-column-title fw-bold">操作</span>
-          <p-button icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" (onClick)="editTransaction(t)"></p-button>
-          <p-button icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger p-button-sm" (onClick)="deleteTransaction(t)"></p-button>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+  <div class="hub-modern-list">
+    @for (t of transactions(); track t.id) {
+      <div class="hub-list-item clickable-row" (click)="showMenu($event, t)">
+        <div class="item-left">
+          <div class="main-text">{{ t.symbol }}</div>
+          <div class="sub-text">
+            {{ t.trade_date | date:'yyyy-MM-dd' }} • 
+            <span [ngClass]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
+              {{ t.type === 'BUY' ? '買進' : '賣出' }}
+            </span>
+          </div>
+        </div>
+        <div class="item-right text-end">
+          <div class="amount-text" [ngClass]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
+            {{ (t.price * t.quantity) | currency:'TWD':'symbol':'1.0-0' }}
+          </div>
+          <div class="sub-text">{{ t.quantity | number }} 股 @ {{ t.price | number:'1.1-2' }}</div>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <i class="pi pi-list"></i>
+        <h4>無交易紀錄</h4>
+        <p>尚未記錄任何股票交易。</p>
+      </div>
+    }
+  </div>
+
+  <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <p-dialog
     [header]="isEdit() ? '修改交易' : '新增交易'"
     [(visible)]="showDialog"
     [modal]="true"
-    [style]="{ width: '450px', maxWidth: '96vw' }"
+    styleClass="hub-dialog-md portfolio-form-dialog"
     [breakpoints]="{ '991px': '70vw', '767px': '92vw' }"
-    styleClass="portfolio-form-dialog"
     contentStyleClass="portfolio-form-content">
     <div class="grid p-fluid">
       <div class="col-12 mb-3">

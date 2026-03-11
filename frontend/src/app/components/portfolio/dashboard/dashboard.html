@@ -1,211 +1,134 @@
-<div class="portfolio-dashboard p-4">
-  <div class="header ui-toolbar mb-4">
-    <h2 class="m-0">投資組合概覽</h2>
-    <p-button label="重新整理" icon="pi pi-refresh" (onClick)="loadSummary()" [loading]="loading()"></p-button>
+<div class="hub-dashboard-container">
+  <div class="hub-dashboard-header mb-4 justify-content-end">
+    <div class="header-right">
+      <p-button label="刷新行情" icon="pi pi-refresh" [loading]="loading()" (onClick)="loadSummary()" 
+                styleClass="hub-refresh-btn"></p-button>
+    </div>
   </div>
 
-  <div class="summary-cards mb-4" *ngIf="summary()">
-    <div class="row g-3 primary-kpis mb-1">
-      <div class="col-12 col-md-6 col-xl-4 d-flex">
-        <p-card header="總市值" styleClass="h-100 kpi-card w-100">
-          <div class="kpi-value">{{ formatCurrency(summary()!.total_market_value) }}</div>
-        </p-card>
-      </div>
-
-      <div class="col-12 col-md-6 col-xl-4 d-flex">
-        <p-card styleClass="h-100 kpi-card kpi-card--pnl w-100">
-          <div class="kpi-header">
-            <div class="kpi-title-group">
-              <div class="kpi-title">未實現損益</div>
-              <p-button
-                [icon]="showWithDividend() ? 'pi pi-percentage' : 'pi pi-money-bill'"
-                [text]="true"
-                [rounded]="true"
-                severity="secondary"
-                size="small"
-                (onClick)="toggleDividend()"
-                class="kpi-toggle-btn"
-                [pTooltip]="showWithDividend() ? '目前顯示：含息損益' : '目前顯示：價差損益 (不含息)'">
-              </p-button>
+  @if (loading()) {
+    <div class="hub-bento-grid">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="bento-item">
+          <p-skeleton width="40%" styleClass="mb-3"></p-skeleton>
+          <p-skeleton width="80%" height="2.5rem"></p-skeleton>
+        </div>
+      }
+    </div>
+  } @else {
+    @if (summary() && summary()!.holdings.length > 0) {
+      <div class="hub-bento-grid">
+        
+        <!-- 總市值 (大卡片) -->
+        <div class="bento-item bento-hero market-value-card">
+          <div class="bento-content">
+            <div class="label">當前總市值</div>
+            <div class="value">{{ formatCurrency(summary()!.total_market_value) }}</div>
+            <div class="meta">
+              <span>總成本 {{ formatCurrency(summary()!.total_cost) }}</span>
             </div>
-            <small class="kpi-rate" [ngClass]="{'text-danger': summary()!.total_unrealized_pnl > 0, 'text-success': summary()!.total_unrealized_pnl < 0}">
+          </div>
+          <div class="bento-bg-icon">
+            <i class="pi pi-briefcase"></i>
+          </div>
+        </div>
+
+        <!-- 未實現損益 (帶切換功能) -->
+        <div class="bento-item bento-normal pnl-card" [class.is-loss]="Number(summary()!.total_unrealized_pnl) < 0">
+          <div class="bento-content">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="label">未實現損益</div>
+              <p-button [icon]="showWithDividend() ? 'pi pi-percentage' : 'pi pi-money-bill'" 
+                        [text]="true" size="small" (onClick)="toggleDividend()"></p-button>
+            </div>
+            <div class="value">
+              {{ formatCurrency(showWithDividend() ? (Number(summary()!.total_unrealized_pnl) + Number(summary()!.total_dividends)) : summary()!.total_unrealized_pnl) }}
+            </div>
+            <div class="meta pct-badge">
               {{ (showWithDividend() ?
                   (Number(summary()!.total_cost) > 0 ? ((Number(summary()!.total_unrealized_pnl) + Number(summary()!.total_dividends)) / Number(summary()!.total_cost) * 100) : 0) :
                   summary()!.total_unrealized_pnl_percent) | number:'1.2-2' }}%
-            </small>
+            </div>
           </div>
-          <div class="kpi-value" [ngClass]="{'text-danger': summary()!.total_unrealized_pnl > 0, 'text-success': summary()!.total_unrealized_pnl < 0}">
-            {{ formatCurrency(showWithDividend() ? (Number(summary()!.total_unrealized_pnl) + Number(summary()!.total_dividends)) : summary()!.total_unrealized_pnl) }}
+        </div>
+
+        <!-- 今日損益 -->
+        <div class="bento-item bento-normal day-pnl-card" [class.is-loss]="Number(summary()!.total_day_pnl) < 0">
+          <div class="bento-content">
+            <div class="label">今日總預估損益</div>
+            <div class="value">{{ formatCurrency(summary()!.total_day_pnl) }}</div>
+            <div class="meta">今日表現</div>
           </div>
-          <div class="kpi-meta">{{ showWithDividend() ? '含息模式' : '不含息模式' }}</div>
-        </p-card>
-      </div>
+        </div>
 
-      <div class="col-12 col-md-6 col-xl-4 d-flex">
-        <p-card header="今日總損益" styleClass="h-100 kpi-card w-100">
-          <div class="kpi-value" [ngClass]="{'text-danger': summary()!.total_day_pnl > 0, 'text-success': summary()!.total_day_pnl < 0}">
-            {{ formatCurrency(summary()!.total_day_pnl) }}
+        <!-- 累計股利 -->
+        <div class="bento-item bento-normal dividend-card">
+          <div class="bento-content">
+            <div class="label">累計股利收入</div>
+            <div class="value">{{ formatCurrency(summary()!.total_dividends) }}</div>
+            <div class="meta">已入帳現金</div>
           </div>
-        </p-card>
-      </div>
-    </div>
-
-    <div class="row g-3 secondary-kpis">
-      <div class="col-12 col-md-6 d-flex">
-        <p-card header="總成本" styleClass="h-100 kpi-card w-100">
-          <div class="kpi-value">{{ formatCurrency(summary()!.total_cost) }}</div>
-        </p-card>
-      </div>
-
-      <div class="col-12 col-md-6 d-flex">
-        <p-card header="累計股利" styleClass="h-100 kpi-card w-100">
-          <div class="kpi-value text-primary">
-            {{ formatCurrency(summary()!.total_dividends) }}
+          <div class="bento-bg-icon-small">
+            <i class="pi pi-percentage"></i>
           </div>
-        </p-card>
-      </div>
-    </div>
-  </div>
+        </div>
 
-  <p-card header="持股清單">
-    <div class="holdings-table-desktop">
-      <p-table [value]="summary()?.holdings || []" [loading]="loading()" dataKey="symbol" styleClass="holdings-desktop-table ui-sticky-table">
-        <ng-template pTemplate="header">
-          <tr>
-            <th style="width: 64px">明細</th>
-            <th>股票代碼</th>
-            <th>名稱</th>
-            <th>持股數</th>
-            <th>即時股價</th>
-            <th>未實現損益</th>
-            <th>今日漲跌</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-stock>
-          <ng-container>
-          <tr>
-            <td>
-              <button
-                pButton
-                type="button"
-                (click)="toggleHoldingExpand(stock.symbol)"
-                class="p-button-text p-button-rounded p-button-sm"
-                [icon]="isHoldingExpanded(stock.symbol) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'">
-              </button>
-            </td>
-            <td class="holding-symbol-cell"><b>{{ stock.symbol }}</b></td>
-            <td class="holding-name-cell" [title]="stock.name">{{ stock.name }}</td>
-            <td>{{ stock.total_quantity | number }}</td>
-            <td>{{ stock.current_price | number:'1.2-2' }}</td>
-            <td>
-              <p-tag [severity]="getPnlColor(stock.unrealized_pnl)" [value]="formatCurrency(stock.unrealized_pnl) + ' (' + ((stock.unrealized_pnl_percent | number:'1.2-2') || '0.00') + '%)'"></p-tag>
-            </td>
-            <td class="text-nowrap">
-              <span [ngClass]="{'text-danger': stock.day_change_amount > 0, 'text-success': stock.day_change_amount < 0}">
-                {{ stock.day_change_amount > 0 ? '+' : '' }}{{ stock.day_change_amount | number:'1.1-2' }}
-                ({{ stock.day_change_percent | number:'1.2-2' }}%)
-              </span>
-            </td>
-          </tr>
-          <tr class="holding-expand-row" *ngIf="isHoldingExpanded(stock.symbol)">
-            <td colspan="7">
-              <div class="holding-expand-grid">
-                <div class="holding-expand-item">
-                  <small>平均成本</small>
-                  <div>{{ stock.avg_cost | number:'1.2-2' }}</div>
-                </div>
-                <div class="holding-expand-item">
-                  <small>市值</small>
-                  <div>{{ formatCurrency(stock.market_value) }}</div>
-                </div>
-                <div class="holding-expand-item">
-                  <small>累計股利</small>
-                  <div>{{ formatCurrency(stock.total_dividends) }}</div>
-                </div>
-                <div class="holding-expand-item">
-                  <small>含息損益</small>
-                  <div [ngClass]="{'text-danger': stock.total_pnl_with_dividend > 0, 'text-success': stock.total_pnl_with_dividend < 0}">
-                    {{ formatCurrency(stock.total_pnl_with_dividend) }}
+        <!-- 持股分佈/清單 (全寬) -->
+        <div class="bento-item bento-full holdings-card">
+          <h3 class="card-title">持股明細</h3>
+          
+          <div class="hub-holdings-list">
+            @for (stock of summary()?.holdings; track stock.symbol) {
+              <div class="hub-stock-row" (click)="toggleHoldingExpand(stock.symbol)">
+                <div class="stock-main-info">
+                  <div class="stock-symbol-group">
+                    <span class="symbol">{{ stock.symbol }}</span>
+                    <span class="name text-truncate">{{ stock.name }}</span>
+                  </div>
+                  <div class="stock-price-group">
+                    <span class="current-price">{{ stock.current_price | number:'1.2-2' }}</span>
+                    <span class="day-change" [ngClass]="{'up': stock.day_change_amount > 0, 'down': stock.day_change_amount < 0}">
+                      {{ stock.day_change_amount > 0 ? '+' : '' }}{{ stock.day_change_amount | number:'1.1-2' }}%
+                    </span>
                   </div>
                 </div>
-              </div>
-            </td>
-          </tr>
-          </ng-container>
-        </ng-template>
-      </p-table>
-    </div>
+                
+                <div class="stock-stats">
+                  <div class="stat-item">
+                    <span class="l">股數</span>
+                    <span class="v">{{ stock.total_quantity | number }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="l">報酬</span>
+                    <span class="v pnl-tag" [ngClass]="getPnlColor(stock.unrealized_pnl)">
+                      {{ stock.unrealized_pnl_percent | number:'1.2-2' }}%
+                    </span>
+                  </div>
+                </div>
 
-    <div class="holdings-mobile-cards" *ngIf="!loading()">
-      <div class="holding-card" *ngFor="let stock of summary()?.holdings || []">
-        <div class="holding-card__header">
-          <div>
-            <div class="holding-card__symbol">{{ stock.symbol }}</div>
-            <div class="holding-card__name">{{ stock.name }}</div>
-          </div>
-          <div class="holding-card__day" [ngClass]="{'text-danger': stock.day_change_amount > 0, 'text-success': stock.day_change_amount < 0}">
-            <i class="pi" [ngClass]="stock.day_change_amount > 0 ? 'pi-arrow-up' : (stock.day_change_amount < 0 ? 'pi-arrow-down' : 'pi-minus')"></i>
-            {{ stock.day_change_amount > 0 ? '+' : '' }}{{ stock.day_change_amount | number:'1.1-2' }}%
+                @if (isHoldingExpanded(stock.symbol)) {
+                  <div class="stock-details-panel">
+                    <div class="detail-grid">
+                      <div class="d-item"><small>市值</small><div>{{ formatCurrency(stock.market_value) }}</div></div>
+                      <div class="d-item"><small>平均成本</small><div>{{ stock.avg_cost | number:'1.2-2' }}</div></div>
+                      <div class="d-item"><small>累計股利</small><div>{{ formatCurrency(stock.total_dividends) }}</div></div>
+                      <div class="d-item"><small>含息損益</small><div [ngClass]="{'up': stock.total_pnl_with_dividend > 0, 'down': stock.total_pnl_with_dividend < 0}">{{ formatCurrency(stock.total_pnl_with_dividend) }}</div></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
 
-        <div class="holding-card__main-pnl">
-          <small class="holding-card__label">未實現損益</small>
-          <div [ngClass]="{'text-danger': stock.unrealized_pnl > 0, 'text-success': stock.unrealized_pnl < 0}">
-            {{ formatCurrency(stock.unrealized_pnl) }}
-          </div>
-        </div>
-
-        <div class="holding-card__grid">
-          <div class="holding-card__metric">
-            <small>市值</small>
-            <div>{{ formatCurrency(stock.market_value) }}</div>
-          </div>
-          <div class="holding-card__metric">
-            <small>持股數</small>
-            <div>{{ stock.total_quantity | number }}</div>
-          </div>
-          <div class="holding-card__metric">
-            <small>即時股價</small>
-            <div>{{ stock.current_price | number:'1.2-2' }}</div>
-          </div>
-          <div class="holding-card__metric">
-            <small>平均成本</small>
-            <div>{{ stock.avg_cost | number:'1.2-2' }}</div>
-          </div>
-        </div>
-
-        <p-accordion [multiple]="false">
-          <p-accordion-panel value="details">
-            <p-accordion-header>更多明細</p-accordion-header>
-            <p-accordion-content>
-              <div class="holding-card__detail-row">
-                <span>累計股利</span>
-                <span>{{ formatCurrency(stock.total_dividends) }}</span>
-              </div>
-              <div class="holding-card__detail-row">
-                <span>含息損益</span>
-                <span [ngClass]="{'text-danger': stock.total_pnl_with_dividend > 0, 'text-success': stock.total_pnl_with_dividend < 0}">
-                  {{ formatCurrency(stock.total_pnl_with_dividend) }}
-                </span>
-              </div>
-              <div class="holding-card__detail-row">
-                <span>未實現報酬率</span>
-                <span>{{ stock.unrealized_pnl_percent | number:'1.2-2' }}%</span>
-              </div>
-            </p-accordion-content>
-          </p-accordion-panel>
-        </p-accordion>
       </div>
-    </div>
-
-    <div class="holdings-mobile-empty" *ngIf="!loading() && !(summary()?.holdings?.length)">
-      目前沒有持股資料
-    </div>
-
-    <div class="holdings-mobile-loading" *ngIf="loading()">
-      載入中...
-    </div>
-
-  </p-card>
+    } @else {
+      <div class="empty-state">
+        <i class="pi pi-chart-line"></i>
+        <h4>尚未建立投資組合</h4>
+        <p>記錄你的第一筆股票交易，開始追蹤投資績效。</p>
+        <p-button label="前往記錄交易" icon="pi pi-plus" routerLink="/portfolio/transactions" styleClass="hub-btn-primary"></p-button>
+      </div>
+    }
+  }
 </div>

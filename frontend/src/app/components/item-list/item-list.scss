@@ -1,0 +1,219 @@
+.hub-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.hub-inventory-card {
+  background-color: var(--app-surface);
+  border-radius: 20px;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-card-shadow);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--app-raised-shadow);
+    border-color: var(--app-accent);
+  }
+
+  &.low-stock {
+    border-left: 5px solid var(--app-danger);
+  }
+}
+
+/* Item Visual (Left/Top part) */
+.item-visual {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+
+  .item-icon-placeholder {
+    width: 64px;
+    height: 64px;
+    background: var(--app-surface-soft);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: var(--app-text-muted);
+  }
+
+  .stock-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    
+    &.success { background: var(--app-state-success-bg); color: var(--app-success); }
+    &.warn { background: var(--app-state-warning-bg); color: var(--app-warning); }
+    &.danger { background: var(--app-state-danger-bg); color: var(--app-danger); }
+  }
+}
+
+:host ::ng-deep .hub-item-image {
+  img {
+    border-radius: 16px;
+    object-fit: cover;
+    box-shadow: var(--app-card-shadow);
+  }
+}
+
+/* Item Body */
+.item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  .item-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: var(--app-text);
+  }
+
+  .item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .hub-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    
+    &.secondary {
+      background: var(--app-surface-soft);
+      color: var(--app-text-muted);
+      border: 1px solid var(--app-border);
+    }
+  }
+}
+
+/* Stock Info & Progress */
+.item-stock-info {
+  margin-top: auto;
+
+  .qty-display {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+
+    .current { font-size: 1.5rem; font-weight: 800; color: var(--app-text); }
+    .target { font-size: 0.85rem; color: var(--app-text-muted); font-weight: 600; }
+  }
+}
+
+:host ::ng-deep .hub-mini-progress {
+  .p-progressbar {
+    height: 6px !important;
+    background: var(--app-border);
+    border-radius: 3px;
+  }
+
+  .p-progressbar-value {
+    background: var(--hub-progress-fill) !important;
+  }
+}
+
+/* Actions Area */
+.item-actions {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .action-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+}
+
+/* Search Bar V2 */
+.hub-search-box {
+  position: relative;
+  width: 100%;
+  
+  i {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--app-text-muted);
+  }
+
+  input {
+    width: 100%;
+    padding: 0.85rem 1rem 0.85rem 3rem;
+    border-radius: 16px;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-soft);
+    font-weight: 500;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: var(--app-accent);
+      background: var(--app-surface);
+      box-shadow: 0 0 0 4px var(--app-focus-ring);
+    }
+  }
+}
+
+.hub-toggle-pill {
+  input { display: none; }
+  label {
+    background: var(--app-surface-soft);
+    padding: 0.6rem 1.25rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--app-text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--app-border);
+    margin: 0;
+  }
+
+  input:checked + label {
+    background: var(--app-accent);
+    color: var(--app-surface);
+    border-color: var(--app-accent);
+    box-shadow: var(--app-card-shadow);
+  }
+}
+
+.history-delta-negative {
+  color: var(--app-danger);
+}
+
+.history-delta-positive {
+  color: var(--app-success);
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .hub-inventory-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .hub-inventory-card {
+    padding: 1rem;
+  }
+}

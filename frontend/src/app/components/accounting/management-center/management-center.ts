@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { CardListComponent } from '../card-list/card-list';
@@ -20,7 +20,8 @@ type ManagementTab = 'cards' | 'payments' | 'categories' | 'recurring';
     PaymentMethodListComponent
   ],
   templateUrl: './management-center.html',
-  styleUrl: './management-center.scss'
+  styleUrl: './management-center.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ManagementCenterComponent {
   activeTab = signal<ManagementTab>('cards');

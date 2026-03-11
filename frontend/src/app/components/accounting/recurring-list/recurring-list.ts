@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ViewChild, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
@@ -38,7 +38,8 @@ type RecurringType = 'FIXED_EXPENSE' | 'SUBSCRIPTION' | 'INSTALLMENT';
   ],
   providers: [MessageService],
   templateUrl: './recurring-list.html',
-  styleUrl: './recurring-list.scss'
+  styleUrl: './recurring-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RecurringListComponent implements OnInit {
   private accountingService = inject(AccountingService);

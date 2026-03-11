@@ -1,180 +1,108 @@
 <p-toast></p-toast>
-<div class="card p-3 p-lg-4">
-    <div class="top-bar mb-3">
-      <div>
-        <h3 class="m-0">交易紀錄</h3>
-        <small class="text-muted">支援代墊情境：可分開記錄消費金額與實際支出</small>
-      </div>
-      <div class="d-flex gap-2 w-100-mobile">
-        <p-button label="同步定期交易" icon="pi pi-sync" severity="secondary" [loading]="isGeneratingRecurring" [disabled]="isGeneratingRecurring" (onClick)="generateRecurring()" class="flex-grow-1 flex-lg-grow-0"></p-button>
-        <p-button label="新增交易" icon="pi pi-plus" (onClick)="showDialog()" class="flex-grow-1 flex-lg-grow-0"></p-button>
-      </div>
-    </div>
+<div class="hub-page-header mb-4 justify-content-end">
+  <div class="header-actions">
+    <p-button label="同步定期交易" icon="pi pi-sync" severity="secondary" [loading]="isGeneratingRecurring" (onClick)="generateRecurring()" styleClass="hub-btn-secondary"></p-button>
+    <p-button label="新增交易" icon="pi pi-plus" (onClick)="showDialog()" styleClass="hub-btn-primary"></p-button>
+  </div>
+</div>
 
-    <div class="month-toolbar mb-3">
-      <div class="month-nav">
-        <p-button icon="pi pi-angle-left" [text]="true" (onClick)="goPrevMonth()"></p-button>
-        <span class="month-label">{{ getSelectedMonthLabel() }}</span>
-        <p-button icon="pi pi-angle-right" [text]="true" (onClick)="goNextMonth()"></p-button>
-        <p-button label="回到本月" [text]="true" size="small" styleClass="month-reset-btn" (onClick)="goCurrentMonth()"></p-button>
-      </div>
-      <small class="text-muted">本月共 {{ monthSummary().count }} 筆交易</small>
-    </div>
+<!-- 快速月份切換列 -->
+<div class="hub-month-navigator mb-4">
+  <button class="nav-btn" (click)="goPrevMonth()"><i class="pi pi-chevron-left"></i></button>
+  <div class="current-month">{{ getSelectedMonthLabel() }}</div>
+  <button class="nav-btn" (click)="goNextMonth()"><i class="pi pi-chevron-right"></i></button>
+  <button class="reset-btn" (click)="goCurrentMonth()">回到本月</button>
+</div>
 
-    <div class="summary-grid mb-3">
-      <div class="summary-card summary-expense">
-        <small class="text-muted d-block">本月支出</small>
-        <div class="value text-danger">-{{ monthSummary().expense | currency:'TWD':'symbol':'1.0-0' }}</div>
-      </div>
-      <div class="summary-card summary-income">
-        <small class="text-muted d-block">本月收入</small>
-        <div class="value text-success">+{{ monthSummary().income | currency:'TWD':'symbol':'1.0-0' }}</div>
-      </div>
-      <div class="summary-card">
-        <small class="text-muted d-block">本月淨額</small>
-        <div class="value" [class.text-danger]="monthSummary().net < 0" [class.text-success]="monthSummary().net >= 0">
-          {{ monthSummary().net | currency:'TWD':'symbol':'1.0-0' }}
-        </div>
-      </div>
-    </div>
+<!-- 頂部摘要卡片 -->
+<div class="hub-summary-row mb-4">
+  <div class="summary-item expense">
+    <span class="l">支出</span>
+    <div class="v">-{{ monthSummary().expense | currency:'TWD':'symbol':'1.0-0' }}</div>
+  </div>
+  <div class="summary-item income">
+    <span class="l">收入</span>
+    <div class="v">+{{ monthSummary().income | currency:'TWD':'symbol':'1.0-0' }}</div>
+  </div>
+  <div class="summary-item net" [class.negative]="monthSummary().net < 0">
+    <span class="l">結餘</span>
+    <div class="v">{{ monthSummary().net | currency:'TWD':'symbol':'1.0-0' }}</div>
+  </div>
+</div>
 
-    <div class="filter-panel mb-3">
-      <div class="filter-row">
-        <div class="filter-field">
-          <p-select
-            [options]="categories()"
-            optionLabel="name"
-            optionValue="name"
-            [ngModel]="selectedCategory()"
-            (ngModelChange)="selectedCategory.set($event)"
-            placeholder="所有分類"
-            [showClear]="true"
-            class="w-100"
-            appendTo="body">
-          </p-select>
-        </div>
-        <div class="filter-field">
-          <p-select
-            [options]="filterPaymentOptions()"
-            optionLabel="label"
-            optionValue="value"
-            [ngModel]="selectedPaymentMethod()"
-            (ngModelChange)="selectedPaymentMethod.set($event)"
-            placeholder="所有支付方式"
-            [showClear]="true"
-            class="w-100"
-            appendTo="body">
-          </p-select>
-        </div>
-        <div class="filter-field">
-          <div class="type-toggle">
-            <p-button
-              label="全部"
-              size="small"
-              [outlined]="selectedType() !== 'ALL'"
-              [severity]="selectedType() === 'ALL' ? 'primary' : 'secondary'"
-              (onClick)="selectedType.set('ALL')">
-            </p-button>
-            <p-button
-              label="支出"
-              size="small"
-              [outlined]="selectedType() !== 'EXPENSE'"
-              [severity]="selectedType() === 'EXPENSE' ? 'danger' : 'secondary'"
-              (onClick)="selectedType.set('EXPENSE')">
-            </p-button>
-            <p-button
-              label="收入"
-              size="small"
-              [outlined]="selectedType() !== 'INCOME'"
-              [severity]="selectedType() === 'INCOME' ? 'success' : 'secondary'"
-              (onClick)="selectedType.set('INCOME')">
-            </p-button>
+<!-- 現代化篩選列 -->
+<div class="hub-filter-bar mb-4">
+  <div class="search-wrap">
+    <i class="pi pi-search"></i>
+    <input type="text" [ngModel]="selectedKeyword()" (ngModelChange)="selectedKeyword.set($event || '')" placeholder="搜尋項目、備註..." />
+  </div>
+  <div class="filter-controls">
+    <p-select [options]="categories()" optionLabel="name" optionValue="name" 
+              [ngModel]="selectedCategory()" (ngModelChange)="selectedCategory.set($event)"
+              placeholder="分類" [showClear]="true" styleClass="hub-mini-select"></p-select>
+    
+    <div class="type-pills">
+      <button [class.active]="selectedType() === 'ALL'" (click)="selectedType.set('ALL')">全部</button>
+      <button [class.active]="selectedType() === 'EXPENSE'" (click)="selectedType.set('EXPENSE')">支出</button>
+      <button [class.active]="selectedType() === 'INCOME'" (click)="selectedType.set('INCOME')">收入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 交易時間軸清單 -->
+<div class="hub-transaction-timeline">
+  @for (txn of filteredTransactions(); track txn.id; let idx = $index) {
+    <div class="timeline-item" [class.new-day]="isNewDay(idx)" (click)="showMenu($event, txn)">
+      <div class="item-date">
+        @if (isNewDay(idx)) {
+          <span class="day">{{ txn.date | date:'dd' }}</span>
+          <span class="month">{{ txn.date | date:'MMM' }}</span>
+        }
+      </div>
+      
+      <div class="item-card">
+        <div class="item-info">
+          <div class="name-row">
+            <div class="txn-title-group">
+              <span class="txn-name">{{ txn.item }}</span>
+              @if (txn.note) {
+                <span class="txn-note-inline">{{ txn.note }}</span>
+              }
+            </div>
+            <span class="txn-amount" [class.expense]="txn.transactionType === 'EXPENSE'" [class.income]="txn.transactionType === 'INCOME'">
+              {{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.transactionAmount | currency:'TWD':'symbol':'1.0-0' }}
+            </span>
+          </div>
+          
+          <div class="meta-row">
+            <span class="cat">{{ txn.category }}</span>
+            <span class="dot">•</span>
+            <span class="payment">{{ txn.cardName || txn.paymentMethod }}</span>
+            @if (txn.transactionAmount !== txn.paidAmount) {
+              <span class="reimburse-info">
+                <span class="reimburse-tag">代墊</span>
+                <span class="paid-val">(實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }})</span>
+              </span>
+            }
           </div>
         </div>
       </div>
-      <div class="filter-row mt-2">
-        <div class="filter-field flex-grow-1">
-          <input
-            pInputText
-            class="w-100"
-            placeholder="搜尋內容或備註"
-            [ngModel]="selectedKeyword()"
-            (ngModelChange)="selectedKeyword.set($event || '')" />
-        </div>
-        <p-button
-          label="清除篩選"
-          icon="pi pi-filter-slash"
-          [text]="true"
-          [disabled]="!hasActiveFilters()"
-          (onClick)="clearFilters()">
-        </p-button>
-      </div>
-      <div class="active-filters mt-2" *ngIf="hasActiveFilters()">
-        <span class="filter-chip" *ngFor="let tag of activeFilterTags()">{{ tag }}</span>
-      </div>
     </div>
+  } @empty {
+    <div class="empty-state">
+      <i class="pi pi-receipt"></i>
+      <h4>無交易紀錄</h4>
+      <p>本月尚未有任何入帳，開始記錄你的第一筆消費吧！</p>
+    </div>
+  }
+</div>
 
-    <p-table [value]="filteredTransactions()" [rows]="15" [paginator]="true" responsiveLayout="stack" [breakpoint]="'960px'">
-    <ng-template pTemplate="header">
-      <tr>
-        <th pSortableColumn="date" style="width: 100px">日期 <p-sortIcon field="date"></p-sortIcon></th>
-        <th pSortableColumn="item">內容 <p-sortIcon field="item"></p-sortIcon></th>
-        <th pSortableColumn="category" style="width: 160px">分類 <p-sortIcon field="category"></p-sortIcon></th>
-        <th pSortableColumn="cardName" style="width: 140px">支付方式 <p-sortIcon field="cardName"></p-sortIcon></th>
-        <th pSortableColumn="transactionAmount" class="text-end" style="width: 180px">金額 <p-sortIcon field="transactionAmount"></p-sortIcon></th>
-        <th style="width: 120px">操作</th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-txn>
-      <tr>
-        <td>
-          <span class="p-column-title fw-bold">日期</span>
-          {{ txn.date | date:'MM/dd' }}
-        </td>
-        <td>
-            <span class="p-column-title fw-bold">內容</span>
-            <div class="txn-info-content">
-              <div class="txn-title fw-bold text-truncate" [title]="txn.item">{{ txn.item }}</div>
-              <small class="txn-note text-muted text-truncate d-block" *ngIf="txn.note" [title]="txn.note">{{ txn.note }}</small>
-            </div>
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">分類</span>
-          <p-tag [value]="txn.category" [style]="getCategoryTagStyle(txn.category)"></p-tag>
-        </td>
-        <td>
-            <span class="p-column-title fw-bold">支付方式</span>
-            <div class="txn-payment-content">
-              <div [class.fw-bold]="txn.cardId">{{ txn.cardName || txn.paymentMethod }}</div>
-              <small class="text-muted d-block" *ngIf="txn.cardId">{{ txn.paymentMethod }}</small>
-            </div>
-        </td>
-        <td class="text-end amount-cell" [class.text-danger]="txn.transactionType === 'EXPENSE'" [class.text-success]="txn.transactionType === 'INCOME'">
-          <span class="p-column-title fw-bold text-dark">金額</span>
-          <div class="amount-values">
-            <div class="amount-main d-flex align-items-center justify-content-end">
-              <span>{{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.transactionAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
-            </div>
-            <div class="amount-inline-meta text-muted" *ngIf="txn.transactionAmount !== txn.paidAmount">
-              <span>實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }}</span>
-              <span class="meta-sep">•</span>
-              <span class="txn-subtle-text">代墊</span>
-            </div>
-          </div>
-        </td>
-        <td>
-          <span class="p-column-title fw-bold">操作</span>
-          <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" (click)="showMenu($event, txn)"></p-button>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+<p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
-  <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
-
-  <p-dialog [header]="isEdit ? '編輯交易' : '新增交易'" [(visible)]="displayDialog" [modal]="true" 
-            [style]="{width: '600px', maxWidth: '95vw'}" [dismissableMask]="true">
-    <div class="row g-3 mt-1">
+<!-- Dialog (與 V1 邏輯共用) -->
+<p-dialog [header]="isEdit ? '編輯交易' : '新增交易'" [(visible)]="displayDialog" [modal]="true" 
+            styleClass="hub-dialog-lg" [dismissableMask]="true">
+    <div class="row g-3 mt-1 hub-form-grid">
       <div class="col-12">
         <label class="d-block mb-1 fw-bold small">標題</label>
         <input pInputText [(ngModel)]="newTxn.item" class="w-100" placeholder="例如：午餐、Netflix 訂閱" />
@@ -185,37 +113,23 @@
       </div>
       <div class="col-12 col-md-6">
         <label class="d-block mb-1 fw-bold small">類型</label>
-        <div class="type-radio-group">
-          <div class="type-radio-item">
-            <p-radiobutton inputId="txnTypeExpense" name="txnType" value="EXPENSE" [(ngModel)]="newTxn.transactionType"></p-radiobutton>
-            <label for="txnTypeExpense" class="ms-2 mb-0">支出</label>
-          </div>
-          <div class="type-radio-item">
-            <p-radiobutton inputId="txnTypeIncome" name="txnType" value="INCOME" [(ngModel)]="newTxn.transactionType"></p-radiobutton>
-            <label for="txnTypeIncome" class="ms-2 mb-0">收入</label>
-          </div>
+        <div class="hub-type-toggle">
+          <p-radiobutton inputId="txnTypeExpense" name="txnType" value="EXPENSE" [(ngModel)]="newTxn.transactionType"></p-radiobutton>
+          <label for="txnTypeExpense" class="ms-2 me-4">支出</label>
+          <p-radiobutton inputId="txnTypeIncome" name="txnType" value="INCOME" [(ngModel)]="newTxn.transactionType"></p-radiobutton>
+          <label for="txnTypeIncome" class="ms-2">收入</label>
         </div>
       </div>
+      <!-- ... 其餘表單欄位 ... -->
       <div class="col-12 col-md-6">
         <label class="d-block mb-1 fw-bold small">分類</label>
         <p-select [options]="categories()" optionLabel="name" optionValue="id" [(ngModel)]="newTxn.categoryId" 
                     placeholder="選擇分類" (onChange)="onCategoryChange($event.value)" class="w-100" appendTo="body"></p-select>
       </div>
-      <div class="col-12">
-        <div class="dialog-section-title">支付資訊</div>
-      </div>
       <div class="col-12 col-md-6">
         <label class="d-block mb-1 fw-bold small">支付方式</label>
         <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="selectedPaymentValue"
                     placeholder="選擇卡片或現金" class="w-100" (onChange)="onCombinedPaymentChange($event)" appendTo="body"></p-select>
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">付款工具</label>
-        <p-select [options]="toolOptions()" [(ngModel)]="newTxn.paymentMethod" optionLabel="label" optionValue="value" 
-                    class="w-100" appendTo="body" placeholder="選擇工具"></p-select>
-      </div>
-      <div class="col-12">
-        <div class="dialog-section-title">金額資訊</div>
       </div>
       <div class="col-12 col-md-6">
         <label class="d-block mb-1 fw-bold small">交易金額</label>
@@ -226,13 +140,12 @@
         <p-inputNumber [ngModel]="newTxn.paidAmount" (ngModelChange)="onPaidAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
       </div>
       <div class="col-12">
-        <label class="d-block mb-1 fw-bold small">備註 (可選)</label>
+        <label class="d-block mb-1 fw-bold small">備註</label>
         <input pInputText [(ngModel)]="newTxn.note" class="w-100" />
       </div>
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
-      <p-button label="儲存" icon="pi pi-check" (onClick)="saveTransaction()" [disabled]="!newTxn.item || !newTxn.category"></p-button>
+      <p-button label="儲存交易" (onClick)="saveTransaction()" [disabled]="!newTxn.item || !newTxn.category" styleClass="hub-btn-primary"></p-button>
     </ng-template>
-  </p-dialog>
-</div>
+</p-dialog>
