@@ -5,32 +5,78 @@
 
 :root {
   color-scheme: light;
-  --app-bg: #F2F2F7;
-  --app-surface: #FFFFFF;
-  --app-surface-soft: #F2F2F7;
-  --app-border: #D1D1D6;
-  --app-text: #000000;
-  --app-text-muted: #8E8E93;
-  --app-accent: #007AFF;
-  --app-danger: #FF3B30;
-  --app-success: #34C759;
-  --app-warning: #FF9500;
-  --app-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  /* Neutral foundation */
+  --app-bg: #f1f3f6;
+  --app-surface: #fafcff;
+  --app-surface-glass: rgba(250, 252, 255, 0.8);
+  --app-surface-soft: #edf1f6;
+  --app-border: #d8dee7;
+  --app-text: #151821;
+  --app-text-muted: #6b7280;
+
+  /* Accent and state tokens (modular color system) */
+  --app-accent: #1d2433;
+  --app-accent-soft: rgba(29, 36, 51, 0.08);
+  --app-accent-soft-strong: rgba(29, 36, 51, 0.14);
+  --app-focus-ring: rgba(29, 36, 51, 0.14);
+  --app-success: #5f7f98;
+  --app-warning: #7b87a8;
+  --app-danger: #7b6c9c;
+  --app-dividend: #7e78a8;
+  --app-state-success-bg: rgba(95, 127, 152, 0.12);
+  --app-state-warning-bg: rgba(123, 135, 168, 0.12);
+  --app-state-danger-bg: rgba(123, 108, 156, 0.12);
+  --app-state-dividend-bg: rgba(126, 120, 168, 0.08);
+
+  /* Trend colors are intentionally non red/green */
+  --app-trend-positive: #5f7f98;
+  --app-trend-negative: #7b87a8;
+  --app-trend-positive-soft: rgba(95, 127, 152, 0.12);
+  --app-trend-negative-soft: rgba(123, 135, 168, 0.12);
+  --app-card-shadow: 0 10px 30px rgba(18, 26, 40, 0.045);
+  --app-raised-shadow: 0 16px 36px rgba(18, 26, 40, 0.075);
+  --app-inset-line: rgba(255, 255, 255, 0.62);
+
+  --p-primary-color: var(--app-accent) !important;
+  --p-primary-contrast-color: var(--app-surface) !important;
+  --p-primary-hover-color: #2f3a4d !important;
+  --p-primary-active-color: #3f4b61 !important;
 }
 
 @mixin dark-theme-styles {
   color-scheme: dark;
-  --app-bg: #000000;
-  --app-surface: #1C1C1E;
-  --app-surface-soft: #2C2C2E;
-  --app-border: #38383A;
-  --app-text: #FFFFFF;
-  --app-text-muted: #8E8E93;
-  --app-accent: #0A84FF;
-  --app-danger: #FF453A;
-  --app-success: #32D74B;
-  --app-warning: #FF9F0A;
-  --app-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --app-bg: #0f1218;
+  --app-surface: #171c24;
+  --app-surface-glass: rgba(23, 28, 36, 0.84);
+  --app-surface-soft: #202733;
+  --app-border: #313a48;
+  --app-text: #f3f6fb;
+  --app-text-muted: #99a3b3;
+  --app-accent: #e6ebf5;
+  --app-accent-soft: rgba(230, 235, 245, 0.12);
+  --app-accent-soft-strong: rgba(230, 235, 245, 0.18);
+  --app-focus-ring: rgba(230, 235, 245, 0.18);
+  --app-success: #8daec7;
+  --app-warning: #96a5c5;
+  --app-danger: #a494c6;
+  --app-dividend: #aba6d0;
+  --app-state-success-bg: rgba(141, 174, 199, 0.15);
+  --app-state-warning-bg: rgba(150, 165, 197, 0.15);
+  --app-state-danger-bg: rgba(164, 148, 198, 0.16);
+  --app-state-dividend-bg: rgba(171, 166, 208, 0.12);
+  --app-trend-positive: #8daec7;
+  --app-trend-negative: #96a5c5;
+  --app-trend-positive-soft: rgba(141, 174, 199, 0.16);
+  --app-trend-negative-soft: rgba(150, 165, 197, 0.16);
+  --app-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
+  --app-raised-shadow: 0 18px 36px rgba(0, 0, 0, 0.44);
+  --app-inset-line: rgba(255, 255, 255, 0.05);
+
+  /* 強制覆蓋 PrimeNG */
+  --p-primary-color: var(--app-accent) !important;
+  --p-primary-contrast-color: #111214 !important;
+  --p-primary-hover-color: #e5e7eb !important;
+  --p-primary-active-color: #f3f4f6 !important;
 
   /* iOS Style Overrides for Bootstrap Utility Classes */
   .bg-white, 
@@ -77,7 +123,7 @@
     
     &:focus {
       border-color: var(--app-accent) !important;
-      box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2) !important;
+      box-shadow: 0 0 0 2px var(--app-focus-ring) !important;
     }
   }
 
@@ -95,7 +141,7 @@
     }
     &.p-highlight {
         background-color: var(--app-accent) !important;
-        color: white !important;
+        color: var(--app-surface) !important;
     }
   }
 
@@ -133,7 +179,7 @@
       }
       &.p-highlight {
         background-color: var(--app-accent) !important;
-        color: white !important;
+        color: var(--app-surface) !important;
       }
     }
   }
@@ -164,8 +210,18 @@ body {
   border: 1px solid var(--app-border);
   border-radius: 12px;
   box-shadow: var(--app-card-shadow);
+  position: relative;
   padding: 1rem;
   transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 var(--app-inset-line);
 }
 
 /* PrimeNG Tags */
@@ -176,14 +232,58 @@ body {
   border: none !important;
 }
 
-.p-tag-success { background-color: var(--app-success) !important; color: white !important; }
-.p-tag-danger { background-color: var(--app-danger) !important; color: white !important; }
-.p-tag-warn { background-color: var(--app-warning) !important; color: white !important; }
-.p-tag-info { background-color: var(--app-accent) !important; color: white !important; }
+.p-tag-success { background-color: var(--app-state-success-bg) !important; color: var(--app-success) !important; }
+.p-tag-danger { background-color: var(--app-state-danger-bg) !important; color: var(--app-danger) !important; }
+.p-tag-warn { background-color: var(--app-state-warning-bg) !important; color: var(--app-warning) !important; }
+.p-tag-info { background-color: var(--app-accent-soft) !important; color: var(--app-accent) !important; }
 .p-tag-secondary { 
   background-color: var(--app-surface-soft) !important; 
   color: var(--app-text-muted) !important;
   border: 1px solid var(--app-border) !important;
+}
+
+.hub-dialog-sm {
+  width: min(420px, 95vw) !important;
+}
+
+.hub-dialog-md {
+  width: min(450px, 96vw) !important;
+}
+
+.hub-dialog-form {
+  width: min(560px, 95vw) !important;
+}
+
+.hub-dialog-lg {
+  width: min(600px, 95vw) !important;
+}
+
+.hub-dialog-xl {
+  width: min(640px, 95vw) !important;
+}
+
+.hub-dialog-history {
+  width: min(760px, 95vw) !important;
+}
+
+.hub-progress,
+.hub-mini-progress {
+  --hub-progress-fill: var(--app-accent);
+}
+
+.hub-progress.progress-safe,
+.hub-mini-progress.progress-safe {
+  --hub-progress-fill: var(--app-success);
+}
+
+.hub-progress.progress-caution,
+.hub-mini-progress.progress-caution {
+  --hub-progress-fill: var(--app-warning);
+}
+
+.hub-progress.progress-alert,
+.hub-mini-progress.progress-alert {
+  --hub-progress-fill: var(--app-danger);
 }
 
 /* Responsive Table Fixes */
@@ -232,6 +332,34 @@ body {
   justify-content: space-between;
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--app-text-muted);
+
+  i {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.4;
+  }
+
+  h4 {
+    color: var(--app-text);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  p {
+    max-width: 300px;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+}
+
 .ui-kpi-grid .p-card {
   min-height: 132px;
 }
@@ -239,6 +367,84 @@ body {
 .ui-sticky-table .p-datatable-table-container {
   max-height: 560px;
   overflow: auto;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: all 0.1s ease;
+  user-select: none;
+
+  &:active {
+    background-color: var(--app-surface-soft) !important;
+    transform: scale(0.995);
+    opacity: 0.8;
+  }
+}
+
+/* ==========================================================================
+   Modern Card-based List Styles
+   ========================================================================== */
+.hub-modern-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  .hub-list-item {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: var(--app-accent);
+    }
+
+    .item-left {
+      min-width: 0;
+      flex: 1;
+      .main-text { font-weight: 700; font-size: 1.1rem; color: var(--app-text); margin-bottom: 0.2rem; }
+      .sub-text { font-size: 0.8rem; font-weight: 600; color: var(--app-text-muted); }
+    }
+
+    .item-right {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column; /* 讓金額與下方文字垂直排 */
+      align-items: flex-end;
+      justify-content: center;
+      .amount-text { 
+        font-size: 1.15rem; 
+        font-weight: 800; 
+        color: var(--app-text); /* 確保繼承高對比色 */
+      }
+      .sub-text { font-size: 0.75rem; font-weight: 600; color: var(--app-text-muted); text-align: right; }
+    }
+  }
+}
+
+/* 手機版清單優化：防止資訊擠壓 */
+@media (max-width: 576px) {
+  .hub-modern-list .hub-list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    
+    .item-right {
+      width: 100%;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--app-border);
+      opacity: 0.9;
+      
+      .amount-text { font-size: 1.1rem; }
+    }
+  }
 }
 
 .ui-sticky-table .p-datatable-thead > tr > th {
