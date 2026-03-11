@@ -1,111 +1,279 @@
-$sidebar-width: 250px;
-$mobile-breakpoint: 991.98px;
+$dock-width: 72px;
+$bottom-bar-height: 64px;
+$sub-nav-height: 48px;
 
-.layout-wrapper {
+.hub-layout-wrapper {
   display: flex;
   min-height: 100vh;
   background-color: var(--app-bg);
   transition: background-color 0.3s ease;
+}
 
-  .sidebar-backdrop {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    z-index: 999;
-  }
+/* ==========================================================================
+   Desktop Floating Dock
+   ========================================================================== */
+.hub-dock {
+  width: $dock-width;
+  background: var(--app-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--app-border);
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 
-  &.sidebar-open .sidebar-backdrop {
-    display: block;
-  }
-
-  .sidebar {
-    width: $sidebar-width;
-    background: var(--app-surface);
-    border-right: 1px solid var(--app-border);
-    position: fixed;
-    height: 100vh;
-    z-index: 1000;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease, border-color 0.3s ease;
-
-    .sidebar-header {
-      h5 { color: var(--app-text); }
-      .btn-link { color: var(--app-text) !important; }
-    }
-
-    .nav-link {
-      color: var(--app-text-muted);
-      padding: 0.75rem 1.25rem;
+  .dock-header {
+    .app-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(145deg, var(--app-accent), #4a5872);
+      color: var(--app-surface);
+      border-radius: 12px;
       display: flex;
       align-items: center;
-      transition: all 0.2s;
-      border-radius: 10px;
-      margin: 4px 12px;
+      justify-content: center;
+      font-size: 1.25rem;
+      box-shadow: var(--app-card-shadow);
+    }
+  }
 
-      &:hover {
-        background-color: var(--app-surface-soft);
-        color: var(--app-accent);
-      }
+  .dock-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .dock-divider {
+    width: 32px;
+    height: 1px;
+    background-color: var(--app-border);
+    margin: 0.5rem 0;
+  }
+
+  .dock-item {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--app-text-muted);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+
+    i { font-size: 1.2rem; }
+
+    &:hover {
+      background-color: var(--app-accent-soft);
+      color: var(--app-text);
+      transform: scale(1.05);
+    }
+
+    &.active {
+      background-color: var(--app-accent);
+      color: var(--app-surface);
+      box-shadow: var(--app-card-shadow);
+    }
+
+    &.sub-item {
+      width: 36px;
+      height: 36px;
+      i { font-size: 1rem; }
+    }
+  }
+}
+
+/* ==========================================================================
+   Main Content Area
+   ========================================================================== */
+.hub-main-content {
+  flex: 1;
+  min-width: 0;
+  margin-left: $dock-width;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+}
+
+.hub-top-header {
+  position: sticky;
+  top: 0;
+  z-index: 990;
+  background-color: var(--app-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--app-border);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+
+  .header-container {
+    width: 100%;
+    display: flex;
+    justify-content: center; /* 標題置中更有 App 感 */
+    align-items: center;
+  }
+
+  .header-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--app-text);
+    letter-spacing: -0.02em;
+  }
+}
+
+.hub-page-container {
+  flex: 1;
+  padding-top: 1.5rem;
+}
+
+/* 全域標籤樣式 */
+.hub-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  
+  &.secondary {
+    background: var(--app-surface-soft);
+    color: var(--app-text-muted);
+    border-color: var(--app-border);
+  }
+
+  i { margin-right: 0.3rem; font-size: 0.65rem; }
+}
+
+/* 修復手機版 sub-text 內的標籤過擠問題 */
+@media (max-width: 576px) {
+  .sub-text.d-flex {
+    flex-wrap: wrap; /* 讓標籤能自動換行 */
+    gap: 0.4rem !important;
+  }
+}
+
+/* ==========================================================================
+   Mobile Bottom Navigation Shell (整合式)
+   ========================================================================== */
+.hub-mobile-nav-shell {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: var(--app-surface-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--app-border);
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-sub-nav {
+  height: $sub-nav-height;
+  padding: 0.5rem 1.5rem 0 1.5rem;
+  display: flex;
+  align-items: center;
+
+  .segmented-control {
+    background: var(--app-accent-soft);
+    border-radius: 10px;
+    display: flex;
+    padding: 2px;
+    width: 100%;
+
+    button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--app-text-muted);
+      padding: 0.35rem 0;
+      border-radius: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
 
       &.active {
-        background-color: var(--app-accent);
-        color: #FFFFFF;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        background: var(--app-surface);
+        color: var(--app-text);
+        box-shadow: var(--app-card-shadow);
       }
-
-      i {
-        font-size: 1.1rem;
-      }
-    }
-    
-    .text-muted {
-      color: var(--app-text-muted) !important;
     }
   }
+}
 
-  .main-content {
+.hub-bottom-tab-bar {
+  height: $bottom-bar-height;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  .tab-item {
     flex: 1;
-    margin-left: $sidebar-width;
-    background-color: var(--app-bg);
-    min-width: 0;
-    transition: margin-left 0.3s ease, background-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--app-text-muted);
+    text-decoration: none;
+    height: 100%;
+    transition: color 0.2s;
+
+    i {
+      font-size: 1.4rem;
+      margin-bottom: 2px;
+      transition: transform 0.2s;
+    }
+
+    span {
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    &.active {
+      color: var(--app-accent);
+      i { transform: scale(1.1); }
+    }
   }
 }
 
-// Responsive adjustments
-@media (max-width: $mobile-breakpoint) {
-  .layout-wrapper {
-    .sidebar {
-      transform: translateX(-100%);
-      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
-
-      &.show {
-        transform: translateX(0);
-      }
-    }
-
-    .main-content {
-      margin-left: 0;
-    }
+:host-context(.app-dark-mode) .segmented-control {
+  background: rgba(118, 118, 128, 0.24);
+  button.active {
+    background: #636366;
+    color: #fff;
   }
 }
 
-.navbar {
-  z-index: 990;
-  background-color: var(--app-surface) !important;
-  border-bottom: 1px solid var(--app-border) !important;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  
-  .navbar-text {
-    color: var(--app-text) !important;
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+@media (max-width: 991.98px) {
+  .hub-main-content {
+    margin-left: 0;
+    /* 預留空間給雙層底部導覽 (約 112px) */
+    padding-bottom: calc(#{$bottom-bar-height} + #{$sub-nav-height} + env(safe-area-inset-bottom)); 
   }
-  
-  .btn-link {
-    color: var(--app-text) !important;
+
+  .hub-top-header {
+    height: 50px;
+  }
+
+  .hub-page-container {
+    padding-top: 1rem;
   }
 }
