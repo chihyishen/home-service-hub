@@ -1,21 +1,22 @@
 <p-toast></p-toast>
 <div class="card p-4 payment-method-page">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="m-0">支付方式維護</h3>
-    <p-button label="新增支付方式" icon="pi pi-plus" (onClick)="showPMDialog()" styleClass="w-100-mobile hub-btn-primary"></p-button>
+  <div class="hub-page-header justify-content-end">
+    <div class="header-actions">
+      <p-button label="新增支付方式" icon="pi pi-plus" (onClick)="showPMDialog()" styleClass="w-100-mobile hub-btn-primary"></p-button>
+    </div>
   </div>
 
   <div class="hub-modern-list">
     @for (pm of paymentMethods(); track pm.id) {
-      <div class="hub-list-item clickable-row" (click)="showPMMenu($event, pm)">
-        <div class="item-left">
+      <app-list-item [clickable]="true" (itemClick)="showPMMenu($event, pm)">
+        <ng-container left>
           <div class="main-text">{{ pm.name }}</div>
-        </div>
-        <div class="item-right">
+        </ng-container>
+        <ng-container right>
           <p-tag [severity]="pm.isActive ? 'success' : 'secondary'" 
                  [value]="pm.isActive ? '啟用中' : '已停用'"></p-tag>
-        </div>
-      </div>
+        </ng-container>
+      </app-list-item>
     } @empty {
       <div class="empty-state">
         <i class="pi pi-wallet"></i>

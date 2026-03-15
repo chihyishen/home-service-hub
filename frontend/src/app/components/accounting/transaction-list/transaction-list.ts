@@ -21,7 +21,6 @@ import { Menu } from 'primeng/menu';
 
 @Component({
   selector: 'app-transaction-list',
-  standalone: true,
   imports: [
     CommonModule, 
     FormsModule, 

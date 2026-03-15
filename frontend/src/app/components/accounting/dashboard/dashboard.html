@@ -1,7 +1,6 @@
 <div class="hub-dashboard-container">
-  <!-- 頂部切換區 - 移除標題，保留日期切換 -->
-  <div class="hub-dashboard-header mb-4 justify-content-end">
-    <div class="header-right">
+  <div class="hub-page-header justify-content-end">
+    <div class="header-actions">
       <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
                   (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"
                   styleClass="hub-month-picker"></p-datepicker>
@@ -20,7 +19,7 @@
           <div class="meta">
             @if (compareReport()?.summary?.totalExpenseDelta; as delta) {
               <span [class.up]="delta > 0" [class.down]="delta <= 0">
-                <i class="pi" [ngClass]="delta > 0 ? 'pi-arrow-up' : 'pi-arrow-down'"></i>
+                <i class="pi" [class]="delta > 0 ? 'pi-arrow-up' : 'pi-arrow-down'"></i>
                 {{ (delta < 0 ? -delta : delta) | currency:'TWD':'symbol':'1.0-0' }} 較上月
               </span>
             }

@@ -1,0 +1,8 @@
+<div class="hub-list-item" [class.clickable-row]="clickable()" (click)="onClick($event)">
+  <div class="item-left">
+    <ng-content select="[left]"></ng-content>
+  </div>
+  <div class="item-right">
+    <ng-content select="[right]"></ng-content>
+  </div>
+</div>

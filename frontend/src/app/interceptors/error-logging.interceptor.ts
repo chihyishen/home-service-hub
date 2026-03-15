@@ -1,9 +1,13 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { catchError, throwError } from 'rxjs';
+import { inject } from '@angular/core';
+import { catchError, throwError, retry } from 'rxjs';
 import { trace, context } from '@opentelemetry/api';
+import { MessageService } from 'primeng/api';
 
 export const errorLoggingInterceptor: HttpInterceptorFn = (req, next) => {
+  const messageService = inject(MessageService);
   return next(req).pipe(
+    retry(1),
     catchError((error: HttpErrorResponse) => {
       // 獲取當前 OpenTelemetry 的 Context 與 Span
       const activeSpan = trace.getSpan(context.active());
@@ -19,8 +23,20 @@ export const errorLoggingInterceptor: HttpInterceptorFn = (req, next) => {
         console.warn('TraceID: Not available (check if OTel is initialized)');
       }
       console.groupEnd();
+      
+      let errorMsg = '發生未知的網路錯誤，請稍後再試。';
+      if (error.status === 0) {
+        errorMsg = '無法連線至伺服器，請檢查您的網路狀態。';
+      } else if (error.status >= 500) {
+        errorMsg = '伺服器發生異常，請稍後再試。';
+      } else if (error.error?.message) {
+        errorMsg = error.error.message;
+      }
+      
+      messageService.add({ severity: 'error', summary: `錯誤 (${error.status})`, detail: errorMsg, life: 5000 });
 
       return throwError(() => error);
     })
   );
 };
+

@@ -13,7 +13,6 @@ import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-accounting-dashboard',
-  standalone: true,
   imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule, TableModule, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',

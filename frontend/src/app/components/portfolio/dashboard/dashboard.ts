@@ -12,7 +12,6 @@ import { SkeletonModule } from 'primeng/skeleton';
 
 @Component({
   selector: 'app-portfolio-dashboard',
-  standalone: true,
   imports: [CommonModule, CardModule, TableModule, TagModule, ButtonModule, TooltipModule, AccordionModule, SkeletonModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',

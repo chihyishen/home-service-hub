@@ -2,7 +2,7 @@
   <p-toast></p-toast>
   <p-confirmDialog styleClass="hub-dialog-md"></p-confirmDialog>
 
-  <div class="hub-page-header mb-4 justify-content-end">
+  <div class="hub-page-header justify-content-end">
     <div class="header-actions">
       <p-button label="新增股利" icon="pi pi-plus" (onClick)="openNew()" styleClass="hub-btn-primary"></p-button>
     </div>
@@ -10,16 +10,18 @@
 
   <div class="hub-modern-list">
     @for (d of dividends(); track d.id) {
-      <div class="hub-list-item clickable-row" (click)="showMenu($event, d)">
-        <div class="item-left">
+      <app-list-item [clickable]="true" (itemClick)="showMenu($event, d)">
+        <ng-container left>
           <div class="main-text">{{ d.symbol }}</div>
           <div class="sub-text">{{ d.ex_dividend_date | date:'yyyy-MM-dd' }} 除息</div>
-        </div>
-        <div class="item-right">
-          <div class="amount-text dividend-amount">{{ d.amount | currency:'TWD':'symbol':'1.0-0' }}</div>
-          <i class="pi pi-chevron-right ms-2 text-muted list-chevron"></i>
-        </div>
-      </div>
+        </ng-container>
+        <ng-container right>
+          <div class="d-flex align-items-center">
+            <div class="amount-text dividend-amount">{{ d.amount | currency:'TWD':'symbol':'1.0-0' }}</div>
+            <i class="pi pi-chevron-right ms-2 text-muted list-chevron"></i>
+          </div>
+        </ng-container>
+      </app-list-item>
     } @empty {
       <div class="empty-state">
         <i class="pi pi-percentage"></i>

@@ -10,7 +10,6 @@ type ManagementTab = 'cards' | 'payments' | 'categories' | 'recurring';
 
 @Component({
   selector: 'app-management-center',
-  standalone: true,
   imports: [
     CommonModule,
     ButtonModule,

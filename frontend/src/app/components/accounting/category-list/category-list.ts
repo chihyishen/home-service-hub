@@ -14,10 +14,10 @@ import { MenuModule } from 'primeng/menu';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 import { forkJoin } from 'rxjs';
+import { ListItemComponent } from '../../shared/list-item/list-item';
 
 @Component({
   selector: 'app-category-list',
-  standalone: true,
   imports: [
     CommonModule, 
     FormsModule, 
@@ -27,7 +27,8 @@ import { forkJoin } from 'rxjs';
     DialogModule, 
     ToastModule,
     TagModule,
-    MenuModule
+    MenuModule,
+    ListItemComponent
   ],
   providers: [MessageService],
   templateUrl: './category-list.html',
