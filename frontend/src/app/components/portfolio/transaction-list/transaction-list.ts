@@ -15,11 +15,11 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
+import { ListItemComponent } from '../../shared/list-item/list-item';
 
 @Component({
   selector: 'app-portfolio-transactions',
-  standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, SelectButtonModule, DatePickerModule, ConfirmDialogModule, ToastModule, MenuModule],
+  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, SelectButtonModule, DatePickerModule, ConfirmDialogModule, ToastModule, MenuModule, ListItemComponent],
   providers: [ConfirmationService, MessageService],
   templateUrl: './transaction-list.html',
   styleUrl: './transaction-list.scss',

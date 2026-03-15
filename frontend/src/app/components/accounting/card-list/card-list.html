@@ -1,22 +1,23 @@
 <p-toast></p-toast>
 <div class="card p-3 p-lg-4">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <h3 class="m-0">信用卡管理</h3>
-    <p-button label="新增卡片" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile hub-btn-primary"></p-button>
+  <div class="hub-page-header justify-content-end">
+    <div class="header-actions">
+      <p-button label="新增卡片" icon="pi pi-plus" (onClick)="showDialog()" styleClass="w-100-mobile hub-btn-primary"></p-button>
+    </div>
   </div>
 
   <div class="hub-modern-list">
     @for (card of cards(); track card.id) {
-      <div class="hub-list-item clickable-row" (click)="showMenu($event, card)">
-        <div class="item-left">
+      <app-list-item [clickable]="true" (itemClick)="showMenu($event, card)">
+        <ng-container left>
           <div class="main-text">{{ card.name }}</div>
           <div class="sub-text">預設：{{ card.defaultPaymentMethod || '無' }}</div>
-        </div>
-        <div class="item-right">
+        </ng-container>
+        <ng-container right>
           <div class="amount-text">{{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</div>
           <div class="sub-text">結帳日：每月 {{ card.billingDay }} 日</div>
-        </div>
-      </div>
+        </ng-container>
+      </app-list-item>
     } @empty {
       <div class="empty-state">
         <i class="pi pi-credit-card"></i>

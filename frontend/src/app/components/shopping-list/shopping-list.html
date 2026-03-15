@@ -1,5 +1,5 @@
 <p-toast></p-toast>
-<div class="hub-page-header mb-4 justify-content-end">
+<div class="hub-page-header justify-content-end">
   <div class="header-actions">
     <p-button label="低庫存自動產生" icon="pi pi-magic" severity="warn" (onClick)="generateFromLowStock()" styleClass="hub-btn-secondary"></p-button>
     <p-button label="手動新增" icon="pi pi-plus" (onClick)="openCreateDialog()" styleClass="hub-btn-primary"></p-button>
@@ -23,7 +23,7 @@
     <div class="hub-shopping-item" [class.purchased]="row.status === 'PURCHASED'">
       <div class="item-main-row">
         <div class="item-check" (click)="updateStatus(row, row.status === 'PURCHASED' ? 'PENDING' : 'PURCHASED')">
-          <i class="pi" [ngClass]="row.status === 'PURCHASED' ? 'pi-check-circle' : 'pi-circle'"></i>
+          <i class="pi" [class]="row.status === 'PURCHASED' ? 'pi-check-circle' : 'pi-circle'"></i>
         </div>
         
         <div class="item-info">

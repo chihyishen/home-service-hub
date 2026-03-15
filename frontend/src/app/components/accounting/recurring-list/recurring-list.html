@@ -1,11 +1,9 @@
 <p-toast></p-toast>
 <div class="card p-4 recurring-page">
-  <div class="header mb-3">
-    <div>
-      <h3 class="mb-1">定期與分期管理</h3>
-      <small class="text-muted">管理固定扣款、數位訂閱與分期計畫</small>
+  <div class="hub-page-header justify-content-end">
+    <div class="header-actions">
+      <p-button [label]="'新增' + getCurrentTypeLabel()" icon="pi pi-plus" (onClick)="handleAddByType()" styleClass="hub-btn-primary"></p-button>
     </div>
-    <p-button [label]="'新增' + getCurrentTypeLabel()" icon="pi pi-plus" (onClick)="handleAddByType()" styleClass="hub-btn-primary"></p-button>
   </div>
 
   <div class="type-switcher mb-4">
@@ -23,8 +21,8 @@
 
   <div class="hub-modern-list">
     @for (item of tableRows(); track $any(item).id) {
-      <div class="hub-list-item clickable-row" (click)="showRowMenu($event, $any(item))">
-        <div class="item-left">
+      <app-list-item [clickable]="true" (itemClick)="showRowMenu($event, $any(item))">
+        <ng-container left>
           <div class="main-text d-flex align-items-center gap-2">
             {{ $any(item).name }}
             @if (!isInstallmentView()) {
@@ -44,17 +42,19 @@
             <span>•</span>
             <span class="fw-bold"><i class="pi pi-credit-card me-1"></i>{{ $any(item).cardName || $any(item).paymentMethod }}</span>
           </div>
-        </div>
+        </ng-container>
         
-        <div class="item-right text-end">
-          @if (!isInstallmentView()) {
-            <div class="amount-text">{{ $any(item).amount | currency:'TWD':'symbol':'1.0-0' }}</div>
-          } @else {
-            <div class="amount-text">{{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }} <small class="text-muted fw-normal">/期</small></div>
-            <div class="sub-text">總額 {{ $any(item).totalAmount | currency:'TWD':'symbol':'1.0-0' }}</div>
-          }
-        </div>
-      </div>
+        <ng-container right>
+          <div class="text-end">
+            @if (!isInstallmentView()) {
+              <div class="amount-text">{{ $any(item).amount | currency:'TWD':'symbol':'1.0-0' }}</div>
+            } @else {
+              <div class="amount-text">{{ $any(item).monthlyAmount | currency:'TWD':'symbol':'1.0-0' }} <small class="text-muted fw-normal">/期</small></div>
+              <div class="sub-text">總額 {{ $any(item).totalAmount | currency:'TWD':'symbol':'1.0-0' }}</div>
+            }
+          </div>
+        </ng-container>
+      </app-list-item>
     } @empty {
       <div class="empty-state">
         <i class="pi pi-refresh"></i>

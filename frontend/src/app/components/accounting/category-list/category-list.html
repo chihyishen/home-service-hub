@@ -1,8 +1,7 @@
 <p-toast></p-toast>
 <div class="card p-4 category-page">
-  <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
-    <h3 class="m-0">交易分類維護</h3>
-    <div class="d-flex gap-2 page-actions">
+  <div class="hub-page-header justify-content-end">
+    <div class="header-actions">
       <p-button label="套用現代色票" icon="pi pi-palette" severity="secondary" (onClick)="applyModernPalette()" styleClass="hub-btn-secondary"></p-button>
       <p-button label="新增分類" icon="pi pi-plus" (onClick)="showCategoryDialog()" styleClass="hub-btn-primary"></p-button>
     </div>
@@ -10,15 +9,17 @@
 
   <div class="hub-modern-list">
     @for (category of categories(); track category.id) {
-      <div class="hub-list-item clickable-row" (click)="showCategoryMenu($event, category)">
-        <div class="item-left d-flex align-items-center gap-3">
-          <span [style.background-color]="category.color" class="color-indicator"></span>
-          <div class="main-text m-0">{{ category.name }}</div>
-        </div>
-        <div class="item-right">
+      <app-list-item [clickable]="true" (itemClick)="showCategoryMenu($event, category)">
+        <ng-container left>
+          <div class="d-flex align-items-center gap-3">
+            <span [style.background-color]="category.color" class="color-indicator"></span>
+            <div class="main-text m-0">{{ category.name }}</div>
+          </div>
+        </ng-container>
+        <ng-container right>
           <div class="sub-text category-color-code">{{ category.color }}</div>
-        </div>
-      </div>
+        </ng-container>
+      </app-list-item>
     } @empty {
       <div class="empty-state">
         <i class="pi pi-tags"></i>

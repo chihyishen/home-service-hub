@@ -35,6 +35,6 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.navbar-text')?.textContent).toContain('會計管理中心');
+    expect(compiled.querySelector('.header-title')?.textContent).toContain('庫存管理');
   });
 });

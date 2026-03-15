@@ -14,11 +14,11 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
+import { ListItemComponent } from '../../shared/list-item/list-item';
 
 @Component({
   selector: 'app-portfolio-dividends',
-  standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, DatePickerModule, ConfirmDialogModule, ToastModule, MenuModule],
+  imports: [CommonModule, TableModule, ButtonModule, DialogModule, FormsModule, InputTextModule, InputNumberModule, DatePickerModule, ConfirmDialogModule, ToastModule, MenuModule, ListItemComponent],
   providers: [ConfirmationService, MessageService],
   templateUrl: './dividend-list.html',
   styleUrl: './dividend-list.scss',

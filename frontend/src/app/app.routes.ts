@@ -1,32 +1,21 @@
 import { Routes } from '@angular/router';
-import { ItemListComponent } from './components/item-list/item-list';
-import { AccountingDashboardComponent } from './components/accounting/dashboard/dashboard';
-import { TransactionListComponent } from './components/accounting/transaction-list/transaction-list';
-import { CardListComponent } from './components/accounting/card-list/card-list';
-import { CategoryListComponent } from './components/accounting/category-list/category-list';
-import { RecurringListComponent } from './components/accounting/recurring-list/recurring-list';
-import { ManagementCenterComponent } from './components/accounting/management-center/management-center';
-import { PortfolioDashboardComponent } from './components/portfolio/dashboard/dashboard';
-import { PortfolioTransactionListComponent } from './components/portfolio/transaction-list/transaction-list';
-import { PortfolioDividendListComponent } from './components/portfolio/dividend-list/dividend-list';
-import { ShoppingListComponent } from './components/shopping-list/shopping-list';
 
 export const routes: Routes = [
-  { path: '', component: ItemListComponent },
-  { path: 'shopping-list', component: ShoppingListComponent },
+  { path: '', loadComponent: () => import('./components/item-list/item-list').then(m => m.ItemListComponent) },
+  { path: 'shopping-list', loadComponent: () => import('./components/shopping-list/shopping-list').then(m => m.ShoppingListComponent) },
   
   // Portfolio routes
-  { path: 'portfolio', component: PortfolioDashboardComponent },
-  { path: 'portfolio/transactions', component: PortfolioTransactionListComponent },
-  { path: 'portfolio/dividends', component: PortfolioDividendListComponent },
+  { path: 'portfolio', loadComponent: () => import('./components/portfolio/dashboard/dashboard').then(m => m.PortfolioDashboardComponent) },
+  { path: 'portfolio/transactions', loadComponent: () => import('./components/portfolio/transaction-list/transaction-list').then(m => m.PortfolioTransactionListComponent) },
+  { path: 'portfolio/dividends', loadComponent: () => import('./components/portfolio/dividend-list/dividend-list').then(m => m.PortfolioDividendListComponent) },
 
   // Accounting routes
-  { path: 'accounting/dashboard', component: AccountingDashboardComponent },
-  { path: 'accounting/transactions', component: TransactionListComponent },
-  { path: 'accounting/settings', component: ManagementCenterComponent },
-  { path: 'accounting/cards', component: CardListComponent },
-  { path: 'accounting/categories', component: CategoryListComponent },
-  { path: 'accounting/recurring', component: RecurringListComponent },
+  { path: 'accounting/dashboard', loadComponent: () => import('./components/accounting/dashboard/dashboard').then(m => m.AccountingDashboardComponent) },
+  { path: 'accounting/transactions', loadComponent: () => import('./components/accounting/transaction-list/transaction-list').then(m => m.TransactionListComponent) },
+  { path: 'accounting/settings', loadComponent: () => import('./components/accounting/management-center/management-center').then(m => m.ManagementCenterComponent) },
+  { path: 'accounting/cards', loadComponent: () => import('./components/accounting/card-list/card-list').then(m => m.CardListComponent) },
+  { path: 'accounting/categories', loadComponent: () => import('./components/accounting/category-list/category-list').then(m => m.CategoryListComponent) },
+  { path: 'accounting/recurring', loadComponent: () => import('./components/accounting/recurring-list/recurring-list').then(m => m.RecurringListComponent) },
 
   { path: '**', redirectTo: '' }
 ];

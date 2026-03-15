@@ -34,7 +34,7 @@
   --app-trend-positive-soft: rgba(95, 127, 152, 0.12);
   --app-trend-negative-soft: rgba(123, 135, 168, 0.12);
   --app-card-shadow: 0 10px 30px rgba(18, 26, 40, 0.045);
-  --app-raised-shadow: 0 16px 36px rgba(18, 26, 40, 0.075);
+  --app-raised-shadow: 0 16px 36px rgba(18, 26, 40, 0.09);
   --app-inset-line: rgba(255, 255, 255, 0.62);
 
   --p-primary-color: var(--app-accent) !important;
@@ -47,7 +47,7 @@
   color-scheme: dark;
   --app-bg: #0f1218;
   --app-surface: #171c24;
-  --app-surface-glass: rgba(23, 28, 36, 0.84);
+  --app-surface-glass: rgba(23, 28, 36, 0.75);
   --app-surface-soft: #202733;
   --app-border: #313a48;
   --app-text: #f3f6fb;
@@ -68,8 +68,8 @@
   --app-trend-negative: #96a5c5;
   --app-trend-positive-soft: rgba(141, 174, 199, 0.16);
   --app-trend-negative-soft: rgba(150, 165, 197, 0.16);
-  --app-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
-  --app-raised-shadow: 0 18px 36px rgba(0, 0, 0, 0.44);
+  --app-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  --app-raised-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   --app-inset-line: rgba(255, 255, 255, 0.05);
 
   /* 強制覆蓋 PrimeNG */
@@ -182,13 +182,6 @@
         color: var(--app-surface) !important;
       }
     }
-  }
-}
-
-/* Automatic System Theme Support */
-@media (prefers-color-scheme: dark) {
-  :root:not(.app-light-mode) {
-    @include dark-theme-styles;
   }
 }
 
@@ -371,13 +364,13 @@ body {
 
 .clickable-row {
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   user-select: none;
 
   &:active {
     background-color: var(--app-surface-soft) !important;
-    transform: scale(0.995);
-    opacity: 0.8;
+    transform: scale(0.98);
+    opacity: 0.85;
   }
 }
 
@@ -397,10 +390,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 
     &:hover {
-      border-color: var(--app-accent);
+      border-color: var(--app-accent-soft-strong);
+      box-shadow: var(--app-card-shadow);
+      transform: translateY(-2px);
     }
 
     .item-left {
@@ -466,4 +461,158 @@ body {
   .ui-kpi-grid .p-card {
     min-height: auto;
   }
+}
+
+/* ==========================================================================
+   Global Layout Components
+   ========================================================================== */
+.hub-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+.hub-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .search-wrap {
+    position: relative;
+    width: 100%;
+    
+    i { 
+      position: absolute; 
+      left: 1rem; 
+      top: 50%; 
+      transform: translateY(-50%); 
+      color: var(--app-text-muted); 
+    }
+    
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      border-radius: 16px;
+      border: 1px solid var(--app-border);
+      background: var(--app-surface);
+      font-weight: 500;
+      transition: all 0.2s;
+      
+      &:focus { 
+        outline: none; 
+        border-color: var(--app-accent); 
+        box-shadow: 0 0 0 4px var(--app-focus-ring);
+      }
+    }
+  }
+
+  .filter-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+}
+
+.hub-mini-select .p-select {
+  border-radius: 12px !important;
+  background: var(--app-surface) !important;
+}
+
+/* iOS Style Segmented Control / Type Pills */
+.type-pills {
+  display: flex;
+  background: var(--app-surface-soft);
+  padding: 4px;
+  border-radius: 12px;
+  
+  button {
+    border: none;
+    background: transparent;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--app-text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &.active { 
+      background: var(--app-surface); 
+      color: var(--app-text); 
+      box-shadow: var(--app-card-shadow); 
+    }
+  }
+}
+
+/* ==========================================================================
+   View Transitions API (Refined iOS-like Logic)
+   ========================================================================== */
+
+/* 1. 指定具名轉換元素 */
+.hub-dock,
+.hub-mobile-nav-shell {
+  view-transition-name: hub-sidebar;
+}
+
+.header-title {
+  view-transition-name: hub-header-title;
+}
+
+.hub-page-container {
+  view-transition-name: hub-main-content;
+}
+
+/* 2. 側邊欄：強制不動 */
+::view-transition-old(hub-sidebar),
+::view-transition-new(hub-sidebar) {
+  animation: none !important;
+  mix-blend-mode: normal;
+}
+
+/* 3. 標題：上浮淡入動畫 */
+::view-transition-old(hub-header-title) {
+  animation: fadeOut 0.2s ease-in both;
+}
+::view-transition-new(hub-header-title) {
+  animation: titleSlideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* 4. 主要內容：左右推頁動畫 */
+::view-transition-old(hub-main-content) {
+  animation: slideOut 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+::view-transition-new(hub-main-content) {
+  animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes titleSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-20px); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
 }

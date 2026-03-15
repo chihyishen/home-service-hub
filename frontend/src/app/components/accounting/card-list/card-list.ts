@@ -13,10 +13,10 @@ import { ToastModule } from 'primeng/toast';
 import { MenuModule } from 'primeng/menu';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
+import { ListItemComponent } from '../../shared/list-item/list-item';
 
 @Component({
   selector: 'app-card-list',
-  standalone: true,
   imports: [
     CommonModule, 
     FormsModule, 
@@ -27,7 +27,8 @@ import { Menu } from 'primeng/menu';
     DialogModule, 
     SelectModule,
     ToastModule,
-    MenuModule
+    MenuModule,
+    ListItemComponent
   ],
   providers: [MessageService],
   templateUrl: './card-list.html',

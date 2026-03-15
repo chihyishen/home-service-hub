@@ -25,7 +25,6 @@ import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-item-list',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

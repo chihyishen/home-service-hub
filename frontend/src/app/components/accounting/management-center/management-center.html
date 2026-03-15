@@ -6,7 +6,7 @@
                 class="quick-tab-btn"
                 [class.active]="activeTab() === section.value"
                 (click)="activeTab.set(section.value)">
-                <i class="pi" [ngClass]="section.icon"></i>
+                <i class="pi" [class]="section.icon"></i>
                 <span>{{ section.shortLabel }}</span>
             </button>
         }
@@ -19,7 +19,7 @@
                 class="desktop-tab-btn"
                 [class.active]="activeTab() === section.value"
                 (click)="activeTab.set(section.value)">
-                <i class="pi me-2" [ngClass]="section.icon"></i>
+                <i class="pi me-2" [class]="section.icon"></i>
                 {{ section.label }}
             </button>
         }

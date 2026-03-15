@@ -12,10 +12,10 @@ import { TagModule } from 'primeng/tag';
 import { MenuModule } from 'primeng/menu';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
+import { ListItemComponent } from '../../shared/list-item/list-item';
 
 @Component({
   selector: 'app-payment-method-list',
-  standalone: true,
   imports: [
     CommonModule, 
     FormsModule, 
@@ -25,7 +25,8 @@ import { Menu } from 'primeng/menu';
     DialogModule, 
     ToastModule,
     TagModule,
-    MenuModule
+    MenuModule,
+    ListItemComponent
   ],
   providers: [MessageService],
   templateUrl: './payment-method-list.html',

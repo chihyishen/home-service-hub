@@ -16,12 +16,12 @@ import { MenuModule } from 'primeng/menu';
 import { MessageService, MenuItem } from 'primeng/api';
 import { forkJoin } from 'rxjs';
 import { Menu } from 'primeng/menu';
+import { ListItemComponent } from '../../shared/list-item/list-item';
 
 type RecurringType = 'FIXED_EXPENSE' | 'SUBSCRIPTION' | 'INSTALLMENT';
 
 @Component({
   selector: 'app-recurring-list',
-  standalone: true,
   imports: [
     CommonModule, 
     FormsModule, 
@@ -34,7 +34,8 @@ type RecurringType = 'FIXED_EXPENSE' | 'SUBSCRIPTION' | 'INSTALLMENT';
     SelectModule,
     DatePickerModule,
     ToastModule,
-    MenuModule
+    MenuModule,
+    ListItemComponent
   ],
   providers: [MessageService],
   templateUrl: './recurring-list.html',

@@ -2,7 +2,7 @@
   <p-toast></p-toast>
   <p-confirmDialog styleClass="hub-dialog-md"></p-confirmDialog>
 
-  <div class="hub-page-header mb-4 justify-content-end">
+  <div class="hub-page-header justify-content-end">
     <div class="header-actions">
       <p-button label="新增交易" icon="pi pi-plus" (onClick)="openNew()" styleClass="hub-btn-primary"></p-button>
     </div>
@@ -10,23 +10,25 @@
 
   <div class="hub-modern-list">
     @for (t of transactions(); track t.id) {
-      <div class="hub-list-item clickable-row" (click)="showMenu($event, t)">
-        <div class="item-left">
+      <app-list-item [clickable]="true" (itemClick)="showMenu($event, t)">
+        <ng-container left>
           <div class="main-text">{{ t.symbol }}</div>
           <div class="sub-text">
             {{ t.trade_date | date:'yyyy-MM-dd' }} • 
-            <span [ngClass]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
+            <span [class]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
               {{ t.type === 'BUY' ? '買進' : '賣出' }}
             </span>
           </div>
-        </div>
-        <div class="item-right text-end">
-          <div class="amount-text" [ngClass]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
-            {{ (t.price * t.quantity) | currency:'TWD':'symbol':'1.0-0' }}
+        </ng-container>
+        <ng-container right>
+          <div class="text-end">
+            <div class="amount-text" [class]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
+              {{ (t.price * t.quantity) | currency:'TWD':'symbol':'1.0-0' }}
+            </div>
+            <div class="sub-text">{{ t.quantity | number }} 股 @ {{ t.price | number:'1.1-2' }}</div>
           </div>
-          <div class="sub-text">{{ t.quantity | number }} 股 @ {{ t.price | number:'1.1-2' }}</div>
-        </div>
-      </div>
+        </ng-container>
+      </app-list-item>
     } @empty {
       <div class="empty-state">
         <i class="pi pi-list"></i>
