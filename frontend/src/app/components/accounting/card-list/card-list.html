@@ -30,7 +30,7 @@
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <p-dialog [header]="isEdit ? '編輯信用卡' : '新增信用卡'" [(visible)]="displayDialog" [modal]="true" 
-            styleClass="hub-dialog-md" [dismissableMask]="true">
+            styleClass="hub-dialog-md" [dismissableMask]="true" appendTo="body">
     <div class="flex flex-column gap-3 mt-2 hub-form-grid">
       <div class="field mb-1">
         <label for="name" class="d-block mb-1 fw-bold small">卡片名稱</label>

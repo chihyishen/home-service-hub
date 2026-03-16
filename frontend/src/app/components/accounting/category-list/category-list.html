@@ -32,7 +32,7 @@
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增分類 Dialog -->
-  <p-dialog [header]="isEditCategory ? '編輯分類' : '新增分類'" [(visible)]="displayCategoryDialog" [modal]="true" styleClass="hub-dialog-md" [breakpoints]="{ '767px': '92vw' }" [dismissableMask]="true">
+  <p-dialog [header]="isEditCategory ? '編輯分類' : '新增分類'" [(visible)]="displayCategoryDialog" [modal]="true" styleClass="hub-dialog-md" [dismissableMask]="true" appendTo="body">
     <div class="flex flex-column gap-3 mt-2 hub-form-grid">
       <div class="field">
         <label class="d-block mb-2">分類名稱</label>

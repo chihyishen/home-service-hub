@@ -101,51 +101,51 @@
 
 <!-- Dialog (與 V1 邏輯共用) -->
 <p-dialog [header]="isEdit ? '編輯交易' : '新增交易'" [(visible)]="displayDialog" [modal]="true" 
-            styleClass="hub-dialog-lg" [dismissableMask]="true">
-    <div class="row g-3 mt-1 hub-form-grid">
+            styleClass="hub-dialog-lg" [dismissableMask]="true" appendTo="body">
+    <div class="row g-2 mt-1 hub-form-grid">
+      <div class="col-12 mb-1">
+        <label class="d-block mb-1 small fw-bold">交易類型</label>
+        <p-selectButton [options]="typeOptions" [(ngModel)]="newTxn.transactionType" [allowEmpty]="false"></p-selectButton>
+      </div>
       <div class="col-12">
-        <label class="d-block mb-1 fw-bold small">標題</label>
+        <label class="d-block mb-1 small fw-bold">標題</label>
         <input pInputText [(ngModel)]="newTxn.item" class="w-100" placeholder="例如：午餐、Netflix 訂閱" />
       </div>
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">日期</label>
-        <p-datepicker [(ngModel)]="txnDate" dateFormat="yy-mm-dd" class="w-100" appendTo="body" styleClass="w-100"></p-datepicker>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">日期</label>
+        <p-datepicker [(ngModel)]="txnDate" dateFormat="yy-mm-dd" [fluid]="true" appendTo="body"></p-datepicker>
       </div>
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">類型</label>
-        <div class="hub-type-toggle">
-          <p-radiobutton inputId="txnTypeExpense" name="txnType" value="EXPENSE" [(ngModel)]="newTxn.transactionType"></p-radiobutton>
-          <label for="txnTypeExpense" class="ms-2 me-4">支出</label>
-          <p-radiobutton inputId="txnTypeIncome" name="txnType" value="INCOME" [(ngModel)]="newTxn.transactionType"></p-radiobutton>
-          <label for="txnTypeIncome" class="ms-2">收入</label>
-        </div>
-      </div>
-      <!-- ... 其餘表單欄位 ... -->
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">分類</label>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">分類</label>
         <p-select [options]="categories()" optionLabel="name" optionValue="id" [(ngModel)]="newTxn.categoryId" 
-                    placeholder="選擇分類" (onChange)="onCategoryChange($event.value)" class="w-100" appendTo="body"></p-select>
+                    placeholder="選擇分類" (onChange)="onCategoryChange($event.value)" [fluid]="true" appendTo="body"></p-select>
       </div>
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">支付方式</label>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">支付方式</label>
         <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="selectedPaymentValue"
-                    placeholder="選擇卡片或現金" class="w-100" (onChange)="onCombinedPaymentChange($event)" appendTo="body"></p-select>
+                    placeholder="選擇卡片或現金" [fluid]="true" (onChange)="onCombinedPaymentChange($event)" appendTo="body"></p-select>
       </div>
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">交易金額</label>
-        <p-inputNumber [ngModel]="newTxn.transactionAmount" (ngModelChange)="onTransactionAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">付款工具</label>
+        <p-select [options]="toolOptions()" [(ngModel)]="newTxn.paymentMethod" optionLabel="label" optionValue="value" 
+                    [fluid]="true" appendTo="body" placeholder="選擇工具"></p-select>
       </div>
-      <div class="col-12 col-md-6">
-        <label class="d-block mb-1 fw-bold small">實付金額</label>
-        <p-inputNumber [ngModel]="newTxn.paidAmount" (ngModelChange)="onPaidAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" styleClass="w-100"></p-inputNumber>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">交易金額</label>
+        <p-inputNumber [ngModel]="newTxn.transactionAmount" (ngModelChange)="onTransactionAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" [fluid]="true"></p-inputNumber>
+      </div>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">實付金額</label>
+        <p-inputNumber [ngModel]="newTxn.paidAmount" (ngModelChange)="onPaidAmountChange($event)" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" [fluid]="true"></p-inputNumber>
       </div>
       <div class="col-12">
-        <label class="d-block mb-1 fw-bold small">備註</label>
+        <label class="d-block mb-1 small fw-bold">備註</label>
         <input pInputText [(ngModel)]="newTxn.note" class="w-100" />
       </div>
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
+
       <p-button label="儲存交易" (onClick)="saveTransaction()" [disabled]="!newTxn.item || !newTxn.category" styleClass="hub-btn-primary"></p-button>
     </ng-template>
 </p-dialog>

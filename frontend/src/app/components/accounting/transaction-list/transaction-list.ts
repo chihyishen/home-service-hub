@@ -16,6 +16,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { MenuModule } from 'primeng/menu';
 import { RadioButtonModule } from 'primeng/radiobutton';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { MessageService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 
@@ -35,7 +36,8 @@ import { Menu } from 'primeng/menu';
     ToastModule,
     TooltipModule,
     MenuModule,
-    RadioButtonModule
+    RadioButtonModule,
+    SelectButtonModule
   ],
   providers: [MessageService],
   templateUrl: './transaction-list.html',
