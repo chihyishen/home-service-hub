@@ -259,6 +259,108 @@ body {
   width: min(760px, 95vw) !important;
 }
 
+/* Mobile Dialog Optimizations */
+@media (max-width: 768px) {
+  .p-dialog {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    max-height: 92dvh !important;
+    margin: 0 !important;
+    border-radius: 24px 24px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    top: auto !important;
+    transform: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    
+    /* Animation adjustment for bottom-up feel */
+    &.p-dialog-enter-from {
+      transform: translateY(100%) !important;
+    }
+    
+    .p-dialog-header {
+      padding: 1.25rem 1rem 0.75rem 1rem !important; /* 統一左右邊距 */
+      border-radius: 24px 24px 0 0 !important;
+    }
+
+    .p-dialog-content {
+      flex: 1 1 auto !important;
+      overflow-y: auto !important;
+      padding: 0.5rem 1rem 1rem 1rem !important; /* 縮小左右內距 */
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .p-dialog-footer {
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)) 1rem !important; /* 統一左右邊距 */
+      border-top: 1px solid var(--app-border) !important;
+      background: var(--app-surface) !important;
+      display: flex !important;
+      gap: 0.75rem !important;
+      
+      button {
+        flex: 1 !important;
+        margin: 0 !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+      }
+    }
+
+    /* 強制所有 PrimeNG 組件及其內部輸入框在窄版布局下不撐開 */
+    .p-inputnumber, .p-datepicker, .p-select, .p-autocomplete {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .p-inputtext, .p-inputnumber-input, .p-datepicker-input, .p-select-label {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding-left: 0.5rem !important; /* 縮小到最小內距 */
+      padding-right: 0.5rem !important;
+      font-size: 0.95rem !important;
+      text-align: left !important; /* 強制靠左對齊 */
+    }
+
+    /* 處理帶有金額符號的輸入框，確保符號與數字都靠左 */
+    .p-inputnumber-input {
+      padding-left: 0.5rem !important; /* 還原內距，讓組件自帶的符號定位發揮作用 */
+      text-align: left !important;
+    }
+
+    /* 針對 PrimeNG 自動生成的貨幣符號位置微調（如果有的話） */
+    .p-input-number-prefix {
+      margin-right: 0.2rem !important;
+    }
+
+    /* 處理 Dialog 內 row 造成的左右間隙問題，確保對齊邊緣 */
+    .p-dialog .row {
+      margin-right: -0.5rem !important;
+      margin-left: -0.5rem !important;
+    }
+    .p-dialog .col-12, .p-dialog .col-6 {
+      padding-right: 0.5rem !important;
+      padding-left: 0.5rem !important;
+    }
+    /* 強制 SelectButton 內部按鈕平分寬度並防止垂直排列 */
+    .p-selectbutton {
+      display: flex !important;
+      width: 100% !important;
+      
+      .p-togglebutton {
+        flex: 1 !important;
+        white-space: nowrap !important;
+        justify-content: center !important;
+      }
+    }
+  }
+
+  /* Ensure the mask doesn't interfere with the bottom-up animation */
+  .p-dialog-mask {
+    align-items: flex-end !important;
+  }
+}
+
 .hub-progress,
 .hub-mini-progress {
   --hub-progress-fill: var(--app-accent);

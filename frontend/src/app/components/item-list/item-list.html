@@ -78,35 +78,35 @@
 
 <!-- Dialogs -->
 <p-dialog [header]="isEdit ? '編輯物品' : '新增物品'" [(visible)]="displayDialog" [modal]="true"
-          styleClass="hub-dialog-form" [dismissableMask]="true">
-  <div class="row g-3 mt-1">
+          styleClass="hub-dialog-form" [dismissableMask]="true" appendTo="body">
+  <div class="row g-2 mt-1 hub-form-grid">
     <div class="col-12">
-      <label class="d-block mb-2 fw-bold">名稱</label>
+      <label class="d-block mb-1 small fw-bold">名稱</label>
       <input pInputText [(ngModel)]="newItem.name" class="w-100" placeholder="例如：衛生紙" />
     </div>
-    <div class="col-12 col-md-6">
-      <label class="d-block mb-2 fw-bold">類別</label>
-      <p-autoComplete [(ngModel)]="newItem.category" [suggestions]="filteredCategories" (completeMethod)="filterCategories($event)" [dropdown]="true" styleClass="w-100"></p-autoComplete>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">類別</label>
+      <p-autoComplete [(ngModel)]="newItem.category" [suggestions]="filteredCategories" (completeMethod)="filterCategories($event)" [dropdown]="true" [fluid]="true"></p-autoComplete>
     </div>
-    <div class="col-12 col-md-6">
-      <label class="d-block mb-2 fw-bold">位置</label>
-      <p-autoComplete [(ngModel)]="newItem.location" [suggestions]="filteredLocations" (completeMethod)="filterLocations($event)" [dropdown]="true" styleClass="w-100"></p-autoComplete>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">位置</label>
+      <p-autoComplete [(ngModel)]="newItem.location" [suggestions]="filteredLocations" (completeMethod)="filterLocations($event)" [dropdown]="true" [fluid]="true"></p-autoComplete>
     </div>
-    <div class="col-12 col-md-6">
-      <label class="d-block mb-2 fw-bold">目前數量</label>
-      <p-inputNumber [(ngModel)]="newItem.quantity" [min]="0" class="w-100"></p-inputNumber>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">目前數量</label>
+      <p-inputNumber [(ngModel)]="newItem.quantity" [min]="0" [fluid]="true"></p-inputNumber>
     </div>
-    <div class="col-12 col-md-6">
-      <label class="d-block mb-2 fw-bold">低庫存門檻</label>
-      <p-inputNumber [(ngModel)]="newItem.minQuantity" [min]="0" class="w-100"></p-inputNumber>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">低庫存門檻</label>
+      <p-inputNumber [(ngModel)]="newItem.minQuantity" [min]="0" [fluid]="true"></p-inputNumber>
     </div>
-    <div class="col-12">
-      <label class="d-block mb-2 fw-bold">理想庫存量</label>
-      <p-inputNumber [(ngModel)]="newItem.targetQuantity" [min]="0" class="w-100"></p-inputNumber>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">理想庫存量</label>
+      <p-inputNumber [(ngModel)]="newItem.targetQuantity" [min]="0" [fluid]="true"></p-inputNumber>
     </div>
-    <div class="col-12">
-      <label class="d-block mb-2 fw-bold">備註</label>
-      <textarea pTextarea [(ngModel)]="newItem.note" rows="3" class="w-100"></textarea>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">備註</label>
+      <input pInputText [(ngModel)]="newItem.note" class="w-100" />
     </div>
   </div>
 
@@ -128,19 +128,19 @@
   </ng-template>
 </p-dialog>
 
-<p-dialog [header]="quickActionTitle" [(visible)]="displayActionDialog" [modal]="true" styleClass="hub-dialog-sm">
+<p-dialog [header]="quickActionTitle" [(visible)]="displayActionDialog" [modal]="true" styleClass="hub-dialog-sm" appendTo="body">
   <div class="mb-2"><b>{{ selectedItem?.name }}</b></div>
   <div class="text-muted mb-3">目前數量：{{ selectedItem?.quantity }}</div>
   @if (actionType !== 'ADJUST') {
     <div class="mb-3">
       <label class="d-block mb-2">異動量</label>
-      <p-inputNumber [(ngModel)]="actionAmount" [min]="1" class="w-100"></p-inputNumber>
+      <p-inputNumber [(ngModel)]="actionAmount" [min]="1" styleClass="w-100"></p-inputNumber>
     </div>
   }
   @if (actionType === 'ADJUST') {
     <div class="mb-3">
       <label class="d-block mb-2">盤點後實際數量</label>
-      <p-inputNumber [(ngModel)]="actualAmount" [min]="0" class="w-100"></p-inputNumber>
+      <p-inputNumber [(ngModel)]="actualAmount" [min]="0" styleClass="w-100"></p-inputNumber>
     </div>
   }
   <div class="mb-3">
@@ -153,7 +153,7 @@
   </ng-template>
 </p-dialog>
 
-<p-dialog header="異動歷史" [(visible)]="displayHistoryDialog" [modal]="true" styleClass="hub-dialog-history">
+<p-dialog header="異動歷史" [(visible)]="displayHistoryDialog" [modal]="true" styleClass="hub-dialog-history" appendTo="body">
   <p-table [value]="history()" [rows]="10" [paginator]="true">
     <ng-template pTemplate="header">
       <tr>

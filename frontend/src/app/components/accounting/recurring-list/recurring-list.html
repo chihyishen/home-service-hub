@@ -67,36 +67,34 @@
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增訂閱 Dialog -->
-  <p-dialog [header]="(isEditSub ? '編輯' : '新增') + (newSub.subType === 'FIXED_EXPENSE' ? '固定支出' : '數位訂閱')" [(visible)]="displaySubDialog" [modal]="true" styleClass="hub-dialog-form" [breakpoints]="{ '991px': '80vw', '767px': '92vw' }" [dismissableMask]="true">
-    <div class="flex flex-column gap-3 mt-2 hub-form-grid">
-      <div class="field mb-2">
-        <label class="d-block mb-2">名稱</label>
+  <p-dialog [header]="(isEditSub ? '編輯' : '新增') + (newSub.subType === 'FIXED_EXPENSE' ? '固定支出' : '數位訂閱')" [(visible)]="displaySubDialog" [modal]="true" styleClass="hub-dialog-form" [dismissableMask]="true" appendTo="body">
+    <div class="row g-2 mt-2 hub-form-grid">
+      <div class="col-12">
+        <label class="d-block mb-1 small fw-bold">名稱</label>
         <input pInputText [(ngModel)]="newSub.name" class="w-100" placeholder="例如：Netflix" />
       </div>
-      <div class="row">
-        <div class="col-6">
-          <label class="d-block mb-2">金額</label>
-          <p-inputNumber [(ngModel)]="newSub.amount" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" class="w-100"></p-inputNumber>
-        </div>
-        <div class="col-6">
-          <label class="d-block mb-2">扣款日 (1-31)</label>
-          <p-inputNumber [(ngModel)]="newSub.dayOfMonth" [min]="1" [max]="31" class="w-100"></p-inputNumber>
-        </div>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">金額</label>
+        <p-inputNumber [(ngModel)]="newSub.amount" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" [fluid]="true"></p-inputNumber>
       </div>
-      <div class="field mt-2">
-        <label class="d-block mb-2">分類</label>
+      <div class="col-6">
+        <label class="d-block mb-1 small fw-bold">扣款日 (1-31)</label>
+        <p-inputNumber [(ngModel)]="newSub.dayOfMonth" [min]="1" [max]="31" [fluid]="true"></p-inputNumber>
+      </div>
+      <div class="col-12">
+        <label class="d-block mb-1 small fw-bold">分類</label>
         <p-select [options]="categories()" optionLabel="name" optionValue="id" [(ngModel)]="newSub.categoryId" 
-                    (onChange)="onSubCategoryChange($event.value)" class="w-100" appendTo="body"></p-select>
+                    (onChange)="onSubCategoryChange($event.value)" [fluid]="true" appendTo="body"></p-select>
       </div>
-      <div class="field mt-2">
-        <label class="d-block mb-2">支付方式 (整合選單)</label>
+      <div class="col-12">
+        <label class="d-block mb-1 small fw-bold">支付方式</label>
         <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="selectedSubPaymentValue"
-                    placeholder="選擇卡片或現金" class="w-100" (onChange)="onSubPaymentChange($event)" appendTo="body"></p-select>
+                    placeholder="選擇卡片或現金" [fluid]="true" (onChange)="onSubPaymentChange($event)" appendTo="body"></p-select>
       </div>
-      <div class="field mt-2">
-        <label class="d-block mb-2">付款工具 (自動帶入)</label>
+      <div class="col-12">
+        <label class="d-block mb-1 small fw-bold">付款工具</label>
         <p-select [options]="toolOptions()" [(ngModel)]="newSub.paymentMethod" optionLabel="label" optionValue="value" 
-                    class="w-100" appendTo="body" placeholder="選擇工具"></p-select>
+                    [fluid]="true" appendTo="body" placeholder="選擇工具"></p-select>
       </div>
     </div>
     <ng-template pTemplate="footer">
@@ -106,43 +104,44 @@
   </p-dialog>
 
   <!-- 新增分期 Dialog -->
-  <p-dialog [header]="isEditInst ? '編輯分期計畫' : '新增分期計畫'" [(visible)]="displayInstDialog" [modal]="true" styleClass="hub-dialog-xl" [breakpoints]="{ '991px': '86vw', '767px': '92vw' }" [contentStyle]="{'overflow': 'visible'}" [dismissableMask]="true">
-    <div class="row g-3 mt-1 hub-form-grid">
+  <p-dialog [header]="isEditInst ? '編輯分期計畫' : '新增分期計畫'" [(visible)]="displayInstDialog" [modal]="true" styleClass="hub-dialog-xl" [contentStyle]="{'overflow': 'visible'}" [dismissableMask]="true" appendTo="body">
+    <div class="row g-2 mt-1 hub-form-grid">
       <div class="col-12">
-        <label class="d-block mb-2">計畫名稱</label>
+        <label class="d-block mb-1 small fw-bold">計畫名稱</label>
         <input pInputText [(ngModel)]="newInst.name" class="w-100" placeholder="例如：iPhone 15" />
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">總金額 (totalAmount)</label>
-        <p-inputNumber [(ngModel)]="newInst.totalAmount" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" class="w-100" (onBlur)="calcMonthly()"></p-inputNumber>
+        <label class="d-block mb-1 small fw-bold">總金額</label>
+        <p-inputNumber [(ngModel)]="newInst.totalAmount" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" [fluid]="true" (onBlur)="calcMonthly()"></p-inputNumber>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">每期金額 (monthlyAmount)</label>
-        <p-inputNumber [(ngModel)]="newInst.monthlyAmount" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" class="w-100"></p-inputNumber>
+        <label class="d-block mb-1 small fw-bold">每期金額</label>
+        <p-inputNumber [(ngModel)]="newInst.monthlyAmount" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" [fluid]="true"></p-inputNumber>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">總期數 (totalPeriods)</label>
-        <p-inputNumber [(ngModel)]="newInst.totalPeriods" [min]="1" class="w-100" (onBlur)="calcMonthly()"></p-inputNumber>
+        <label class="d-block mb-1 small fw-bold">總期數</label>
+        <p-inputNumber [(ngModel)]="newInst.totalPeriods" [min]="1" [fluid]="true" (onBlur)="calcMonthly()"></p-inputNumber>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">剩餘期數 (remainingPeriods)</label>
-        <p-inputNumber [(ngModel)]="newInst.remainingPeriods" [min]="0" class="w-100"></p-inputNumber>
+        <label class="d-block mb-1 small fw-bold">剩餘期數</label>
+        <p-inputNumber [(ngModel)]="newInst.remainingPeriods" [min]="0" [fluid]="true"></p-inputNumber>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">開始日期</label>
-        <p-datepicker [(ngModel)]="instStartDate" dateFormat="yy-mm-dd" class="w-100" appendTo="body"></p-datepicker>
+        <label class="d-block mb-1 small fw-bold">開始日期</label>
+        <p-datepicker [(ngModel)]="instStartDate" dateFormat="yy-mm-dd" [fluid]="true" appendTo="body"></p-datepicker>
       </div>
       <div class="col-6">
-        <label class="d-block mb-2">支付方式 (整合選單)</label>
+        <label class="d-block mb-1 small fw-bold">支付方式</label>
         <p-select [options]="paymentOptions()" optionLabel="label" optionValue="value" [(ngModel)]="selectedInstPaymentValue"
-                    placeholder="選擇卡片或現金" class="w-100" (onChange)="onInstPaymentChange($event)" appendTo="body"></p-select>
+                    placeholder="選擇卡片或現金" [fluid]="true" (onChange)="onInstPaymentChange($event)" appendTo="body"></p-select>
       </div>
-      <div class="col-6">
-        <label class="d-block mb-2">付款工具 (自動帶入)</label>
+      <div class="col-12">
+        <label class="d-block mb-1 small fw-bold">付款工具</label>
         <p-select [options]="toolOptions()" [(ngModel)]="newInst.paymentMethod" optionLabel="label" optionValue="value" 
-                    class="w-100" appendTo="body" placeholder="選擇工具"></p-select>
+                    [fluid]="true" appendTo="body" placeholder="選擇工具"></p-select>
       </div>
     </div>
+
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayInstDialog = false"></p-button>
       <p-button label="儲存" icon="pi pi-check" (onClick)="saveInst()" [disabled]="!newInst.name || !newInst.totalAmount" styleClass="hub-btn-primary"></p-button>

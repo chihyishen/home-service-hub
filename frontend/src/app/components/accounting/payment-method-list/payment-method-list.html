@@ -29,7 +29,7 @@
   <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
   <!-- 新增支付方式 Dialog -->
-  <p-dialog [header]="isEditPM ? '編輯支付方式' : '新增支付方式'" [(visible)]="displayPMDialog" [modal]="true" styleClass="hub-dialog-sm" [breakpoints]="{ '767px': '92vw' }" [dismissableMask]="true">
+  <p-dialog [header]="isEditPM ? '編輯支付方式' : '新增支付方式'" [(visible)]="displayPMDialog" [modal]="true" styleClass="hub-dialog-sm" [dismissableMask]="true" appendTo="body">
     <div class="flex flex-column gap-3 mt-2 hub-form-grid">
       <div class="field">
         <label class="d-block mb-2">名稱</label>

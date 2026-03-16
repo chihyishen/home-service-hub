@@ -1,64 +1,60 @@
-<div class="p-4 portfolio-form-page">
-  <p-toast></p-toast>
-  <p-confirmDialog styleClass="hub-dialog-md"></p-confirmDialog>
+<p-toast></p-toast>
+<p-confirmDialog styleClass="hub-dialog-md"></p-confirmDialog>
 
-  <div class="hub-page-header justify-content-end">
-    <div class="header-actions">
-      <p-button label="新增股利" icon="pi pi-plus" (onClick)="openNew()" styleClass="hub-btn-primary"></p-button>
-    </div>
+<div class="hub-page-header justify-content-end">
+  <div class="header-actions">
+    <p-button label="新增股利" icon="pi pi-plus" (onClick)="openNew()" styleClass="hub-btn-primary"></p-button>
   </div>
-
-  <div class="hub-modern-list">
-    @for (d of dividends(); track d.id) {
-      <app-list-item [clickable]="true" (itemClick)="showMenu($event, d)">
-        <ng-container left>
-          <div class="main-text">{{ d.symbol }}</div>
-          <div class="sub-text">{{ d.ex_dividend_date | date:'yyyy-MM-dd' }} 除息</div>
-        </ng-container>
-        <ng-container right>
-          <div class="d-flex align-items-center">
-            <div class="amount-text dividend-amount">{{ d.amount | currency:'TWD':'symbol':'1.0-0' }}</div>
-            <i class="pi pi-chevron-right ms-2 text-muted list-chevron"></i>
-          </div>
-        </ng-container>
-      </app-list-item>
-    } @empty {
-      <div class="empty-state">
-        <i class="pi pi-percentage"></i>
-        <h4>無股利紀錄</h4>
-        <p>尚未記錄任何股利收入。</p>
-      </div>
-    }
-  </div>
-
-  <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
-
-  <p-dialog
-    [header]="isEdit() ? '修改股利' : '新增股利'"
-    [(visible)]="showDialog"
-    [modal]="true"
-    styleClass="hub-dialog-md portfolio-form-dialog"
-    [breakpoints]="{ '991px': '70vw', '767px': '92vw' }"
-    contentStyleClass="portfolio-form-content">
-    <div class="grid p-fluid">
-      <div class="col-12 mb-3">
-        <label class="form-label">股票代碼</label>
-        <input pInputText [(ngModel)]="newDividend.symbol" placeholder="例如: 2330" />
-      </div>
-      <div class="col-12 mb-3">
-        <label class="form-label">股利金額 (TWD)</label>
-        <p-inputNumber [(ngModel)]="newDividend.amount" [min]="0" mode="decimal"></p-inputNumber>
-      </div>
-      <div class="col-12 mb-3">
-        <label class="form-label">除息日期</label>
-        <p-datepicker [(ngModel)]="newDividend.ex_dividend_date" [showIcon]="true" appendTo="body"></p-datepicker>
-      </div>
-    </div>
-    <ng-template pTemplate="footer">
-      <div class="dialog-footer-actions">
-        <p-button label="取消" icon="pi pi-times" (onClick)="showDialog.set(false)" class="p-button-text"></p-button>
-        <p-button label="儲存" icon="pi pi-check" (onClick)="saveDividend()"></p-button>
-      </div>
-    </ng-template>
-  </p-dialog>
 </div>
+
+<div class="hub-modern-list">
+  @for (d of dividends(); track d.id) {
+    <app-list-item [clickable]="true" (itemClick)="showMenu($event, d)">
+      <ng-container left>
+        <div class="main-text">{{ d.symbol }}</div>
+        <div class="sub-text">{{ d.ex_dividend_date | date:'yyyy-MM-dd' }} 除息</div>
+      </ng-container>
+      <ng-container right>
+        <div class="text-end">
+          <div class="amount-text dividend-amount">{{ d.amount | currency:'TWD':'symbol':'1.0-0' }}</div>
+        </div>
+      </ng-container>
+    </app-list-item>
+  } @empty {
+    <div class="empty-state">
+      <i class="pi pi-percentage"></i>
+      <h4>無股利紀錄</h4>
+      <p>尚未記錄任何股利收入。</p>
+    </div>
+  }
+</div>
+
+<p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
+
+<p-dialog
+  [header]="isEdit() ? '修改股利' : '新增股利'"
+  [(visible)]="showDialog"
+  [modal]="true"
+  [dismissableMask]="true"
+  appendTo="body"
+  styleClass="hub-dialog-md portfolio-form-dialog"
+  contentStyleClass="portfolio-form-content">
+  <div class="row g-2 mt-1 hub-form-grid">
+    <div class="col-12">
+      <label class="d-block mb-1 small fw-bold">股票代碼</label>
+      <input pInputText [(ngModel)]="newDividend.symbol" placeholder="例如: 2330" class="w-100" />
+    </div>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">股利金額 (TWD)</label>
+      <p-inputNumber [(ngModel)]="newDividend.amount" [min]="0" mode="decimal" [fluid]="true"></p-inputNumber>
+    </div>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">除息日期</label>
+      <p-datepicker [(ngModel)]="newDividend.ex_dividend_date" [fluid]="true" appendTo="body" dateFormat="yy-mm-dd"></p-datepicker>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="showDialog.set(false)"></p-button>
+    <p-button label="儲存股利" (onClick)="saveDividend()" styleClass="hub-btn-primary"></p-button>
+  </ng-template>
+</p-dialog>
