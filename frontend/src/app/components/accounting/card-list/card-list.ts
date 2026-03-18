@@ -74,14 +74,12 @@ export class CardListComponent implements OnInit {
   resetNewCard() {
       return { 
           name: '', 
-          billingDay: 1, 
-          rewardCycleType: 'BILLING_CYCLE', 
-          alertThreshold: 20000, 
-          rewardRules: {},
-          defaultPaymentMethod: 'Apple Pay' 
-      };
-  }
-
+          billingDay: 1,
+          rewardCycleType: 'BILLING_CYCLE',
+          alertThreshold: 20000,
+          defaultPaymentMethod: 'Apple Pay'
+          };
+          }
   showDialog() {
     this.newCard = this.resetNewCard();
     this.isEdit = false;

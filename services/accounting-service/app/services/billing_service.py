@@ -64,18 +64,12 @@ def get_card_status(db: Session, card_id: int):
     remaining = None
     status_msg = f"本期累計已刷 ${current_usage:,.0f}"
     
-    if card.reward_rules:
-        # 簡單取第一條規則作為範例
-        try:
-            primary_threshold = card.reward_rules[0].get("threshold", 0)
-            if primary_threshold > 0:
-                remaining = max(0, primary_threshold - current_usage)
-                if remaining > 0:
-                    status_msg += f"，距離最高優惠上限還差 ${remaining:,.0f}"
-                else:
-                    status_msg += "，已達最高優惠上限 ⚠️"
-        except (IndexError, AttributeError):
-            pass
+    if card.alert_threshold > 0:
+        remaining = max(0, card.alert_threshold - current_usage)
+        if remaining > 0:
+            status_msg += f"，距離預警門檻還差 ${remaining:,.0f}"
+        else:
+            status_msg += "，已達預警門檻 ⚠️"
 
     # 確保回傳時日期轉為字串以匹配 Schema (如果必要)
     return schemas.CardStatus(

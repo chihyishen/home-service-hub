@@ -9,7 +9,6 @@ class CreditCard(Base, TimestampMixin):
     name = Column(String, unique=True, index=True)
     billing_day = Column(Integer)
     reward_cycle_type = Column(String, default="BILLING_CYCLE") # BILLING_CYCLE or CALENDAR_MONTH
-    reward_rules = Column(JSON, nullable=True)
     alert_threshold = Column(Integer, default=5000)
     default_payment_method = Column(String, default="Apple Pay")
 
