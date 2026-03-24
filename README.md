@@ -16,7 +16,7 @@ graph TD
     %% 1. 存取層
     subgraph Access_Layer [使用者與代理人層]
         UI[Angular Dashboard]
-        Agent[AI Agent / Gemini CLI]
+        Agent[AI Agent]
     end
 
     %% 2. 閘道與認證 (規劃中)
@@ -70,7 +70,7 @@ graph TD
 
 ## 🌟 亮點功能 (Features)
 
-- **🤖 AI Agent First**: 服務設計之初即考量 AI Agent (如 Gemini CLI) 的調用需求，具備良好的 API 結構與錯誤回傳機制。
+- **🤖 AI Agent First**: 服務設計之初即考量 AI Agent的調用需求，具備良好的 API 結構與錯誤回傳機制。
 - **全鏈路分散式追蹤 (End-to-End Tracing)**: 從 AI Agent 发起請求到資料庫回應，完整記錄每一毫秒的延遲與日誌。
 - **AI 驅動記帳系統**: 支援自然語言解析，自動將口語化描述轉化為精確的財務交易。
 - **智慧庫存與投資**: 整合物件儲存 (MinIO) 管理實體物資，並自動抓取即時台股數據。
