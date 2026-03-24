@@ -105,3 +105,7 @@ graph TD
 
 ---
 *Created and maintained as a personal digital life management suite.*
+
+## 📄 授權 (License)
+
+本專案採用 [MIT](LICENSE) 授權。您可以自由使用、修改與分發，但請保留原作者版權聲明。
