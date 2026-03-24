@@ -7,105 +7,101 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)
 ![Observability](https://img.shields.io/badge/Observability-OTel%20%7C%20Loki%20%7C%20Tempo%20%7C%20Grafana-purple)
 
-這是一個現代化的 **個人生活運算中樞**，旨在演示如何建構一個具備 **全鏈路可觀測性 (Observability)**、**自動化財務管理** 與 **智慧庫存監控** 的微服務系統。
+這是一個現代化的 **個人生活運算中樞**。系統從最初的個人工具演進為**由 AI Agent 驅動的自動化後端**。它展示了如何結合 **AI Agent 調用**、**全鏈路可觀測性** 與 **多語言微服務** 來構建一個穩健的家庭自動化系統。
 
 ## 🏗 系統架構 (Architecture)
 
 ```mermaid
 graph TD
-    subgraph "Client (PC Browser)"
+    %% 1. 存取層
+    subgraph Access_Layer [使用者與代理人層]
         UI[Angular Dashboard]
-        Proxy[Angular Dev Proxy]
+        Agent[AI Agent / Gemini CLI]
     end
 
-    subgraph "Shared Infrastructure (Docker)"
-        Collector[OTel Collector]
+    %% 2. 閘道與認證 (規劃中)
+    subgraph Gateway_Auth [閘道與認證層]
+        Proxy[Angular Dev Proxy / API Gateway]
+        Keycloak[<i>Planned: Keycloak / FIDO</i>]:::planned
+    end
+
+    %% 3. 服務層
+    subgraph Service_Layer [微服務層]
+        Inventory[Inventory API<br/>Java 21 / Spring Boot]
+        Accounting[Accounting Service<br/>Python 3.13 / FastAPI]
+        Stock[Stock Portfolio<br/>Python 3.13 / FastAPI]
+    end
+
+    %% 4. 資料層
+    subgraph Data_Layer [持久化與儲存層]
         Postgres[(PostgreSQL)]
-        RabbitMQ[RabbitMQ]
-        Tempo[Grafana Tempo]
-        Loki[Grafana Loki]
+        MinIO[MinIO Object Storage]
+    end
+
+    %% 5. 可觀測性層
+    subgraph Obs_Layer [可觀測性 LGTM Stack]
+        Collector[OTel Collector]
         Grafana[Grafana Dashboard]
+        Tempo[Tempo / Loki / Prometheus]
     end
 
-    subgraph "Microservices"
-        Inventory[Inventory API - Java 21]
-        Accounting[Accounting API - Python 3.13]
-    end
+    %% 線條連接
+    UI --> Proxy
+    Agent --> Proxy
+    Proxy -->|REST| Inventory
+    Proxy -->|REST| Accounting
+    Proxy -->|REST| Stock
 
-    UI -->|API & Traces| Proxy
-    Proxy -->|/api/inventory| Inventory
-    Proxy -->|/api/accounting| Accounting
-    Proxy -->|/otlp| Collector
-    
-    Inventory -->|SQL| Postgres
-    Accounting -->|SQL| Postgres
-    
-    Inventory -->|Push OTLP| Collector
-    Accounting -->|Push OTLP| Collector
-    
-    Collector -->|Traces| Tempo
-    Collector -->|Logs| Loki
-    Grafana -->|Visualize| Tempo
-    Grafana -->|Visualize| Loki
+    Inventory --> Postgres
+    Accounting --> Postgres
+    Stock --> Postgres
+    Inventory -.-> MinIO
+
+    %% 可觀測性流
+    Inventory -.->|OTLP| Collector
+    Accounting -.->|OTLP| Collector
+    Stock -.->|OTLP| Collector
+    Collector --> Tempo
+    Grafana -->|Query| Tempo
+
+    %% 樣式
+    classDef planned stroke-dasharray: 5 5, opacity: 0.5
 ```
 
 ## 🌟 亮點功能 (Features)
 
-- **全鏈路分散式追蹤 (End-to-End Tracing)**: 追蹤請求從瀏覽器點擊，穿過 Python/Java 服務，最終到達資料庫的完整路徑。
-- **AI 驅動記帳系統**: 支援自然語言記帳、信用卡優惠上限監控與自動通路路由。
-- **智慧庫存管理**: 追蹤家用物資與資產。
-- **單一配置來源 (Single Source of Truth)**: 透過根目錄 `.env` 管理全域環境變數，確保多服務間配置同步。
-- **微服務架構**: 採用 Monorepo 管理，結合 Java (Spring Boot) 與 Python (FastAPI) 各自的技術優勢。
+- **🤖 AI Agent First**: 服務設計之初即考量 AI Agent (如 Gemini CLI) 的調用需求，具備良好的 API 結構與錯誤回傳機制。
+- **全鏈路分散式追蹤 (End-to-End Tracing)**: 從 AI Agent 发起請求到資料庫回應，完整記錄每一毫秒的延遲與日誌。
+- **AI 驅動記帳系統**: 支援自然語言解析，自動將口語化描述轉化為精確的財務交易。
+- **智慧庫存與投資**: 整合物件儲存 (MinIO) 管理實體物資，並自動抓取即時台股數據。
 
 ## 🚀 快速開始 (Getting Started)
 
 ### 1. 環境準備
-- **配置環境變數**:
-  ```bash
-  cp .env.example .env
-  ```
-- **啟動基礎設施 (Docker)**:
-  ```bash
-  docker compose up -d
-  ```
+- **配置環境變數**: `cp .env.example .env`
+- **啟動基礎設施**: `docker compose up -d`
 
-### 2. 啟動記帳服務 (Accounting API)
-```bash
-cd services/accounting-api
-# 建立 venv 並啟動
-./.venv/bin/uvicorn app.main:app --reload --port 8000
-```
+### 2. 啟動服務 (各服務目錄下執行)
+- **Inventory**: `./gradlew :item-service:bootRun`
+- **Accounting**: `uvicorn app.main:app --port 8000`
+- **Stock**: `uvicorn app.main:app --port 8001`
+- **Frontend**: `npm start`
 
-### 3. 啟動庫存服務 (Inventory API)
-```bash
-cd services/inventory-api
-./gradlew :item-service:bootRun
-```
+## 🗺 發展路線 (Roadmap)
 
-### 4. 啟動前端 (Unified UI)
-```bash
-cd frontend
-npm install
-npm start
-```
+### 🟡 Phase 1 & 2: 核心強化與認證 (Active)
+- [ ] **身分驗證整合**: 串接 Keycloak 並支援 FIDO2 (WebAuthn) 無密碼登入。
+- [ ] **Python 觀測性優化**: 完善 Python 服務的 Trace 欄位與 Context 傳遞。
+- [ ] **後端精細化驗證**: 使用 `jakarta.validation` 確保 Java 端數據完整性。
+- [ ] **MinIO 完整整合**: 實作圖片上傳、預簽名 URL (Presigned URLs) 與縮圖處理。
 
-## 🛠 技術堆疊 (Tech Stack)
+### 🟣 Phase 3: 異步架構與微服務解耦 (Planned)
+- [ ] **RabbitMQ 整合**: 實作 Domain Events 驅動跨服務協作。
+- [ ] **Audit Service**: 建立獨立的審計微服務，非同步記錄系統變動。
 
-### Backend & AI Core
-- **Python Service**: FastAPI 0.129+, SQLAlchemy, Pydantic v2
-- **Java Service**: Spring Boot 4.0.1, Java 21, Spring Data JPA
-- **Observability**: OpenTelemetry (Micrometer & OTLP Exporter)
-- **API Docs**: Swagger / OpenAPI 3
-
-### Frontend
-- **Framework**: Angular 21 (Standalone Components)
-- **Observability**: OpenTelemetry Web SDK (v2.x)
-- **Styles**: Bootstrap 5 & Bootstrap Icons
-
-### Infrastructure (The "LGTM" Stack)
-- **Monitoring**: Grafana, Prometheus, Tempo (Traces), Loki (Logs)
-- **Storage**: PostgreSQL 15, MinIO
-- **Messaging**: RabbitMQ
+### 🔴 Phase 4: 效能優化與邊界安全 (Planned)
+- [ ] **Redis Caching**: 為熱門查詢實作快取。
+- [ ] **API Gateway & Rate Limiting**: 統一入口並實作流量限制。
 
 ---
 *Created and maintained as a personal digital life management suite.*
