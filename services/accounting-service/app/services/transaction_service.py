@@ -1,16 +1,101 @@
 from sqlalchemy.orm import Session
-from datetime import date
+from sqlalchemy import or_
+from datetime import date, timedelta
 from .. import models, schemas
 from ..tracing import tracer
 from fastapi import HTTPException
 from typing import Optional
 
-def get_transactions(db: Session, skip: int = 0, limit: int = 100, category: Optional[str] = None):
+VALID_TRANSACTION_TYPES = {"EXPENSE", "INCOME"}
+VALID_DATE_PRESETS = {"today", "yesterday", "this_month"}
+
+
+def _resolve_date_preset(date_preset: str) -> tuple[date, date]:
+    today = date.today()
+
+    if date_preset == "today":
+        return today, today
+    if date_preset == "yesterday":
+        yesterday = today - timedelta(days=1)
+        return yesterday, yesterday
+    if date_preset == "this_month":
+        month_start = today.replace(day=1)
+        return month_start, today
+
+    raise HTTPException(status_code=400, detail=f"Unsupported date_preset: {date_preset}")
+
+
+def get_transactions(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    category: Optional[str] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    date_preset: Optional[str] = None,
+    transaction_type: Optional[str] = None,
+    exclude_subscription: bool = False,
+    exclude_installment: bool = False,
+    manual_only: bool = False,
+    keyword: Optional[str] = None,
+):
     with tracer.start_as_current_span("service.get_transactions") as span:
         query = db.query(models.Transaction)
+
+        if manual_only:
+            span.set_attribute("filter.manual_only", True)
+            exclude_subscription = True
+            exclude_installment = True
+            if date_preset is None and date_from is None and date_to is None:
+                date_preset = "today"
+            if transaction_type is None:
+                transaction_type = "EXPENSE"
+
+        resolved_date_preset = date_preset.lower() if date_preset else None
+        if resolved_date_preset:
+            if resolved_date_preset not in VALID_DATE_PRESETS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported date_preset: {date_preset}. Supported values: {sorted(VALID_DATE_PRESETS)}",
+                )
+            if date_from is None and date_to is None:
+                date_from, date_to = _resolve_date_preset(resolved_date_preset)
+
         if category:
             span.set_attribute("filter.category", category)
             query = query.filter(models.Transaction.category == category)
+        if date_from:
+            span.set_attribute("filter.date_from", date_from.isoformat())
+            query = query.filter(models.Transaction.date >= date_from)
+        if date_to:
+            span.set_attribute("filter.date_to", date_to.isoformat())
+            query = query.filter(models.Transaction.date <= date_to)
+        if transaction_type:
+            normalized_transaction_type = transaction_type.upper()
+            if normalized_transaction_type not in VALID_TRANSACTION_TYPES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported transaction_type: {transaction_type}. Supported values: {sorted(VALID_TRANSACTION_TYPES)}",
+                )
+            span.set_attribute("filter.transaction_type", normalized_transaction_type)
+            query = query.filter(models.Transaction.transaction_type == normalized_transaction_type)
+        if exclude_subscription:
+            span.set_attribute("filter.exclude_subscription", True)
+            query = query.filter(models.Transaction.subscription_id.is_(None))
+        if exclude_installment:
+            span.set_attribute("filter.exclude_installment", True)
+            query = query.filter(models.Transaction.installment_id.is_(None))
+        if keyword:
+            pattern = f"%{keyword.strip()}%"
+            if pattern != "%%":
+                span.set_attribute("filter.keyword", keyword.strip())
+                query = query.filter(
+                    or_(
+                        models.Transaction.item.ilike(pattern),
+                        models.Transaction.note.ilike(pattern),
+                    )
+                )
+
         transactions = query.order_by(models.Transaction.date.desc(), models.Transaction.id.desc()).offset(skip).limit(limit).all()
         
         # 顯式填充 card_name 以便 Pydantic 輸出

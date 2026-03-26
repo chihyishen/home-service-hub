@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
@@ -14,14 +15,47 @@ logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=List[schemas.Transaction], summary="獲取交易清單")
 def list_transactions(
-    skip: int = 0, 
-    limit: int = 100, 
-    category: Optional[str] = None, 
-    db: Session = Depends(get_db)
+    skip: int = 0,
+    limit: int = 100,
+    category: Optional[str] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    date_preset: Optional[str] = None,
+    transaction_type: Optional[str] = None,
+    exclude_subscription: bool = False,
+    exclude_installment: bool = False,
+    manual_only: bool = False,
+    keyword: Optional[str] = None,
+    db: Session = Depends(get_db),
 ):
     with tracer.start_as_current_span("router.list_transactions") as span:
-        logger.info(f"查詢交易清單: category={category}")
-        result = transaction_service.get_transactions(db, skip=skip, limit=limit, category=category)
+        logger.info(
+            "查詢交易清單: category=%s, date_from=%s, date_to=%s, date_preset=%s, transaction_type=%s, "
+            "exclude_subscription=%s, exclude_installment=%s, manual_only=%s, keyword=%s",
+            category,
+            date_from,
+            date_to,
+            date_preset,
+            transaction_type,
+            exclude_subscription,
+            exclude_installment,
+            manual_only,
+            keyword,
+        )
+        result = transaction_service.get_transactions(
+            db,
+            skip=skip,
+            limit=limit,
+            category=category,
+            date_from=date_from,
+            date_to=date_to,
+            date_preset=date_preset,
+            transaction_type=transaction_type,
+            exclude_subscription=exclude_subscription,
+            exclude_installment=exclude_installment,
+            manual_only=manual_only,
+            keyword=keyword,
+        )
         
         # 記錄回傳清單的大小
         span.set_attribute("http.response.count", len(result))
@@ -47,35 +81,6 @@ def create_transaction(transaction: schemas.TransactionCreate, db: Session = Dep
         span.set_attribute("http.response.body", res_json)
         return result
 
-@router.get("/{transaction_id}", response_model=schemas.Transaction, summary="獲取單筆交易詳情")
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    with tracer.start_as_current_span("router.get_transaction") as span:
-        result = transaction_service.get_transaction(db, transaction_id)
-        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
-        span.set_attribute("http.response.body", res_json)
-        return result
-
-@router.put("/{transaction_id}", response_model=schemas.Transaction, summary="修改交易紀錄")
-def update_transaction(
-    transaction_id: int, 
-    transaction_update: schemas.TransactionUpdate, 
-    db: Session = Depends(get_db)
-):
-    with tracer.start_as_current_span("router.update_transaction") as span:
-        span.set_attribute("http.request.body", transaction_update.model_dump_json(exclude_unset=True))
-        result = transaction_service.update_transaction(db, transaction_id, transaction_update)
-        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
-        span.set_attribute("http.response.body", res_json)
-        return result
-
-@router.delete("/{transaction_id}", summary="軟刪除交易紀錄")
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    return transaction_service.delete_transaction(db, transaction_id)
-
-@router.post("/{transaction_id}/refund", response_model=schemas.Transaction, summary="建立交易沖銷(退款)")
-def refund_transaction(transaction_id: int, refund_amount: float, db: Session = Depends(get_db)):
-    return transaction_service.refund_transaction(db, transaction_id, refund_amount)
-
 @router.get("/report/{year}/{month}", 
             response_model=schemas.MonthlyReport, 
             response_model_by_alias=True, 
@@ -100,3 +105,36 @@ def get_monthly_compare_report(year: int, month: int, db: Session = Depends(get_
         span.set_attribute("report.compare.period", result.period)
         span.set_attribute("report.compare.baseline_period", result.baseline_period)
         return result
+
+
+@router.get("/{transaction_id}", response_model=schemas.Transaction, summary="獲取單筆交易詳情")
+def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+    with tracer.start_as_current_span("router.get_transaction") as span:
+        result = transaction_service.get_transaction(db, transaction_id)
+        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
+        span.set_attribute("http.response.body", res_json)
+        return result
+
+
+@router.put("/{transaction_id}", response_model=schemas.Transaction, summary="修改交易紀錄")
+def update_transaction(
+    transaction_id: int,
+    transaction_update: schemas.TransactionUpdate,
+    db: Session = Depends(get_db)
+):
+    with tracer.start_as_current_span("router.update_transaction") as span:
+        span.set_attribute("http.request.body", transaction_update.model_dump_json(exclude_unset=True))
+        result = transaction_service.update_transaction(db, transaction_id, transaction_update)
+        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
+        span.set_attribute("http.response.body", res_json)
+        return result
+
+
+@router.delete("/{transaction_id}", summary="軟刪除交易紀錄")
+def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
+    return transaction_service.delete_transaction(db, transaction_id)
+
+
+@router.post("/{transaction_id}/refund", response_model=schemas.Transaction, summary="建立交易沖銷(退款)")
+def refund_transaction(transaction_id: int, refund_amount: float, db: Session = Depends(get_db)):
+    return transaction_service.refund_transaction(db, transaction_id, refund_amount)
