@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -37,15 +38,15 @@ public class ShoppingListController {
 
     @PostMapping
     @Operation(summary = "建立採買項目", description = "手動建立採買清單項目")
-    public ResponseEntity<ShoppingListItemResponse> createShoppingListItem(@RequestBody ShoppingListItemRequest request) {
+    public ResponseEntity<ShoppingListItemResponse> createShoppingListItem(@Valid @RequestBody ShoppingListItemRequest request) {
         return ResponseEntity.ok(shoppingListService.createItem(request));
     }
 
     @PatchMapping("/{id}")
-    @Operation(summary = "更新採買項目", description = "更新採買清單狀態或欄位")
+    @Operation(summary = "更新採買項目", description = "更新採買清單狀態 or 欄位")
     public ResponseEntity<ShoppingListItemResponse> updateShoppingListItem(
             @PathVariable Long id,
-            @RequestBody ShoppingListItemRequest request) {
+            @Valid @RequestBody ShoppingListItemRequest request) {
         return ResponseEntity.ok(shoppingListService.updateItem(id, request));
     }
 
