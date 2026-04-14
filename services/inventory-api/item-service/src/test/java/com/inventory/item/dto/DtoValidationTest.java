@@ -34,11 +34,12 @@ class DtoValidationTest {
 
     @Test
     void testInventoryTransactionRequestInvalid() {
-        InventoryTransactionRequest req = new InventoryTransactionRequest(null, null, null, null, null);
+        InventoryTransactionRequest req = new InventoryTransactionRequest(null, null, null, null, null, null);
         Set<ConstraintViolation<InventoryTransactionRequest>> violations = validator.validate(req);
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("type")));
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("deltaQuantity")));
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("source")));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.inventory.item.dto;
 
+import com.inventory.item.model.InventoryTransactionSource;
 import com.inventory.item.model.InventoryTransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,9 @@ public record InventoryTransactionRequest(
         Integer actualQuantity,
         @Schema(description = "異動原因", example = "每週補貨")
         String reason,
+        @NotNull
+        @Schema(description = "異動來源", example = "MANUAL")
+        InventoryTransactionSource source,
         @Schema(description = "操作人", example = "chihyi")
         String operatorName
 ) {
