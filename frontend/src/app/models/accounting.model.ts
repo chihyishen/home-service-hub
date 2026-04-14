@@ -21,6 +21,14 @@ export interface CreditCard {
   defaultPaymentMethod?: string;
 }
 
+export interface CreditCardCreate {
+  name: string;
+  billingDay: number;
+  rewardCycleType: string;
+  alertThreshold: number;
+  defaultPaymentMethod?: string;
+}
+
 export interface Transaction {
   id: number;
   date: string;
@@ -123,6 +131,18 @@ export interface Subscription {
   active: boolean;
 }
 
+export interface SubscriptionCreate {
+  name: string;
+  amount: number;
+  category: string;
+  categoryId?: number;
+  subType: 'FIXED_EXPENSE' | 'SUBSCRIPTION';
+  paymentMethod?: string;
+  dayOfMonth: number;
+  cardId?: number;
+  active: boolean;
+}
+
 export interface Installment {
   id: number;
   name: string;
@@ -134,4 +154,15 @@ export interface Installment {
   startDate: string;
   cardId?: number;
   cardName?: string;
+}
+
+export interface InstallmentCreate {
+  name: string;
+  totalAmount: number;
+  monthlyAmount: number;
+  paymentMethod?: string;
+  totalPeriods: number;
+  remainingPeriods: number;
+  startDate: string;
+  cardId?: number;
 }

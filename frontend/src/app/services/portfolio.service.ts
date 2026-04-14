@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PortfolioSummary, Transaction, Dividend } from '../models/portfolio.model';
@@ -8,8 +8,7 @@ import { PortfolioSummary, Transaction, Dividend } from '../models/portfolio.mod
 })
 export class PortfolioService {
   private apiUrl = '/api/portfolio';
-
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   getSummary(): Observable<PortfolioSummary> {
     return this.http.get<PortfolioSummary>(`${this.apiUrl}/summary`);
@@ -27,8 +26,8 @@ export class PortfolioService {
     return this.http.put<Transaction>(`${this.apiUrl}/transactions/${id}`, transaction);
   }
 
-  deleteTransaction(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/transactions/${id}`);
+  deleteTransaction(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/transactions/${id}`);
   }
 
   getDividends(): Observable<Dividend[]> {
@@ -43,7 +42,7 @@ export class PortfolioService {
     return this.http.put<Dividend>(`${this.apiUrl}/dividends/${id}`, dividend);
   }
 
-  deleteDividend(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/dividends/${id}`);
+  deleteDividend(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/dividends/${id}`);
   }
 }
