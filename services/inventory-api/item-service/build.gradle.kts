@@ -22,6 +22,9 @@ dependencies {
     // 4. 資料庫相關
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
 
     // 4.1 MinIO (物件儲存)
     implementation("io.minio:minio:8.5.17")

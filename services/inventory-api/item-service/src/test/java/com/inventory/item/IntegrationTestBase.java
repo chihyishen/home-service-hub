@@ -11,6 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false",
         "spring.jpa.show-sql=false",
         "management.tracing.enabled=false",
         "management.otlp.tracing.endpoint=http://localhost:4318/v1/traces"
