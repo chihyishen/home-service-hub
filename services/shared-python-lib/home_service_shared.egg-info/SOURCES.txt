@@ -1,9 +1,0 @@
-pyproject.toml
-home_service_shared.egg-info/PKG-INFO
-home_service_shared.egg-info/SOURCES.txt
-home_service_shared.egg-info/dependency_links.txt
-home_service_shared.egg-info/requires.txt
-home_service_shared.egg-info/top_level.txt
-shared_lib/__init__.py
-shared_lib/database.py
-shared_lib/tracing.py
