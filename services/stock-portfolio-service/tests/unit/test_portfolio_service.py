@@ -1,36 +1,21 @@
-import unittest
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import patch
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from app.database import Base
 from app.models import portfolio as models
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service
 
 
-class TestPortfolioService(unittest.TestCase):
-    def setUp(self):
-        self.engine = create_engine("sqlite:///:memory:")
-        TestingSessionLocal = sessionmaker(bind=self.engine)
-        Base.metadata.create_all(bind=self.engine)
-        self.db = TestingSessionLocal()
-
-    def tearDown(self):
-        self.db.close()
-        Base.metadata.drop_all(bind=self.engine)
-
+class TestPortfolioService:
     def test_sanitize_symbol(self):
-        self.assertEqual(portfolio_service.sanitize_symbol("0050.TW"), "0050")
-        self.assertEqual(portfolio_service.sanitize_symbol("00919.two"), "00919")
-        self.assertEqual(portfolio_service.sanitize_symbol(" 2330 "), "2330")
+        assert portfolio_service.sanitize_symbol("0050.TW") == "0050"
+        assert portfolio_service.sanitize_symbol("00919.two") == "00919"
+        assert portfolio_service.sanitize_symbol(" 2330 ") == "2330"
 
     @patch("app.services.portfolio_service.get_stock_quotes")
-    def test_get_portfolio_summary_with_holdings(self, mock_get_quotes):
-        self.db.add(
+    def test_get_portfolio_summary_with_holdings(self, mock_get_quotes, db_session):
+        db_session.add(
             models.Transaction(
                 symbol="0050.TW",
                 name="元大台灣50",
@@ -42,7 +27,7 @@ class TestPortfolioService(unittest.TestCase):
                 trade_date=datetime(2026, 1, 1),
             )
         )
-        self.db.add(
+        db_session.add(
             models.Transaction(
                 symbol="0050",
                 name="元大台灣50",
@@ -54,7 +39,7 @@ class TestPortfolioService(unittest.TestCase):
                 trade_date=datetime(2026, 1, 2),
             )
         )
-        self.db.add(
+        db_session.add(
             models.Dividend(
                 symbol="0050",
                 amount=Decimal("120"),
@@ -62,7 +47,7 @@ class TestPortfolioService(unittest.TestCase):
                 received_date=datetime(2026, 1, 20),
             )
         )
-        self.db.commit()
+        db_session.commit()
 
         mock_get_quotes.return_value = {
             "0050": {
@@ -74,17 +59,17 @@ class TestPortfolioService(unittest.TestCase):
             }
         }
 
-        summary = portfolio_service.get_portfolio_summary(self.db)
-        self.assertIsInstance(summary, schemas.PortfolioSummary)
-        self.assertEqual(len(summary.holdings), 1)
-        self.assertEqual(summary.holdings[0].symbol, "0050")
-        self.assertEqual(summary.holdings[0].total_quantity, 80)
-        self.assertEqual(summary.total_dividends, Decimal("120.00"))
-        self.assertGreater(summary.total_market_value, Decimal("0"))
+        summary = portfolio_service.get_portfolio_summary(db_session)
+        assert isinstance(summary, schemas.PortfolioSummary)
+        assert len(summary.holdings) == 1
+        assert summary.holdings[0].symbol == "0050"
+        assert summary.holdings[0].total_quantity == 80
+        assert summary.total_dividends == Decimal("120.00")
+        assert summary.total_market_value > Decimal("0")
 
-    def test_create_update_delete_transaction_and_dividend(self):
+    def test_create_update_delete_transaction_and_dividend(self, db_session):
         created_tx = portfolio_service.create_transaction(
-            self.db,
+            db_session,
             schemas.TransactionCreate(
                 symbol="00919.tw",
                 name="群益台灣精選高息",
@@ -95,10 +80,10 @@ class TestPortfolioService(unittest.TestCase):
                 tax=Decimal("0"),
             ),
         )
-        self.assertEqual(created_tx.symbol, "00919")
+        assert created_tx.symbol == "00919"
 
         updated_tx = portfolio_service.update_transaction(
-            self.db,
+            db_session,
             created_tx.id,
             schemas.TransactionCreate(
                 symbol="00919.TWO",
@@ -110,12 +95,12 @@ class TestPortfolioService(unittest.TestCase):
                 tax=Decimal("0"),
             ),
         )
-        self.assertIsNotNone(updated_tx)
-        self.assertEqual(updated_tx.symbol, "00919")
-        self.assertEqual(updated_tx.quantity, 12)
+        assert updated_tx is not None
+        assert updated_tx.symbol == "00919"
+        assert updated_tx.quantity == 12
 
         created_div = portfolio_service.create_dividend(
-            self.db,
+            db_session,
             schemas.DividendCreate(
                 symbol="00919.tw",
                 amount=Decimal("25"),
@@ -123,10 +108,10 @@ class TestPortfolioService(unittest.TestCase):
                 received_date=datetime(2026, 2, 10),
             ),
         )
-        self.assertEqual(created_div.symbol, "00919")
+        assert created_div.symbol == "00919"
 
         updated_div = portfolio_service.update_dividend(
-            self.db,
+            db_session,
             created_div.id,
             schemas.DividendCreate(
                 symbol="00919.two",
@@ -135,13 +120,9 @@ class TestPortfolioService(unittest.TestCase):
                 received_date=datetime(2026, 2, 10),
             ),
         )
-        self.assertIsNotNone(updated_div)
-        self.assertEqual(updated_div.symbol, "00919")
-        self.assertEqual(updated_div.amount, Decimal("30"))
+        assert updated_div is not None
+        assert updated_div.symbol == "00919"
+        assert updated_div.amount == Decimal("30")
 
-        self.assertTrue(portfolio_service.delete_transaction(self.db, created_tx.id))
-        self.assertTrue(portfolio_service.delete_dividend(self.db, created_div.id))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert portfolio_service.delete_transaction(db_session, created_tx.id) is True
+        assert portfolio_service.delete_dividend(db_session, created_div.id) is True

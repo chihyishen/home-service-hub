@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -100,7 +101,7 @@ public class ItemController {
 
     @ApiResponse(responseCode = "200", description = "建立成功")
 
-    public ResponseEntity<ItemResponse> createItem(@RequestBody ItemRequest request) {
+    public ResponseEntity<ItemResponse> createItem(@Valid @RequestBody ItemRequest request) {
 
         return ResponseEntity.ok(itemService.createItem(request));
 
@@ -122,7 +123,7 @@ public class ItemController {
     @Operation(summary = "建立庫存異動", description = "建立使用/補貨/盤點異動並更新品項數量")
     public ResponseEntity<ItemTransactionResultResponse> createTransaction(
             @PathVariable Long id,
-            @RequestBody InventoryTransactionRequest request) {
+            @Valid @RequestBody InventoryTransactionRequest request) {
         return ResponseEntity.ok(itemService.createTransaction(id, request));
     }
 
@@ -142,7 +143,7 @@ public class ItemController {
 
     @ApiResponse(responseCode = "404", description = "找不到該品項")
 
-    public ResponseEntity<ItemResponse> updateItem(@PathVariable Long id, @RequestBody ItemRequest request) {
+    public ResponseEntity<ItemResponse> updateItem(@PathVariable Long id, @Valid @RequestBody ItemRequest request) {
 
         return ResponseEntity.ok(itemService.updateItem(id, request));
 

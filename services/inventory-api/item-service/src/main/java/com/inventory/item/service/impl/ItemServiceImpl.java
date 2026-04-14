@@ -180,7 +180,7 @@ public class ItemServiceImpl implements ItemService {
                 .beforeQuantity(before)
                 .afterQuantity(after)
                 .reason(request.reason())
-                .source(InventoryTransactionSource.MANUAL)
+                .source(request.source())
                 .operatorName(request.operatorName())
                 .occurredAt(LocalDateTime.now())
                 .build();

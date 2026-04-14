@@ -2,6 +2,7 @@ package com.inventory.item;
 
 import com.inventory.item.dto.*;
 import com.inventory.item.exception.BadRequestException;
+import com.inventory.item.model.InventoryTransactionSource;
 import com.inventory.item.model.InventoryTransactionType;
 import com.inventory.item.repository.InventoryTransactionRepository;
 import com.inventory.item.repository.ItemRepository;
@@ -41,7 +42,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
 
         ItemTransactionResultResponse consumeResult = itemService.createTransaction(
                 item.id(),
-                new InventoryTransactionRequest(InventoryTransactionType.CONSUME, 3, null, "日常使用", "chihyi")
+                new InventoryTransactionRequest(InventoryTransactionType.CONSUME, 3, null, "日常使用", InventoryTransactionSource.MANUAL, "chihyi")
         );
 
         assertThat(consumeResult.item().quantity()).isEqualTo(2);
@@ -52,7 +53,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
 
         ItemTransactionResultResponse restockResult = itemService.createTransaction(
                 item.id(),
-                new InventoryTransactionRequest(InventoryTransactionType.RESTOCK, 4, null, "補貨", "chihyi")
+                new InventoryTransactionRequest(InventoryTransactionType.RESTOCK, 4, null, "補貨", InventoryTransactionSource.MANUAL, "chihyi")
         );
 
         assertThat(restockResult.item().quantity()).isEqualTo(6);
@@ -62,7 +63,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
 
         ItemTransactionResultResponse adjustResult = itemService.createTransaction(
                 item.id(),
-                new InventoryTransactionRequest(InventoryTransactionType.ADJUST, null, 1, "盤點修正", "chihyi")
+                new InventoryTransactionRequest(InventoryTransactionType.ADJUST, null, 1, "盤點修正", InventoryTransactionSource.MANUAL, "chihyi")
         );
 
         assertThat(adjustResult.item().quantity()).isEqualTo(1);
@@ -79,7 +80,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
 
         assertThatThrownBy(() -> itemService.createTransaction(
                 item.id(),
-                new InventoryTransactionRequest(InventoryTransactionType.CONSUME, 2, null, "超扣", "tester")
+                new InventoryTransactionRequest(InventoryTransactionType.CONSUME, 2, null, "超扣", InventoryTransactionSource.MANUAL, "tester")
         )).isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("cannot be negative");
     }

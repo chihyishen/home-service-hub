@@ -22,9 +22,15 @@ dependencies {
     // 4. 資料庫相關
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
 
     // 4.1 MinIO (物件儲存)
     implementation("io.minio:minio:8.5.17")
+
+    // 4.2 Validation
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // 5. 開發工具 (熱重載等)
     // 這行確保 DevTools 不會被打包進 Production

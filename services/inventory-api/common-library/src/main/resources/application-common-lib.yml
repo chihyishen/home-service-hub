@@ -49,7 +49,7 @@ management:
 
   tracing:
     sampling:
-      probability: 1.0
+      probability: 0.3
 
   metrics:
     distribution:
