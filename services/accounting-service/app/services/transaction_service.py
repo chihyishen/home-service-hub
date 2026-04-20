@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from datetime import date, timedelta
 from .. import models, schemas
-from ..tracing import tracer
+from shared_lib import get_tracer
+tracer = get_tracer("accounting-service")
 from fastapi import HTTPException
 from typing import Optional
 

@@ -10,6 +10,7 @@ describe('ItemListComponent', () => {
 
   const itemServiceMock = {
     getAll: () => of([]),
+    getAllFiltered: () => of([]),
     getCategories: () => of([]),
     getLocations: () => of([]),
     create: () => of({}),

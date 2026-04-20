@@ -91,7 +91,7 @@ export class ItemListComponent implements OnInit {
   }
 
   loadItems(): void {
-    this.itemService.getAll(this.searchKeyword, this.lowStockOnly).subscribe({
+    this.itemService.getAllFiltered(this.searchKeyword, this.lowStockOnly).subscribe({
       next: data => this.items.set(data),
       error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '無法載入物品清單' })
     });

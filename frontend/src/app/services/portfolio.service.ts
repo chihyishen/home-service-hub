@@ -1,48 +1,48 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { BaseApiService } from './base-api.service';
 import { PortfolioSummary, Transaction, Dividend } from '../models/portfolio.model';
 
 @Injectable({
   providedIn: 'root'
 })
-export class PortfolioService {
-  private apiUrl = '/api/portfolio';
-  private http = inject(HttpClient);
+export class PortfolioService extends BaseApiService<Transaction> {
+  protected override baseUrl = '/api/portfolio/transactions';
 
   getSummary(): Observable<PortfolioSummary> {
-    return this.http.get<PortfolioSummary>(`${this.apiUrl}/summary`);
+    return this.http.get<PortfolioSummary>('/api/portfolio/summary');
   }
 
   getTransactions(): Observable<Transaction[]> {
-    return this.http.get<Transaction[]>(`${this.apiUrl}/transactions`);
+    return this.getAll();
   }
 
   createTransaction(transaction: Partial<Transaction>): Observable<Transaction> {
-    return this.http.post<Transaction>(`${this.apiUrl}/transactions`, transaction);
+    return this.create(transaction);
   }
 
   updateTransaction(id: number, transaction: Partial<Transaction>): Observable<Transaction> {
-    return this.http.put<Transaction>(`${this.apiUrl}/transactions/${id}`, transaction);
+    return this.update(id, transaction);
   }
 
   deleteTransaction(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/transactions/${id}`);
+    return this.remove(id);
   }
 
+  // Dividends — different resource, so use http directly
   getDividends(): Observable<Dividend[]> {
-    return this.http.get<Dividend[]>(`${this.apiUrl}/dividends`);
+    return this.http.get<Dividend[]>('/api/portfolio/dividends');
   }
 
   createDividend(dividend: Partial<Dividend>): Observable<Dividend> {
-    return this.http.post<Dividend>(`${this.apiUrl}/dividends`, dividend);
+    return this.http.post<Dividend>('/api/portfolio/dividends', dividend);
   }
 
   updateDividend(id: number, dividend: Partial<Dividend>): Observable<Dividend> {
-    return this.http.put<Dividend>(`${this.apiUrl}/dividends/${id}`, dividend);
+    return this.http.put<Dividend>(`/api/portfolio/dividends/${id}`, dividend);
   }
 
   deleteDividend(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/dividends/${id}`);
+    return this.http.delete<void>(`/api/portfolio/dividends/${id}`);
   }
 }

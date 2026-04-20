@@ -1,37 +1,35 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { HttpParams } from '@angular/common/http';
+import { BaseApiService } from './base-api.service';
 import { ShoppingListItemRequest, ShoppingListItemResponse } from '../models/item.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ShoppingListService {
-  private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/shopping-list`;
+export class ShoppingListService extends BaseApiService<ShoppingListItemResponse> {
+  protected override baseUrl = `${environment.apiUrl}/shopping-list`;
 
   getList(status?: 'PENDING' | 'PURCHASED' | 'SKIPPED'): Observable<ShoppingListItemResponse[]> {
-    const params: { [key: string]: string } = {};
-    if (status) {
-      params['status'] = status;
-    }
-    return this.http.get<ShoppingListItemResponse[]>(this.apiUrl, { params });
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    return this.getAll(params);
   }
 
   generateFromLowStock(): Observable<ShoppingListItemResponse[]> {
-    return this.http.post<ShoppingListItemResponse[]>(`${this.apiUrl}/generate-from-low-stock`, {});
+    return this.http.post<ShoppingListItemResponse[]>(`${this.baseUrl}/generate-from-low-stock`, {});
   }
 
-  create(payload: ShoppingListItemRequest): Observable<ShoppingListItemResponse> {
-    return this.http.post<ShoppingListItemResponse>(this.apiUrl, payload);
+  override create(payload: Partial<ShoppingListItemResponse> | ShoppingListItemRequest): Observable<ShoppingListItemResponse> {
+    return this.http.post<ShoppingListItemResponse>(this.baseUrl, payload);
   }
 
-  update(id: number, payload: ShoppingListItemRequest): Observable<ShoppingListItemResponse> {
-    return this.http.patch<ShoppingListItemResponse>(`${this.apiUrl}/${id}`, payload);
+  override update(id: number, payload: Partial<ShoppingListItemResponse> | ShoppingListItemRequest): Observable<ShoppingListItemResponse> {
+    return this.http.patch<ShoppingListItemResponse>(`${this.baseUrl}/${id}`, payload);
   }
 
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.remove(id);
   }
 }

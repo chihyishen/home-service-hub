@@ -9,6 +9,7 @@ dependencies = [
     "sqlalchemy",
     "psycopg2-binary",
     "python-dotenv",
+    "pydantic-settings>=2.0",
     "opentelemetry-api",
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp",

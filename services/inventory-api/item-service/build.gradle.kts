@@ -32,6 +32,9 @@ dependencies {
     // 4.2 Validation
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
+    // 4.3 Actuator (health + metrics)
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
     // 5. 開發工具 (熱重載等)
     // 這行確保 DevTools 不會被打包進 Production
     developmentOnly("org.springframework.boot:spring-boot-devtools")

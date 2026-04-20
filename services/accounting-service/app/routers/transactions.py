@@ -6,7 +6,8 @@ from typing import List, Optional
 from .. import schemas
 from ..database import get_db
 from ..services import transaction_service
-from ..tracing import tracer
+from shared_lib import get_tracer
+tracer = get_tracer("accounting-service")
 import json
 import logging
 

@@ -6,7 +6,8 @@ import os
 from ..models import portfolio as models
 from ..schemas import portfolio as schemas
 from .twse_service import get_stock_quotes
-from ..tracing import tracer
+from shared_lib import get_tracer
+tracer = get_tracer("stock-portfolio-service")
 
 def sanitize_symbol(symbol: str) -> str:
     """
