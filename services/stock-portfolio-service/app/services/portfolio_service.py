@@ -1,13 +1,47 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Dict
+from typing import Dict, List, Optional, Tuple
+from datetime import date as date_type
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
+import math
 import os
 from ..models import portfolio as models
 from ..schemas import portfolio as schemas
 from .twse_service import get_stock_quotes
 from shared_lib import get_tracer
 tracer = get_tracer("stock-portfolio-service")
+
+
+def _calculate_xirr(cash_flows: List[Tuple[date_type, Decimal]]) -> Optional[Decimal]:
+    """
+    Compute XIRR from a list of (date, amount) pairs.
+    Returns None if calculation is impossible or fails.
+    - amounts < 0: outflows (buy)
+    - amounts > 0: inflows (sell, dividend, terminal market value)
+    """
+    if len(cash_flows) < 2:
+        return None
+
+    dates = [cf[0] for cf in cash_flows]
+    if len(set(dates)) < 2:
+        return None
+
+    if cash_flows[-1][1] <= Decimal("0"):
+        return None
+
+    try:
+        from pyxirr import xirr as _xirr
+        result = _xirr(
+            [cf[0] for cf in cash_flows],
+            [float(cf[1]) for cf in cash_flows],
+        )
+        if result is None or not isinstance(result, float):
+            return None
+        if math.isnan(result) or math.isinf(result):
+            return None
+        return Decimal(str(round(result, 6)))
+    except Exception:
+        return None
 
 def sanitize_symbol(symbol: str) -> str:
     """
@@ -57,12 +91,16 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
 
         # 整理每檔股票的狀態
         holdings_map = {}
-        
+        cashflows_map: Dict[str, List[Tuple[date_type, Decimal]]] = {}
+
         # 股利統計
         dividend_map = {}
         for d in dividends:
             symbol = sanitize_symbol(d.symbol)
             dividend_map[symbol] = dividend_map.get(symbol, Decimal("0.0")) + Decimal(str(d.amount))
+            # XIRR: dividend inflow
+            cf_date = d.ex_dividend_date.date() if hasattr(d.ex_dividend_date, 'date') else d.ex_dividend_date
+            cashflows_map.setdefault(symbol, []).append((cf_date, Decimal(str(d.amount))))
 
         # 交易統計 (計算平均成本與持股數)
         for t in transactions:
@@ -83,6 +121,10 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                 h["total_cost"] += (Decimal(t.quantity) * Decimal(str(t.price))) + Decimal(str(t.fee or "0.0"))
                 # 成交均價口徑(不含手續費)
                 h["total_cost_ex_fee"] += (Decimal(t.quantity) * Decimal(str(t.price)))
+                # XIRR: buy outflow
+                cf_date = t.trade_date.date() if hasattr(t.trade_date, 'date') else t.trade_date
+                outflow = -((Decimal(t.quantity) * Decimal(str(t.price))) + Decimal(str(t.fee or "0.0")) + Decimal(str(t.tax or "0.0")))
+                cashflows_map.setdefault(symbol, []).append((cf_date, outflow))
             elif t.type == models.TransactionType.SELL:
                 if h["total_quantity"] > 0:
                     avg_unit_cost = h["total_cost"] / Decimal(h["total_quantity"])
@@ -91,6 +133,10 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                     # 賣出時減少庫存成本 (簡易已實現計算方式)
                     h["total_cost"] -= (Decimal(t.quantity) * avg_unit_cost)
                     h["total_cost_ex_fee"] -= (Decimal(t.quantity) * avg_unit_cost_ex_fee)
+                    # XIRR: sell inflow
+                    cf_date = t.trade_date.date() if hasattr(t.trade_date, 'date') else t.trade_date
+                    inflow = (Decimal(t.quantity) * Decimal(str(t.price))) - Decimal(str(t.fee or "0.0")) - Decimal(str(t.tax or "0.0"))
+                    cashflows_map.setdefault(symbol, []).append((cf_date, inflow))
                 else:
                     pass
 
@@ -141,6 +187,14 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             
             stock_div = dividend_map.get(symbol, Decimal("0.0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+            # Per-stock XIRR: append terminal market value at today
+            stock_xirr: Optional[Decimal] = None
+            if current_price > 0 and symbol in cashflows_map:
+                today = date_type.today()
+                stock_flows = sorted(cashflows_map.get(symbol, []), key=lambda x: x[0])
+                stock_flows_with_terminal = stock_flows + [(today, market_value)]
+                stock_xirr = _calculate_xirr(stock_flows_with_terminal)
+
             holdings_list.append(schemas.StockHolding(
                 symbol=symbol,
                 name=quote.get("name") or h["name"] or symbol,
@@ -154,7 +208,8 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                 day_change_percent=day_change_percent,
                 day_pnl=day_pnl,
                 total_dividends=stock_div,
-                total_pnl_with_dividend=(unrealized_pnl + stock_div).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                total_pnl_with_dividend=(unrealized_pnl + stock_div).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+                xirr=stock_xirr
             ))
 
             if current_price > 0:
@@ -166,6 +221,16 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
 
         total_pnl_percent = ((total_unrealized_pnl / total_cost) * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if total_cost > 0 else Decimal("0.0")
 
+        # Portfolio XIRR: aggregate all cash flows across all held symbols
+        all_cashflows: List[Tuple[date_type, Decimal]] = []
+        for symbol in active_symbols:
+            all_cashflows.extend(cashflows_map.get(symbol, []))
+        all_cashflows.sort(key=lambda x: x[0])
+        portfolio_xirr: Optional[Decimal] = None
+        if total_market_value > 0 and all_cashflows:
+            all_cashflows_with_terminal = all_cashflows + [(date_type.today(), total_market_value)]
+            portfolio_xirr = _calculate_xirr(all_cashflows_with_terminal)
+
         return schemas.PortfolioSummary(
             total_market_value=total_market_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             total_cost=total_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
@@ -173,7 +238,8 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             total_unrealized_pnl_percent=total_pnl_percent,
             total_day_pnl=total_day_pnl.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             total_dividends=total_dividends.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
-            holdings=holdings_list
+            holdings=holdings_list,
+            portfolio_xirr=portfolio_xirr
         )
 
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
