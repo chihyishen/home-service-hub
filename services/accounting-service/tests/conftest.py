@@ -16,6 +16,8 @@ def db_session():
         poolclass=StaticPool,
     )
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # NOTE: Tests use create_all() instead of Alembic for speed.
+    # Prod uses Alembic migrations only (see alembic/ directory).
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:

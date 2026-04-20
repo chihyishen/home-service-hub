@@ -1,10 +1,7 @@
 from shared_lib import create_app
 
-from .database import engine, Base, get_db
+from .database import engine, get_db
 from .routers import portfolio
-
-# Create tables (will be replaced by Alembic in Plan 3)
-Base.metadata.create_all(bind=engine)
 
 app = create_app(
     title="Home Service Hub - Stock Portfolio API",
