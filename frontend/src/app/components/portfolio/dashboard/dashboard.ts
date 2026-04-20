@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortfolioService } from '../../../services/portfolio.service';
-import { PortfolioSummary } from '../../../models/portfolio.model';
+import { PortfolioSummary, ExDividendRecord } from '../../../models/portfolio.model';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -22,12 +22,14 @@ export class PortfolioDashboardComponent implements OnInit {
   protected readonly Number = Number;
 
   summary = signal<PortfolioSummary | null>(null);
+  upcomingExDividends = signal<ExDividendRecord[]>([]);
   loading = signal<boolean>(false);
   showWithDividend = signal<boolean>(false);
   expandedSymbols = signal<Set<string>>(new Set());
 
   ngOnInit() {
     this.loadSummary();
+    this.loadExDividends();
   }
 
   toggleDividend() {
@@ -71,5 +73,17 @@ export class PortfolioDashboardComponent implements OnInit {
 
   formatCurrency(value: number | string): string {
     return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(Number(value));
+  }
+
+  formatXirr(value: number | null | undefined): string {
+    if (value == null) return 'N/A';
+    return (value * 100).toFixed(2) + '%';
+  }
+
+  loadExDividends() {
+    this.portfolioService.getUpcomingExDividends().subscribe({
+      next: (data) => this.upcomingExDividends.set(data),
+      error: () => this.upcomingExDividends.set([])
+    });
   }
 }

@@ -41,6 +41,7 @@ export interface StockHolding {
   day_pnl: number;
   total_dividends: number;
   total_pnl_with_dividend: number;
+  xirr?: number;              // 年化報酬率，e.g. 0.1523 = 15.23%
 }
 
 export interface PortfolioSummary {
@@ -51,4 +52,14 @@ export interface PortfolioSummary {
   total_day_pnl: number;
   total_dividends: number;
   holdings: StockHolding[];
+  portfolio_xirr?: number;    // 整體投資組合年化報酬率
+}
+
+export interface ExDividendRecord {
+  symbol: string;
+  name: string;
+  ex_dividend_date?: string;
+  ex_rights_date?: string;
+  cash_dividend?: string;
+  stock_dividend?: string;
 }

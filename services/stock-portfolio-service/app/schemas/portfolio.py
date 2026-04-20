@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from enum import Enum
 from decimal import Decimal
@@ -62,6 +62,7 @@ class StockHolding(BaseModel):
     day_pnl: Decimal = Decimal("0.0")                # 單日損益
     total_dividends: Decimal = Decimal("0.0")
     total_pnl_with_dividend: Decimal # 含息損益
+    xirr: Optional[Decimal] = None   # 年化報酬率，如 0.1523 = 15.23%
 
 class PortfolioSummary(BaseModel):
     total_market_value: Decimal
@@ -71,3 +72,13 @@ class PortfolioSummary(BaseModel):
     total_day_pnl: Decimal = Decimal("0.0")          # 投資組合今日總損益
     total_dividends: Decimal
     holdings: List[StockHolding]
+    portfolio_xirr: Optional[Decimal] = None          # 整體投資組合年化報酬率
+
+
+class ExDividendRecord(BaseModel):
+    symbol: str
+    name: str
+    ex_dividend_date: Optional[date] = None     # 除息日
+    ex_rights_date: Optional[date] = None       # 除權日
+    cash_dividend: Optional[str] = None         # 現金股利（字串保留原始精度）
+    stock_dividend: Optional[str] = None        # 股票股利

@@ -73,6 +73,21 @@
           </div>
         </div>
 
+        <!-- 投資組合年化報酬率 -->
+        <div class="bento-item bento-normal xirr-card">
+          <div class="bento-content">
+            <div class="label">年化報酬率 (XIRR)</div>
+            <div class="value" [class.up]="(summary()!.portfolio_xirr ?? 0) > 0"
+                               [class.down]="(summary()!.portfolio_xirr ?? 0) < 0">
+              {{ formatXirr(summary()!.portfolio_xirr) }}
+            </div>
+            <div class="meta">含息 / 含買賣手續費</div>
+          </div>
+          <div class="bento-bg-icon-small">
+            <i class="pi pi-chart-line"></i>
+          </div>
+        </div>
+
         <!-- 持股分佈/清單 (全寬) -->
         <div class="bento-item bento-full holdings-card">
           <h3 class="card-title">持股明細</h3>
@@ -113,6 +128,7 @@
                       <div class="d-item"><small>平均成本</small><div>{{ stock.avg_cost | number:'1.2-2' }}</div></div>
                       <div class="d-item"><small>累計股利</small><div>{{ formatCurrency(stock.total_dividends) }}</div></div>
                       <div class="d-item"><small>含息損益</small><div [class]="{'up': stock.total_pnl_with_dividend > 0, 'down': stock.total_pnl_with_dividend < 0}">{{ formatCurrency(stock.total_pnl_with_dividend) }}</div></div>
+                      <div class="d-item"><small>年化報酬率</small><div>{{ formatXirr(stock.xirr) }}</div></div>
                     </div>
                   </div>
                 }
@@ -120,6 +136,35 @@
             }
           </div>
         </div>
+
+        <!-- 即將除權息提醒 -->
+        @if (upcomingExDividends().length > 0) {
+          <div class="bento-item bento-full exdiv-card">
+            <h3 class="card-title">
+              <i class="pi pi-bell"></i> 即將除權息提醒
+            </h3>
+            <p-table [value]="upcomingExDividends()" [tableStyle]="{'min-width': '30rem'}" styleClass="p-datatable-sm">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>代號</th>
+                  <th>名稱</th>
+                  <th>除息日</th>
+                  <th>除權日</th>
+                  <th>現金股利</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr>
+                  <td><strong>{{ row.symbol }}</strong></td>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.ex_dividend_date ?? '-' }}</td>
+                  <td>{{ row.ex_rights_date ?? '-' }}</td>
+                  <td>{{ row.cash_dividend ?? '-' }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        }
 
       </div>
     } @else {
