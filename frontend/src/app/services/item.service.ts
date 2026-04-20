@@ -1,5 +1,7 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { HttpParams } from '@angular/common/http';
+import { BaseApiService } from './base-api.service';
 import {
   ItemRequest,
   ItemResponse,
@@ -7,68 +9,58 @@ import {
   InventoryTransactionResponse,
   ItemTransactionResultResponse
 } from '../models/item.model';
-import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ItemService {
-  private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/items`;
+export class ItemService extends BaseApiService<ItemResponse> {
+  protected override baseUrl = `${environment.apiUrl}/items`;
 
-  getAll(keyword?: string, lowStockOnly?: boolean, category?: string, location?: string): Observable<ItemResponse[]> {
-    const params: any = {};
-    if (keyword) {
-      params.keyword = keyword;
-    }
-    if (lowStockOnly) {
-      params.lowStockOnly = lowStockOnly;
-    }
-    if (category) {
-      params.category = category;
-    }
-    if (location) {
-      params.location = location;
-    }
-    return this.http.get<ItemResponse[]>(this.apiUrl, { params });
+  getAllFiltered(keyword?: string, lowStockOnly?: boolean, category?: string, location?: string): Observable<ItemResponse[]> {
+    let params = new HttpParams();
+    if (keyword) params = params.set('keyword', keyword);
+    if (lowStockOnly) params = params.set('lowStockOnly', String(lowStockOnly));
+    if (category) params = params.set('category', category);
+    if (location) params = params.set('location', location);
+    return this.http.get<ItemResponse[]>(this.baseUrl, { params });
   }
 
   getCategories(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/categories`);
+    return this.http.get<string[]>(`${this.baseUrl}/categories`);
   }
 
   getLocations(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/locations`);
+    return this.http.get<string[]>(`${this.baseUrl}/locations`);
   }
 
   getById(id: number): Observable<ItemResponse> {
-    return this.http.get<ItemResponse>(`${this.apiUrl}/${id}`);
+    return this.getOne(id);
   }
 
-  create(item: ItemRequest): Observable<ItemResponse> {
-    return this.http.post<ItemResponse>(this.apiUrl, item);
+  override create(item: Partial<ItemResponse> | ItemRequest): Observable<ItemResponse> {
+    return this.http.post<ItemResponse>(this.baseUrl, item);
   }
 
-  update(id: number, item: ItemRequest): Observable<ItemResponse> {
-    return this.http.put<ItemResponse>(`${this.apiUrl}/${id}`, item);
+  override update(id: number, item: Partial<ItemResponse> | ItemRequest): Observable<ItemResponse> {
+    return this.http.put<ItemResponse>(`${this.baseUrl}/${id}`, item);
   }
 
   uploadImage(id: number, file: File): Observable<ItemResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<ItemResponse>(`${this.apiUrl}/${id}/image`, formData);
+    return this.http.post<ItemResponse>(`${this.baseUrl}/${id}/image`, formData);
   }
 
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.remove(id);
   }
 
   createTransaction(id: number, payload: InventoryTransactionRequest): Observable<ItemTransactionResultResponse> {
-    return this.http.post<ItemTransactionResultResponse>(`${this.apiUrl}/${id}/transactions`, payload);
+    return this.http.post<ItemTransactionResultResponse>(`${this.baseUrl}/${id}/transactions`, payload);
   }
 
   getTransactions(id: number, limit: number = 50): Observable<InventoryTransactionResponse[]> {
-    return this.http.get<InventoryTransactionResponse[]>(`${this.apiUrl}/${id}/transactions`, { params: { limit } });
+    return this.http.get<InventoryTransactionResponse[]>(`${this.baseUrl}/${id}/transactions`, { params: { limit } });
   }
 }
