@@ -5,7 +5,8 @@ import json
 import os
 from typing import Dict, List, Any
 from decimal import Decimal, InvalidOperation
-from ..tracing import tracer
+from shared_lib import get_tracer
+tracer = get_tracer("stock-portfolio-service")
 
 logger = logging.getLogger(__name__)
 
