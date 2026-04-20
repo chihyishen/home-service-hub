@@ -13,6 +13,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - inventory-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # --- 2. 訊息佇列 ---
   rabbitmq:
@@ -36,9 +41,16 @@ services:
     ports:
       - "${INVENTORY_ITEM_SERVICE_PORT}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - inventory-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   accounting-service:
     profiles: ["apps"]
@@ -50,9 +62,16 @@ services:
     ports:
       - "${ACCOUNTING_SERVICE_PORT}:8000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - inventory-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   stock-portfolio-service:
     profiles: ["apps"]
@@ -64,9 +83,16 @@ services:
     ports:
       - "${STOCK_SERVICE_PORT}:8001"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - inventory-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # --- 4. OpenTelemetry Collector ---
   otel-collector:

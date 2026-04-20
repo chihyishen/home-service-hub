@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # 載入環境變數
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../../.env"))
 
-from .routers import portfolio
+from .routers import portfolio, health
 from .database import engine, Base
 from .tracing import setup_tracing
 
@@ -34,6 +34,7 @@ setup_tracing(app=app, engine=engine)
 
 # 註冊路由
 app.include_router(portfolio.router)
+app.include_router(health.router)
 
 @app.get("/")
 async def root():
