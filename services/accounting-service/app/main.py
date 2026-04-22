@@ -1,7 +1,7 @@
 from shared_lib import create_app
 
 from .database import engine, get_db
-from .routers import transactions, cards, recurring, categories, payment_methods
+from .routers import transactions, cards, recurring, categories, payment_methods, health
 
 app = create_app(
     title="Home Service Hub - Accounting API",
@@ -13,6 +13,7 @@ app = create_app(
         recurring.router,
         categories.router,
         payment_methods.router,
+        health.router,
     ],
     get_db=get_db,
     engine=engine,

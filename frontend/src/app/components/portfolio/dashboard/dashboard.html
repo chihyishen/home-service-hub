@@ -126,8 +126,9 @@
                     <div class="detail-grid">
                       <div class="d-item"><small>市值</small><div>{{ formatCurrency(stock.market_value) }}</div></div>
                       <div class="d-item"><small>平均成本</small><div>{{ stock.avg_cost | number:'1.2-2' }}</div></div>
-                      <div class="d-item"><small>累計股利</small><div>{{ formatCurrency(stock.total_dividends) }}</div></div>
                       <div class="d-item"><small>含息損益</small><div [class]="{'up': stock.total_pnl_with_dividend > 0, 'down': stock.total_pnl_with_dividend < 0}">{{ formatCurrency(stock.total_pnl_with_dividend) }}</div></div>
+                      <div class="d-item"><small>不含息損益</small><div [class]="{'up': stock.unrealized_pnl > 0, 'down': stock.unrealized_pnl < 0}">{{ formatCurrency(stock.unrealized_pnl) }}</div></div>
+                      <div class="d-item"><small>累計股利</small><div>{{ formatCurrency(stock.total_dividends) }}</div></div>
                       <div class="d-item"><small>年化報酬率</small><div>{{ formatXirr(stock.xirr) }}</div></div>
                     </div>
                   </div>

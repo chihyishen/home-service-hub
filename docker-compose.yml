@@ -23,9 +23,15 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: inventory-rabbitmq
+    hostname: rabbitmq
+    environment:
+      - RABBITMQ_NODENAME=rabbit@rabbitmq
     ports:
       - "${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_UI_PORT}:15672"
+    volumes:
+      - ./infra/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - inventory-net
 
@@ -188,4 +194,7 @@ networks:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
+    external: true
+    name: home-service-hub_rabbitmq_data_clean
   grafana_data:
