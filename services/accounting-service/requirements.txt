@@ -1,5 +1,5 @@
 -e ../shared-python-lib
-fastapi
-uvicorn
-requests
-alembic
+fastapi==0.129.0
+uvicorn==0.40.0
+requests==2.32.5
+alembic==1.18.4

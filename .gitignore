@@ -29,4 +29,3 @@ tmp/
 *.py[cod]
 *.egg-info/
 *$py.class
-/docs

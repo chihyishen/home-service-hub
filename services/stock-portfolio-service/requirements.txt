@@ -1,6 +1,6 @@
 -e ../shared-python-lib
-fastapi
-uvicorn
-requests
-alembic
-pyxirr
+fastapi==0.134.0
+uvicorn==0.41.0
+requests==2.32.5
+alembic==1.18.4
+pyxirr==0.10.8
