@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import case, func, or_
 from .. import models, schemas
 
 def safe_date_replace(year, month, day):
@@ -45,6 +45,35 @@ def get_reward_cycle_range(card: models.CreditCard, target_date: date):
     
     return get_billing_cycle_range(card.billing_day, target_date)
 
+
+def get_card_cycle_usage(
+    db: Session,
+    card: models.CreditCard,
+    start_date: date,
+    end_date: date,
+    include_payment_method_alias: bool = True,
+) -> float:
+    card_filter = models.Transaction.card_id == card.id
+    if include_payment_method_alias:
+        card_filter = or_(
+            card_filter,
+            models.Transaction.payment_method == card.name,
+        )
+
+    signed_amount = case(
+        (models.Transaction.transaction_type == "EXPENSE", models.Transaction.transaction_amount),
+        (models.Transaction.transaction_type == "INCOME", -models.Transaction.transaction_amount),
+        else_=0,
+    )
+
+    current_usage = db.query(func.coalesce(func.sum(signed_amount), 0)).filter(
+        models.Transaction.date >= start_date,
+        models.Transaction.date <= end_date,
+        card_filter,
+    ).scalar() or 0.0
+
+    return max(0.0, float(current_usage))
+
 def get_card_status(db: Session, card_id: int):
     card = db.query(models.CreditCard).filter(
         models.CreditCard.id == card_id
@@ -54,15 +83,11 @@ def get_card_status(db: Session, card_id: int):
     
     today = date.today()
     start_date, end_date = get_reward_cycle_range(card, today)
-    
-    current_usage = db.query(func.sum(models.Transaction.transaction_amount)).filter(
-        models.Transaction.card_id == card_id,
-        models.Transaction.date >= start_date,
-        models.Transaction.date <= end_date
-    ).scalar() or 0.0
+
+    current_usage = get_card_cycle_usage(db, card, start_date, end_date)
     
     remaining = None
-    status_msg = f"本期累計已刷 ${current_usage:,.0f}"
+    status_msg = f"本期淨刷卡 ${current_usage:,.0f}"
     
     if card.alert_threshold > 0:
         remaining = max(0, card.alert_threshold - current_usage)

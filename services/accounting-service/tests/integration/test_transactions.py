@@ -1,7 +1,7 @@
 from datetime import date
 
 from app import models, schemas
-from app.services import analytics_service, transaction_service
+from app.services import analytics_service, billing_service, transaction_service
 
 
 def test_transaction_and_refund(db_session):
@@ -28,6 +28,48 @@ def test_transaction_and_refund(db_session):
     today = date.today()
     report = analytics_service.get_monthly_report(db_session, today.year, today.month)
     assert report.summary.total_income >= 200
+
+
+def test_card_usage_summary_and_status_reduce_refunds(db_session):
+    today = date.today()
+    db_session.add_all(
+        [
+            models.PaymentMethod(name="Apple Pay", is_active=True),
+            models.CreditCard(
+                name="測試卡",
+                billing_day=5,
+                reward_cycle_type="CALENDAR_MONTH",
+                alert_threshold=5000,
+                default_payment_method="Apple Pay",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    card = db_session.query(models.CreditCard).filter(models.CreditCard.name == "測試卡").first()
+
+    expense = transaction_service.create_transaction(
+        db_session,
+        schemas.TransactionCreate(
+            date=today,
+            category="測試",
+            item="測試刷卡",
+            paid_amount=1000,
+            transaction_amount=1000,
+            payment_method="Apple Pay",
+            card_id=card.id,
+        ),
+    )
+
+    transaction_service.refund_transaction(db_session, expense.id, 400)
+
+    summary = analytics_service.get_card_usage_summary(db_session)
+    card_summary = next(item for item in summary if item.card_name == card.name)
+    assert card_summary.current_usage == 600
+    assert card_summary.remaining_to_threshold == 4400
+
+    status = billing_service.get_card_status(db_session, card.id)
+    assert status.current_cycle_total == 600
 
 
 def test_get_transactions_supports_agent_filters(db_session):
