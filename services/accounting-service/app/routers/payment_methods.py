@@ -42,7 +42,7 @@ def update_payment_method(pm_id: int, pm: schemas.payment_method.PaymentMethodUp
         raise HTTPException(status_code=400, detail="更新失敗，名稱可能已存在")
     return db_pm
 
-@router.delete("/{pm_id}")
+@router.delete("/{pm_id}", summary="刪除支付方式")
 def delete_payment_method(pm_id: int, db: Session = Depends(get_db)):
     db_pm = db.query(models.payment_method.PaymentMethod).filter(
         models.payment_method.PaymentMethod.id == pm_id

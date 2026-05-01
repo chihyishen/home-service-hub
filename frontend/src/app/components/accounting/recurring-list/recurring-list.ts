@@ -182,12 +182,23 @@ export class RecurringListComponent implements OnInit {
   }
 
   showInstMenu(event: MouseEvent, inst: Installment) {
+      const canDelete = this.canDeleteInstallment(inst);
       this.menuItems = [
           { label: '編輯', icon: 'pi pi-pencil', command: () => this.editInst(inst) },
           { separator: true },
-          { label: '刪除', icon: 'pi pi-trash', styleClass: 'text-danger', command: () => this.deleteInst(inst.id) }
+          {
+              label: canDelete ? '刪除' : '刪除（完成後可用）',
+              icon: 'pi pi-trash',
+              styleClass: 'text-danger',
+              disabled: !canDelete,
+              command: () => this.deleteInst(inst.id)
+          }
       ];
       this.menu.toggle(event);
+  }
+
+  canDeleteInstallment(inst: Installment) {
+      return inst.remainingPeriods === 0;
   }
 
   resetInst() {
@@ -344,6 +355,12 @@ export class RecurringListComponent implements OnInit {
   }
 
   deleteInst(id: number) {
+      const inst = this.installments().find(item => item.id === id);
+      if (inst && !this.canDeleteInstallment(inst)) {
+          this.messageService.add({ severity: 'warn', summary: '尚未完成', detail: '分期計畫需在剩餘期數歸 0 後才能刪除。' });
+          return;
+      }
+
       if (confirm('確定要刪除此分期計畫嗎？')) {
           this.accountingService.deleteInstallment(id).subscribe(() => {
               this.messageService.add({ severity: 'success', summary: '成功', detail: '分期計畫已刪除' });

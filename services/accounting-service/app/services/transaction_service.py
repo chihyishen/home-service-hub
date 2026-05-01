@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, func
 from datetime import date, timedelta
 from .. import models, schemas
 from shared_lib import get_tracer
@@ -9,6 +9,55 @@ from typing import Optional
 
 VALID_TRANSACTION_TYPES = {"EXPENSE", "INCOME"}
 VALID_DATE_PRESETS = {"today", "yesterday", "this_month"}
+
+
+def _base_transaction_query(db: Session):
+    return db.query(models.Transaction).options(
+        joinedload(models.Transaction.card),
+        joinedload(models.Transaction.category_info),
+    )
+
+
+def _get_refunded_amounts(db: Session, transaction_ids: list[int]) -> dict[int, int]:
+    if not transaction_ids:
+        return {}
+
+    rows = (
+        db.query(
+            models.Transaction.related_transaction_id,
+            func.coalesce(func.sum(models.Transaction.transaction_amount), 0),
+        )
+        .filter(
+            models.Transaction.related_transaction_id.in_(transaction_ids),
+            models.Transaction.transaction_type == "INCOME",
+        )
+        .group_by(models.Transaction.related_transaction_id)
+        .all()
+    )
+
+    return {
+        int(related_transaction_id): int(total_amount or 0)
+        for related_transaction_id, total_amount in rows
+        if related_transaction_id is not None
+    }
+
+
+def _populate_transaction_display_fields(
+    transactions: list[models.Transaction],
+    refunded_amounts: dict[int, int] | None = None,
+) -> list[models.Transaction]:
+    refunded_amounts = refunded_amounts or {}
+
+    for transaction in transactions:
+        transaction.card_name = transaction.card.name if transaction.card else None
+        if transaction.transaction_type == "EXPENSE":
+            original_amount = int(transaction.transaction_amount or 0)
+            refunded_amount = refunded_amounts.get(transaction.id, 0)
+            transaction.refundable_amount = max(original_amount - refunded_amount, 0)
+        else:
+            transaction.refundable_amount = 0
+
+    return transactions
 
 
 def _resolve_date_preset(date_preset: str) -> tuple[date, date]:
@@ -41,7 +90,7 @@ def get_transactions(
     keyword: Optional[str] = None,
 ):
     with tracer.start_as_current_span("service.get_transactions") as span:
-        query = db.query(models.Transaction)
+        query = _base_transaction_query(db)
 
         if manual_only:
             span.set_attribute("filter.manual_only", True)
@@ -98,22 +147,17 @@ def get_transactions(
                 )
 
         transactions = query.order_by(models.Transaction.date.desc(), models.Transaction.id.desc()).offset(skip).limit(limit).all()
-        
-        # 顯式填充 card_name 以便 Pydantic 輸出
-        for t in transactions:
-            if t.card:
-                t.card_name = t.card.name
-        
-        return transactions
+        refunded_amounts = _get_refunded_amounts(db, [transaction.id for transaction in transactions])
+        return _populate_transaction_display_fields(transactions, refunded_amounts)
 
 def get_transaction(db: Session, transaction_id: int):
     with tracer.start_as_current_span("service.get_transaction") as span:
         span.set_attribute("transaction.id", transaction_id)
-        transaction = db.query(models.Transaction).filter(
-            models.Transaction.id == transaction_id
-        ).first()
+        transaction = _base_transaction_query(db).filter(models.Transaction.id == transaction_id).first()
         if not transaction:
             raise HTTPException(status_code=404, detail="Transaction not found")
+        refunded_amounts = _get_refunded_amounts(db, [transaction.id])
+        _populate_transaction_display_fields([transaction], refunded_amounts)
         return transaction
 
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
@@ -133,13 +177,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
         elif not transaction.category:
              raise HTTPException(status_code=400, detail="Either category_id or category name must be provided")
 
-        # 2. 校驗付款工具 (必須存在於支付方式字典表中)
-        if transaction.payment_method:
-            pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == transaction.payment_method).first()
-            if not pm_exists:
-                raise HTTPException(status_code=400, detail=f"Invalid payment_method: {transaction.payment_method}. Please add it to the system settings first.")
-
-        # 3. 校驗卡片
+        # 2. 校驗卡片並同步預設付款工具
         if transaction.card_id:
             card = db.query(models.CreditCard).filter(models.CreditCard.id == transaction.card_id).first()
             if not card:
@@ -148,23 +186,40 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
             if not transaction.payment_method or transaction.payment_method == "信用卡":
                 transaction.payment_method = card.default_payment_method or "Apple Pay"
 
+        # 3. 校驗付款工具 (必須存在於支付方式字典表中)
+        if transaction.payment_method:
+            pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == transaction.payment_method).first()
+            if not pm_exists:
+                raise HTTPException(status_code=400, detail=f"Invalid payment_method: {transaction.payment_method}. Please add it to the system settings first.")
+
         # 1. 建立新紀錄
         db_transaction = models.Transaction(**transaction.model_dump())
         db.add(db_transaction)
         db.commit()
         db.refresh(db_transaction)
-        
-        if db_transaction.card:
-            db_transaction.card_name = db_transaction.card.name
-            
-        return db_transaction
+        return get_transaction(db, db_transaction.id)
 
-def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
+def refund_transaction(db: Session, transaction_id: int, refund_amount: int):
     """
     針對一筆現有的支出建立沖銷(退款)紀錄
     """
     with tracer.start_as_current_span("service.refund_transaction") as span:
         original = get_transaction(db, transaction_id)
+
+        if refund_amount <= 0:
+            raise HTTPException(status_code=400, detail="Refund amount must be greater than 0")
+
+        if original.transaction_type != "EXPENSE":
+            raise HTTPException(status_code=400, detail="Only EXPENSE transactions can be refunded")
+
+        refunded_amounts = _get_refunded_amounts(db, [original.id])
+        refundable_amount = max(int(original.transaction_amount or 0) - refunded_amounts.get(original.id, 0), 0)
+
+        if refundable_amount <= 0:
+            raise HTTPException(status_code=400, detail="Transaction has already been fully refunded")
+
+        if refund_amount > refundable_amount:
+            raise HTTPException(status_code=400, detail="Refund amount exceeds refundable amount")
         
         # 建立一筆 INCOME 交易
         refund_tx = models.Transaction(
@@ -184,11 +239,7 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: float):
         db.add(refund_tx)
         db.commit()
         db.refresh(refund_tx)
-        
-        if refund_tx.card:
-            refund_tx.card_name = refund_tx.card.name
-            
-        return refund_tx
+        return get_transaction(db, refund_tx.id)
 
 def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionUpdate):
     with tracer.start_as_current_span("service.update_transaction") as span:
@@ -213,8 +264,8 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
                 if not card:
                     raise HTTPException(status_code=400, detail=f"Invalid card_id: {update_data['card_id']}")
                 # 如果沒有明確更新支付方式，則同步
-                if "payment_method" not in update_data:
-                    update_data["payment_method"] = card.name
+                if "payment_method" not in update_data or not update_data["payment_method"] or update_data["payment_method"] == "信用卡":
+                    update_data["payment_method"] = card.default_payment_method or "Apple Pay"
             else:
                 # 如果取消綁定卡片，支付方式若為卡片名稱，則改為現金或保持原樣 (這裡選擇保持原樣由使用者決定)
                 pass
@@ -223,11 +274,7 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
             setattr(db_transaction, key, value)
         db.commit()
         db.refresh(db_transaction)
-        
-        if db_transaction.card:
-            db_transaction.card_name = db_transaction.card.name
-            
-        return db_transaction
+        return get_transaction(db, db_transaction.id)
 
 def delete_transaction(db: Session, transaction_id: int):
     with tracer.start_as_current_span("service.delete_transaction") as span:

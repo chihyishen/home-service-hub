@@ -24,6 +24,15 @@ This is a FastAPI-based service for AI agent bookkeeping.
    uvicorn app.main:app --reload
    ```
 
+## Migrations
+
+- Empty databases are bootstrapped with `alembic upgrade head`.
+- Existing databases are handled conservatively by the baseline revision: it creates any missing accounting tables and only removes legacy columns when they are actually present, so running `alembic upgrade head` does not drop or recreate live tables.
+- To inspect the current revision before upgrading, run:
+   ```bash
+   alembic current
+   ```
+
 ## API Documentation
 
 Once the server is running, you can access:

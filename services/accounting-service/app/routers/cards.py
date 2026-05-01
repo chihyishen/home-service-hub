@@ -28,7 +28,7 @@ def get_card(card_id: int, db: Session = Depends(get_db)):
 def update_card(card_id: int, card_update: schemas.CreditCardUpdate, db: Session = Depends(get_db)):
     return card_service.update_card(db, card_id, card_update)
 
-@router.delete("/{card_id}", summary="軟刪除信用卡")
+@router.delete("/{card_id}", summary="刪除信用卡")
 def delete_card(card_id: int, db: Session = Depends(get_db)):
     return card_service.delete_card(db, card_id)
 

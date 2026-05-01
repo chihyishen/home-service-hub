@@ -272,7 +272,7 @@ export class TransactionListComponent implements OnInit {
           { 
               label: '申請退款/沖銷', 
               icon: 'pi pi-undo', 
-              visible: txn.transactionType === 'EXPENSE',
+              visible: txn.transactionType === 'EXPENSE' && this.getMaxRefundableAmount(txn) > 0,
               command: () => this.onRefund(txn)
           },
           { separator: true },
@@ -334,17 +334,44 @@ export class TransactionListComponent implements OnInit {
   }
 
   onRefund(txn: Transaction) {
-      const amount = prompt(`請輸入退款/沖銷金額 (原始金額: ${txn.transactionAmount})`, txn.transactionAmount.toString());
-      if (amount && !isNaN(Number(amount))) {
-          this.accountingService.refundTransaction(txn.id, Number(amount)).subscribe({
-              next: () => {
-                  this.messageService.add({ severity: 'success', summary: '成功', detail: '已建立沖銷交易' });
-                  this.loadData();
-              },
-              error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '沖銷失敗' })
-          });
+      const maxRefundableAmount = this.getMaxRefundableAmount(txn);
+      if (maxRefundableAmount <= 0) {
+        this.messageService.add({ severity: 'warn', summary: '無可退款金額', detail: '這筆交易目前沒有可建立的退款/沖銷額度。' });
+        return;
       }
+
+      const amount = prompt(
+        `請輸入退款/沖銷金額 (可退款上限: ${maxRefundableAmount.toLocaleString('zh-TW')})`,
+        maxRefundableAmount.toString()
+      );
+
+      if (amount === null) {
+        return;
+      }
+
+      const parsedAmount = Number(amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        this.messageService.add({ severity: 'error', summary: '輸入無效', detail: '退款金額必須是大於 0 的數字。' });
+        return;
+      }
+
+      if (parsedAmount > maxRefundableAmount) {
+        this.messageService.add({ severity: 'error', summary: '超出上限', detail: '退款金額不可超過可退款上限。' });
+        return;
+      }
+
+      this.accountingService.refundTransaction(txn.id, parsedAmount).subscribe({
+        next: () => {
+          this.messageService.add({ severity: 'success', summary: '成功', detail: '已建立沖銷交易' });
+          this.loadData();
+        },
+        error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '沖銷失敗' })
+      });
   }
+
+    private getMaxRefundableAmount(txn: Transaction) {
+      return Math.max(0, txn.refundableAmount ?? txn.transactionAmount);
+    }
 
   getCategoryColor(name: string) {
       const cat = this.categories().find(c => c.name === name);

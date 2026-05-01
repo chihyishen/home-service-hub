@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import extract
 from datetime import date
 from .. import models, schemas
@@ -75,7 +75,7 @@ def generate_recurring_items(db: Session):
 # --- 訂閱管理 (Subscription CRUD) ---
 
 def get_subscriptions(db: Session):
-    subs = db.query(models.Subscription).all()
+    subs = db.query(models.Subscription).options(joinedload(models.Subscription.card)).all()
     for s in subs:
         if s.card:
             s.card_name = s.card.name
@@ -171,11 +171,18 @@ def delete_subscription(db: Session, sub_id: int):
 # --- 分期管理 (Installment CRUD) ---
 
 def get_installments(db: Session):
-    insts = db.query(models.Installment).all()
+    insts = db.query(models.Installment).options(joinedload(models.Installment.card)).all()
     for i in insts:
         if i.card:
             i.card_name = i.card.name
     return insts
+
+
+def _get_installment_or_404(db: Session, inst_id: int):
+    db_inst = db.query(models.Installment).filter(models.Installment.id == inst_id).first()
+    if not db_inst:
+        raise HTTPException(status_code=404, detail="Installment not found")
+    return db_inst
 
 def create_installment(db: Session, inst: schemas.InstallmentCreate):
     # 校驗付款工具
@@ -203,9 +210,7 @@ def create_installment(db: Session, inst: schemas.InstallmentCreate):
     return db_inst
 
 def update_installment(db: Session, inst_id: int, inst_update: schemas.InstallmentUpdate):
-    db_inst = db.query(models.Installment).filter(models.Installment.id == inst_id).first()
-    if not db_inst:
-        raise HTTPException(status_code=404, detail="Installment not found")
+    db_inst = _get_installment_or_404(db, inst_id)
     
     update_data = inst_update.model_dump(exclude_unset=True)
     
@@ -234,9 +239,15 @@ def update_installment(db: Session, inst_id: int, inst_update: schemas.Installme
     return db_inst
 
 def delete_installment(db: Session, inst_id: int):
-    db_inst = db.query(models.Installment).filter(models.Installment.id == inst_id).first()
-    if not db_inst:
-        raise HTTPException(status_code=404, detail="Installment not found")
+    db_inst = _get_installment_or_404(db, inst_id)
+
+    if int(db_inst.remaining_periods or 0) > 0:
+        raise HTTPException(status_code=400, detail="Only completed installments can be deleted")
+
+    db.query(models.Transaction).filter(models.Transaction.installment_id == inst_id).update(
+        {models.Transaction.installment_id: None},
+        synchronize_session=False,
+    )
     db.delete(db_inst)
     db.commit()
     return {"message": "Installment deleted"}

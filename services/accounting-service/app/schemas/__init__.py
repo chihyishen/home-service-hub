@@ -22,6 +22,20 @@ from .recurring import (
     Subscription, SubscriptionCreate, SubscriptionUpdate,
     Installment, InstallmentCreate, InstallmentUpdate
 )
-from .analytics import MonthlyReport
-from .category import Category, CategoryCreate, CategoryUpdate
+from .analytics import (
+    MonthlyReport,
+    MonthlyTrendPoint,
+    CategoryTrend,
+    AnnualSummary,
+    AnnualReport,
+    MonthlyCompareReport,
+)
+from .category import (
+    Category,
+    CategoryCreate,
+    CategoryUpdate,
+    CategoryMergeRequest,
+    CategoryMergePreview,
+    CategoryMergeResult,
+)
 from .payment_method import PaymentMethod, PaymentMethodCreate, PaymentMethodUpdate

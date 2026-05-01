@@ -82,6 +82,19 @@ def create_transaction(transaction: schemas.TransactionCreate, db: Session = Dep
         span.set_attribute("http.response.body", res_json)
         return result
 
+@router.get("/report/annual/{year}",
+            response_model=schemas.AnnualReport,
+            response_model_by_alias=True,
+            summary="獲取年度趨勢報表")
+def get_annual_report(year: int, db: Session = Depends(get_db)):
+    from ..services import analytics_service
+    with tracer.start_as_current_span("router.get_annual_report") as span:
+        result = analytics_service.get_annual_report(db, year)
+        span.set_attribute("report.annual.year", result.year)
+        span.set_attribute("report.annual.categories", len(result.category_trend))
+        return result
+
+
 @router.get("/report/{year}/{month}", 
             response_model=schemas.MonthlyReport, 
             response_model_by_alias=True, 
@@ -131,11 +144,11 @@ def update_transaction(
         return result
 
 
-@router.delete("/{transaction_id}", summary="軟刪除交易紀錄")
+@router.delete("/{transaction_id}", summary="刪除交易紀錄")
 def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     return transaction_service.delete_transaction(db, transaction_id)
 
 
 @router.post("/{transaction_id}/refund", response_model=schemas.Transaction, summary="建立交易沖銷(退款)")
-def refund_transaction(transaction_id: int, refund_amount: float, db: Session = Depends(get_db)):
+def refund_transaction(transaction_id: int, refund_amount: int, db: Session = Depends(get_db)):
     return transaction_service.refund_transaction(db, transaction_id, refund_amount)

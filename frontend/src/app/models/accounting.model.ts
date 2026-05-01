@@ -36,6 +36,7 @@ export interface Transaction {
   item: string;
   paidAmount: number;
   transactionAmount: number;
+  refundableAmount?: number;
   transactionType: TransactionType;
   paymentMethod: string;
   cardId?: number;
@@ -115,6 +116,36 @@ export interface MonthlyCompareReport {
   baselinePeriod: string;
   categories: CategoryDeltaSummary[];
   summary: MonthlyCompareSummary;
+}
+
+export interface AnnualTrendPoint {
+  month: string;
+  totalIncome: number;
+  totalExpense: number;
+  surplus: number;
+}
+
+export interface AnnualCategoryTrend {
+  category: string;
+  monthlyAmounts: number[];
+  total: number;
+  average: number;
+}
+
+export interface AnnualReportSummary {
+  totalIncome: number;
+  totalExpense: number;
+  surplus: number;
+  savingsRate: number;
+  highestExpenseMonth: string | null;
+  lowestExpenseMonth: string | null;
+}
+
+export interface AnnualReport {
+  year: number;
+  monthlyTrend: AnnualTrendPoint[];
+  categoryTrend: AnnualCategoryTrend[];
+  summary: AnnualReportSummary;
 }
 
 export interface Subscription {

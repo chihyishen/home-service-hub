@@ -30,7 +30,7 @@ def update_subscription(sub_id: int, sub_update: schemas.SubscriptionUpdate, db:
 def toggle_subscription(sub_id: int, db: Session = Depends(get_db)):
     return recurring_service.toggle_subscription_active(db, sub_id)
 
-@router.delete("/subscriptions/{sub_id}", summary="軟刪除訂閱項目")
+@router.delete("/subscriptions/{sub_id}", summary="刪除訂閱項目")
 def delete_subscription(sub_id: int, db: Session = Depends(get_db)):
     return recurring_service.delete_subscription(db, sub_id)
 
@@ -48,6 +48,6 @@ def create_installment(inst: schemas.InstallmentCreate, db: Session = Depends(ge
 def update_installment(inst_id: int, inst_update: schemas.InstallmentUpdate, db: Session = Depends(get_db)):
     return recurring_service.update_installment(db, inst_id, inst_update)
 
-@router.delete("/installments/{inst_id}", summary="軟刪除分期項目")
+@router.delete("/installments/{inst_id}", summary="刪除分期項目")
 def delete_installment(inst_id: int, db: Session = Depends(get_db)):
     return recurring_service.delete_installment(db, inst_id)

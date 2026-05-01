@@ -5,6 +5,7 @@ import {
   Transaction, TransactionCreate, Category, CreditCard, CreditCardCreate,
   Subscription, SubscriptionCreate, Installment, InstallmentCreate,
   MonthlyReport, PaymentMethod, MonthlyCompareReport,
+  AnnualReport,
   CardUsageSummary
 } from '../models/accounting.model';
 
@@ -55,6 +56,10 @@ export class AccountingService {
 
   getMonthlyCompareReport(year: number, month: number): Observable<MonthlyCompareReport> {
     return this.http.get<MonthlyCompareReport>(`${this.apiUrl}/transactions/report/compare/${year}/${month}`);
+  }
+
+  getAnnualReport(year: number): Observable<AnnualReport> {
+    return this.http.get<AnnualReport>(`${this.apiUrl}/transactions/report/annual/${year}`);
   }
 
   // Cards

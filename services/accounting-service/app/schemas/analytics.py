@@ -37,6 +37,36 @@ class MonthlyReport(BaseSchema):
     top_expenses: List[Transaction]
 
 
+class MonthlyTrendPoint(BaseSchema):
+    month: str
+    total_income: int
+    total_expense: int
+    surplus: int
+
+
+class CategoryTrend(BaseSchema):
+    category: str
+    monthly_amounts: List[int]
+    total: int
+    average: int
+
+
+class AnnualSummary(BaseSchema):
+    total_income: int
+    total_expense: int
+    surplus: int
+    savings_rate: float
+    highest_expense_month: str | None = None
+    lowest_expense_month: str | None = None
+
+
+class AnnualReport(BaseSchema):
+    year: int
+    monthly_trend: List[MonthlyTrendPoint]
+    category_trend: List[CategoryTrend]
+    summary: AnnualSummary
+
+
 class CategoryDeltaSummary(BaseSchema):
     category: str
     current_amount: int

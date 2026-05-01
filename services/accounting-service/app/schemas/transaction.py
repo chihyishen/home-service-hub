@@ -52,3 +52,4 @@ class Transaction(TransactionBase, AuditSchema):
     subscription_id: Optional[int] = None
     installment_id: Optional[int] = None
     card_name: Optional[str] = None
+    refundable_amount: int = 0
