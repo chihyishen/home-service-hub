@@ -73,6 +73,33 @@ def test_create_subscription_requires_category_id(client: TestClient, db_session
     assert response.status_code == 422
 
 
+def test_update_subscription_rejects_null_category_id(client: TestClient, db_session):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+
+    subscription = recurring_service.create_subscription(
+        db_session,
+        _subscription_create(
+            db_session,
+            category_name="娛樂",
+            name="串流",
+            amount=290,
+            sub_type="SUBSCRIPTION",
+            payment_method="Cash",
+            day_of_month=5,
+            active=True,
+        ),
+    )
+
+    response = client.put(
+        f"/recurring/subscriptions/{subscription.id}",
+        json={"categoryId": None},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "category_id cannot be null"
+
+
 def test_completed_installment_can_be_deleted_and_detaches_history(db_session):
     db_session.add(models.PaymentMethod(name="信用卡", is_active=True))
     db_session.commit()

@@ -83,6 +83,32 @@ def test_create_transaction_requires_category_id(client: TestClient, db_session)
     assert response.status_code == 422
 
 
+def test_update_transaction_rejects_null_category_id(client: TestClient, db_session):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+
+    created = transaction_service.create_transaction(
+        db_session,
+        _transaction_create(
+            db_session,
+            category_name="餐飲",
+            date=date.today(),
+            item="午餐",
+            paid_amount=180,
+            transaction_amount=180,
+            payment_method="Cash",
+        ),
+    )
+
+    response = client.put(
+        f"/transactions/{created.id}",
+        json={"categoryId": None},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "category_id cannot be null"
+
+
 def test_refund_guards_and_explicit_payment_method_override(db_session):
     db_session.add_all(
         [
