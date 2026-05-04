@@ -28,10 +28,17 @@ This is a FastAPI-based service for AI agent bookkeeping.
 
 - Empty databases are bootstrapped with `alembic upgrade head`.
 - Existing databases are handled conservatively by the baseline revision: it creates any missing accounting tables and only removes legacy columns when they are actually present, so running `alembic upgrade head` does not drop or recreate live tables.
+- Revision `8a4c4f9b2d1b` backfills `transactions.category_id` and `subscriptions.category_id`, drops the legacy string `category` columns, and keeps category display data derived from the `categories` table.
 - To inspect the current revision before upgrading, run:
    ```bash
    alembic current
    ```
+
+## Category Contract
+
+- Transaction and subscription create payloads must provide `categoryId`.
+- API responses expose `categoryId` and `categoryName`; they no longer expose a top-level `category` string field.
+- Category rename and merge flows update only foreign keys and read display names from the joined category relation.
 
 ## API Documentation
 

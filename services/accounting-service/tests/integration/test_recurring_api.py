@@ -3,6 +3,23 @@ from datetime import date
 from app import models, schemas
 from app.services import recurring_service
 import pytest
+from fastapi.testclient import TestClient
+
+
+def _get_or_create_category(db_session, name: str, color: str = "#64748b") -> models.Category:
+    category = db_session.query(models.Category).filter(models.Category.name == name).first()
+    if category:
+        return category
+
+    category = models.Category(name=name, color=color)
+    db_session.add(category)
+    db_session.flush()
+    return category
+
+
+def _subscription_create(db_session, *, category_name: str, **kwargs) -> schemas.SubscriptionCreate:
+    category = _get_or_create_category(db_session, category_name)
+    return schemas.SubscriptionCreate(category_id=category.id, **kwargs)
 
 
 def test_subscription_and_auto_gen(db_session):
@@ -14,10 +31,11 @@ def test_subscription_and_auto_gen(db_session):
 
     subscription = recurring_service.create_subscription(
         db_session,
-        schemas.SubscriptionCreate(
+        _subscription_create(
+            db_session,
+            category_name="T",
             name="AutoTestSub",
             amount=100,
-            category="T",
             day_of_month=1,
             card_id=card.id,
             payment_method="Apple Pay",
@@ -34,6 +52,25 @@ def test_subscription_and_auto_gen(db_session):
     recurring_service.generate_recurring_items(db_session)
     generated = db_session.query(models.Transaction).filter(models.Transaction.subscription_id == subscription.id).all()
     assert len(generated) == 1
+
+
+def test_create_subscription_requires_category_id(client: TestClient, db_session):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+
+    response = client.post(
+        "/recurring/subscriptions",
+        json={
+            "name": "串流",
+            "amount": 290,
+            "subType": "SUBSCRIPTION",
+            "paymentMethod": "Cash",
+            "dayOfMonth": 5,
+            "active": True,
+        },
+    )
+
+    assert response.status_code == 422
 
 
 def test_completed_installment_can_be_deleted_and_detaches_history(db_session):
@@ -54,7 +91,7 @@ def test_completed_installment_can_be_deleted_and_detaches_history(db_session):
 
     transaction = models.Transaction(
         date=date.today(),
-        category="分期付款",
+        category_id=_get_or_create_category(db_session, "分期付款").id,
         item="已完成分期 (第 12/12 期)",
         paid_amount=1000,
         transaction_amount=1000,
@@ -94,3 +131,126 @@ def test_active_installment_cannot_be_deleted(db_session):
 
     assert getattr(exc_info.value, "status_code", None) == 400
     assert getattr(exc_info.value, "detail", None) == "Only completed installments can be deleted"
+
+
+def test_recurring_services_apply_card_default_payment_method_consistently(db_session):
+    category = models.Category(name="娛樂", color="#123456")
+    card = models.CreditCard(name="訂閱卡", billing_day=5, default_payment_method="Apple Pay")
+    db_session.add_all(
+        [
+            category,
+            card,
+            models.PaymentMethod(name="Apple Pay", is_active=True),
+        ]
+    )
+    db_session.commit()
+    db_session.refresh(category)
+    db_session.refresh(card)
+
+    subscription = recurring_service.create_subscription(
+        db_session,
+        _subscription_create(
+            db_session,
+            category_name="娛樂",
+            name="串流",
+            amount=100,
+            day_of_month=15,
+            card_id=card.id,
+        ),
+    )
+    assert subscription.payment_method == "Apple Pay"
+
+    updated_subscription = recurring_service.update_subscription(
+        db_session,
+        subscription.id,
+        schemas.SubscriptionUpdate(card_id=card.id),
+    )
+    assert updated_subscription.payment_method == "Apple Pay"
+
+    installment = recurring_service.create_installment(
+        db_session,
+        schemas.InstallmentCreate(
+            name="筆電",
+            total_amount=36000,
+            monthly_amount=3000,
+            total_periods=12,
+            remaining_periods=12,
+            start_date=date(2026, 1, 15),
+            card_id=card.id,
+        ),
+    )
+    assert installment.payment_method == "Apple Pay"
+
+    updated_installment = recurring_service.update_installment(
+        db_session,
+        installment.id,
+        schemas.InstallmentUpdate(card_id=card.id),
+    )
+    assert updated_installment.payment_method == "Apple Pay"
+
+
+@pytest.mark.parametrize(
+    ("today_value", "expected_day"),
+    [
+        (date(2026, 2, 10), 28),
+        (date(2026, 4, 10), 30),
+        (date(2026, 3, 10), 31),
+    ],
+)
+def test_generate_recurring_items_uses_real_month_end_for_subscription(db_session, monkeypatch, today_value, expected_day):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(today_value.year, today_value.month, today_value.day)
+
+    monkeypatch.setattr(recurring_service, "date", FixedDate)
+
+    subscription = recurring_service.create_subscription(
+        db_session,
+        _subscription_create(
+            db_session,
+            category_name="娛樂",
+            name=f"月底訂閱-{today_value.month}",
+            amount=250,
+            day_of_month=31,
+            payment_method="Cash",
+        ),
+    )
+
+    recurring_service.generate_recurring_items(db_session)
+    generated = db_session.query(models.Transaction).filter(models.Transaction.subscription_id == subscription.id).one()
+
+    assert generated.date == date(today_value.year, today_value.month, expected_day)
+
+
+def test_generate_recurring_items_uses_real_month_end_for_installment(db_session, monkeypatch):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 3, 10)
+
+    monkeypatch.setattr(recurring_service, "date", FixedDate)
+
+    installment = recurring_service.create_installment(
+        db_session,
+        schemas.InstallmentCreate(
+            name="月底分期",
+            total_amount=9000,
+            monthly_amount=3000,
+            total_periods=3,
+            remaining_periods=3,
+            start_date=date(2026, 1, 31),
+            payment_method="Cash",
+        ),
+    )
+
+    recurring_service.generate_recurring_items(db_session)
+    generated = db_session.query(models.Transaction).filter(models.Transaction.installment_id == installment.id).one()
+
+    assert generated.date == date(2026, 3, 31)

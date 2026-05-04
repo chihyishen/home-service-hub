@@ -32,7 +32,8 @@ export interface CreditCardCreate {
 export interface Transaction {
   id: number;
   date: string;
-  category: string;
+  categoryId: number;
+  categoryName: string;
   item: string;
   paidAmount: number;
   transactionAmount: number;
@@ -48,7 +49,7 @@ export interface Transaction {
 
 export interface TransactionCreate {
   date: string;
-  category: string;
+  categoryId: number;
   item: string;
   paidAmount: number;
   transactionAmount: number;
@@ -152,8 +153,8 @@ export interface Subscription {
   id: number;
   name: string;
   amount: number;
-  category: string;
-  categoryId?: number;
+  categoryId: number;
+  categoryName: string;
   subType: 'FIXED_EXPENSE' | 'SUBSCRIPTION';
   paymentMethod?: string;
   dayOfMonth: number;
@@ -165,8 +166,7 @@ export interface Subscription {
 export interface SubscriptionCreate {
   name: string;
   amount: number;
-  category: string;
-  categoryId?: number;
+  categoryId: number;
   subType: 'FIXED_EXPENSE' | 'SUBSCRIPTION';
   paymentMethod?: string;
   dayOfMonth: number;

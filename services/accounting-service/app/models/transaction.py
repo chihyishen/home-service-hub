@@ -8,8 +8,7 @@ class Transaction(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     date = Column(Date, server_default=func.current_date())
-    category = Column(String, index=True) # 舊的字串分類
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True) # 結構化分類
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     item = Column(String)
     paid_amount = Column(Integer)
     transaction_amount = Column(Integer)
@@ -30,3 +29,7 @@ class Transaction(Base, TimestampMixin):
     category_info = relationship("Category", back_populates="transactions")
     # 自我關聯
     related_transaction = relationship("Transaction", remote_side=[id])
+
+    @property
+    def category_name(self) -> str:
+        return self.category_info.name

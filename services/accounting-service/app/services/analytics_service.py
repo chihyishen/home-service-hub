@@ -1,44 +1,21 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import joinedload
-from sqlalchemy import extract, func
+from sqlalchemy import extract
 from datetime import date
 from .. import models, schemas
 from . import billing_service
+from .refund_utils import get_refunded_amounts
 from typing import List
 
 
 def _resolve_category_name(transaction: models.Transaction) -> str:
     if transaction.category_info and transaction.category_info.name:
         return transaction.category_info.name
-    return transaction.category or "未分類"
-
-
-def _get_refunded_amounts(db: Session, transaction_ids: list[int]) -> dict[int, int]:
-    if not transaction_ids:
-        return {}
-
-    refunded_rows = (
-        db.query(
-            models.Transaction.related_transaction_id,
-            func.coalesce(func.sum(models.Transaction.transaction_amount), 0),
-        )
-        .filter(
-            models.Transaction.related_transaction_id.in_(transaction_ids),
-            models.Transaction.transaction_type == "INCOME",
-        )
-        .group_by(models.Transaction.related_transaction_id)
-        .all()
-    )
-
-    return {
-        int(related_transaction_id): int(amount or 0)
-        for related_transaction_id, amount in refunded_rows
-        if related_transaction_id is not None
-    }
+    return "未分類"
 
 
 def _populate_top_expense_fields(db: Session, transactions: list[models.Transaction]) -> None:
-    refunded_amounts = _get_refunded_amounts(db, [transaction.id for transaction in transactions])
+    refunded_amounts = get_refunded_amounts(db, [transaction.id for transaction in transactions])
 
     for transaction in transactions:
         transaction.card_name = transaction.card.name if transaction.card else None
@@ -46,6 +23,20 @@ def _populate_top_expense_fields(db: Session, transactions: list[models.Transact
             transaction.refundable_amount = max(int(transaction.transaction_amount or 0) - refunded_amounts.get(transaction.id, 0), 0)
         else:
             transaction.refundable_amount = 0
+
+
+def _get_net_expense_amount(transaction: models.Transaction, refunded_amounts: dict[int, int]) -> int:
+    original_amount = int(transaction.paid_amount or 0)
+    return max(original_amount - refunded_amounts.get(transaction.id, 0), 0)
+
+
+def _is_refund_income(transaction: models.Transaction) -> bool:
+    return transaction.transaction_type == "INCOME" and transaction.related_transaction_id is not None
+
+
+def _ensure_category_month_bucket(category_monthly_map: dict[str, list[int]], category_name: str) -> None:
+    if category_name not in category_monthly_map:
+        category_monthly_map[category_name] = [0] * 12
 
 
 def _get_visible_annual_month_indices(year: int) -> list[int]:
@@ -108,20 +99,25 @@ def get_annual_report(db: Session, year: int) -> schemas.analytics.AnnualReport:
     monthly_expense = [0] * 12
     category_monthly_map: dict[str, list[int]] = {}
     visible_month_count = len(visible_month_indices)
+    expense_transactions = [t for t in transactions if t.transaction_type == "EXPENSE"]
+    refunded_amounts = get_refunded_amounts(db, [transaction.id for transaction in expense_transactions])
 
     for transaction in transactions:
         month_index = transaction.date.month - 1
         amount = int(transaction.paid_amount or 0)
 
         if transaction.transaction_type == "INCOME":
+            if _is_refund_income(transaction):
+                continue
             monthly_income[month_index] += amount
             continue
 
-        monthly_expense[month_index] += amount
         category_name = _resolve_category_name(transaction)
-        if category_name not in category_monthly_map:
-            category_monthly_map[category_name] = [0] * 12
-        category_monthly_map[category_name][month_index] += amount
+        _ensure_category_month_bucket(category_monthly_map, category_name)
+
+        net_amount = _get_net_expense_amount(transaction, refunded_amounts)
+        monthly_expense[month_index] += net_amount
+        category_monthly_map[category_name][month_index] += net_amount
 
     monthly_trend = [
         schemas.analytics.MonthlyTrendPoint(
@@ -190,20 +186,28 @@ def get_monthly_report(db: Session, year: int, month: int) -> schemas.MonthlyRep
     total_expense = 0
     category_map: dict[str, int] = {}
     payment_map: dict[str, int] = {}
+    expense_transactions = [t for t in transactions if t.transaction_type == "EXPENSE"]
+    refunded_amounts = get_refunded_amounts(db, [transaction.id for transaction in expense_transactions])
 
     for t in transactions:
         amount = int(t.paid_amount or 0)
         if t.transaction_type == "INCOME":
-            total_income += amount
-        else:
-            total_expense += amount
-            # 統計分類
-            category_name = _resolve_category_name(t)
-            category_map[category_name] = category_map.get(category_name, 0) + amount
-            
-            # 統計支付來源 (以卡片名稱為準，若無卡片則使用支付方式名稱如「現金」)
-            p_source = t.card.name if t.card else (t.payment_method or "未知")
-            payment_map[p_source] = payment_map.get(p_source, 0) + amount
+            if not _is_refund_income(t):
+                total_income += amount
+            continue
+
+        net_amount = _get_net_expense_amount(t, refunded_amounts)
+        total_expense += net_amount
+        if net_amount <= 0:
+            continue
+
+        # 統計分類
+        category_name = _resolve_category_name(t)
+        category_map[category_name] = category_map.get(category_name, 0) + net_amount
+
+        # 統計支付來源 (以卡片名稱為準，若無卡片則使用支付方式名稱如「現金」)
+        p_source = t.card.name if t.card else (t.payment_method or "未知")
+        payment_map[p_source] = payment_map.get(p_source, 0) + net_amount
 
     surplus = total_income - total_expense
     savings_rate = (surplus / total_income * 100) if total_income > 0 else 0.0
@@ -279,14 +283,24 @@ def get_monthly_compare_report(db: Session, year: int, month: int) -> schemas.an
 
     current_map: dict[str, int] = {}
     previous_map: dict[str, int] = {}
+    refunded_amounts = get_refunded_amounts(
+        db,
+        [transaction.id for transaction in current_month_txns + previous_month_txns],
+    )
 
     for t in current_month_txns:
+        net_amount = _get_net_expense_amount(t, refunded_amounts)
+        if net_amount <= 0:
+            continue
         category_name = _resolve_category_name(t)
-        current_map[category_name] = current_map.get(category_name, 0) + int(t.transaction_amount or 0)
+        current_map[category_name] = current_map.get(category_name, 0) + net_amount
 
     for t in previous_month_txns:
+        net_amount = _get_net_expense_amount(t, refunded_amounts)
+        if net_amount <= 0:
+            continue
         category_name = _resolve_category_name(t)
-        previous_map[category_name] = previous_map.get(category_name, 0) + int(t.transaction_amount or 0)
+        previous_map[category_name] = previous_map.get(category_name, 0) + net_amount
 
     all_categories = sorted(set(current_map.keys()) | set(previous_map.keys()))
     category_deltas: list[schemas.analytics.CategoryDeltaSummary] = []

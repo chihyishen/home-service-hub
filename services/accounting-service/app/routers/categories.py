@@ -14,18 +14,6 @@ def _get_category_or_404(db: Session, category_id: int, *, detail: str) -> model
         raise HTTPException(status_code=404, detail=detail)
     return db_cat
 
-
-def _sync_category_name_references(db: Session, *, category_id: int, category_name: str) -> None:
-    db.query(models.Transaction).filter(models.Transaction.category_id == category_id).update(
-        {models.Transaction.category: category_name},
-        synchronize_session=False,
-    )
-    db.query(models.Subscription).filter(models.Subscription.category_id == category_id).update(
-        {models.Subscription.category: category_name},
-        synchronize_session=False,
-    )
-
-
 def _prepare_category_merge(
     db: Session,
     merge_request: CategoryMergeRequest,
@@ -103,17 +91,11 @@ def merge_categories(merge_request: CategoryMergeRequest, db: Session = Depends(
     target_snapshot = schemas.Category.model_validate(target_category)
 
     db.query(models.Transaction).filter(models.Transaction.category_id == source_category.id).update(
-        {
-            models.Transaction.category_id: target_category.id,
-            models.Transaction.category: target_category.name,
-        },
+        {models.Transaction.category_id: target_category.id},
         synchronize_session=False,
     )
     db.query(models.Subscription).filter(models.Subscription.category_id == source_category.id).update(
-        {
-            models.Subscription.category_id: target_category.id,
-            models.Subscription.category: target_category.name,
-        },
+        {models.Subscription.category_id: target_category.id},
         synchronize_session=False,
     )
     db.delete(source_category)
@@ -132,12 +114,8 @@ def update_category(id: int, category: schemas.CategoryUpdate, db: Session = Dep
     db_cat = _get_category_or_404(db, id, detail="Category not found")
 
     update_data = category.model_dump(exclude_unset=True)
-    name_changed = "name" in update_data and update_data["name"] != db_cat.name
     for key, value in update_data.items():
         setattr(db_cat, key, value)
-
-    if name_changed:
-        _sync_category_name_references(db, category_id=db_cat.id, category_name=db_cat.name)
 
     db.commit()
     db.refresh(db_cat)

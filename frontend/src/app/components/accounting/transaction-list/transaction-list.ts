@@ -113,7 +113,7 @@ export class TransactionListComponent implements OnInit {
     const type = this.selectedType();
 
     if (cat) {
-      result = result.filter(txn => txn.category === cat);
+      result = result.filter(txn => txn.categoryName === cat);
     }
     
     if (pmValue) {
@@ -242,7 +242,6 @@ export class TransactionListComponent implements OnInit {
     return {
       item: '',
       date: '',
-      category: '',
       categoryId: null,
       paidAmount: 0,
       transactionAmount: 0,
@@ -288,7 +287,18 @@ export class TransactionListComponent implements OnInit {
 
   editTransaction(txn: Transaction) {
       this.isEdit = true;
-      this.newTxn = { ...txn };
+      this.newTxn = {
+        id: txn.id,
+        item: txn.item,
+        date: txn.date,
+        categoryId: txn.categoryId,
+        paidAmount: txn.paidAmount,
+        transactionAmount: txn.transactionAmount,
+        paymentMethod: txn.paymentMethod,
+        cardId: txn.cardId ?? null,
+        transactionType: txn.transactionType,
+        note: txn.note ?? ''
+      };
       this.paidAmountOverridden = txn.transactionAmount !== txn.paidAmount;
       this.txnDate = new Date(txn.date);
       this.selectedPaymentValue = txn.cardId ? `CARD_${txn.cardId}` : 'CASH';
@@ -309,10 +319,7 @@ export class TransactionListComponent implements OnInit {
   }
 
   onCategoryChange(id: number) {
-      const cat = this.categories().find(c => c.id === id);
-      if (cat) {
-          this.newTxn.category = cat.name;
-      }
+      this.newTxn.categoryId = id;
   }
 
   onCombinedPaymentChange(event: any) {
@@ -409,11 +416,20 @@ export class TransactionListComponent implements OnInit {
     const month = (this.txnDate.getMonth() + 1).toString().padStart(2, '0');
     const day = this.txnDate.getDate().toString().padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    
-    this.newTxn.date = dateStr;
+    const payload = {
+      date: dateStr,
+      categoryId: this.newTxn.categoryId,
+      item: this.newTxn.item,
+      paidAmount: this.newTxn.paidAmount,
+      transactionAmount: this.newTxn.transactionAmount,
+      paymentMethod: this.newTxn.paymentMethod,
+      cardId: this.newTxn.cardId,
+      transactionType: this.newTxn.transactionType,
+      note: this.newTxn.note
+    };
 
     if (this.isEdit) {
-        this.accountingService.updateTransaction(this.newTxn.id, this.newTxn).subscribe({
+        this.accountingService.updateTransaction(this.newTxn.id, payload).subscribe({
             next: () => {
               this.messageService.add({ severity: 'success', summary: '成功', detail: '交易已更新' });
               this.displayDialog = false;
@@ -422,7 +438,7 @@ export class TransactionListComponent implements OnInit {
             error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '更新失敗' })
           });
     } else {
-        this.accountingService.createTransaction(this.newTxn).subscribe({
+        this.accountingService.createTransaction(payload).subscribe({
             next: () => {
               this.messageService.add({ severity: 'success', summary: '成功', detail: '交易已建立' });
               this.displayDialog = false;

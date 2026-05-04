@@ -31,7 +31,7 @@
           </div>
           <div class="sub-text d-flex align-items-center gap-2 mt-1">
             @if (!isInstallmentView()) {
-              <span class="hub-tag secondary" [style.border-color]="getCategoryColor($any(item).category)"><i class="pi pi-tag" [style.color]="getCategoryColor($any(item).category)"></i> {{ $any(item).category }}</span>
+              <span class="hub-tag secondary" [style.border-color]="getCategoryColor($any(item).categoryName)"><i class="pi pi-tag" [style.color]="getCategoryColor($any(item).categoryName)"></i> {{ $any(item).categoryName }}</span>
               <span>•</span>
               <span>每月 {{ $any(item).dayOfMonth }} 日</span>
             } @else {
@@ -99,7 +99,7 @@
     </div>
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displaySubDialog = false"></p-button>
-      <p-button label="儲存" icon="pi pi-check" (onClick)="saveSub()" [disabled]="!newSub.name" styleClass="hub-btn-primary"></p-button>
+      <p-button label="儲存" icon="pi pi-check" (onClick)="saveSub()" [disabled]="!newSub.name || !newSub.categoryId" styleClass="hub-btn-primary"></p-button>
     </ng-template>
   </p-dialog>
 

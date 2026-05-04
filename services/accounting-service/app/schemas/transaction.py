@@ -1,12 +1,11 @@
-from pydantic import Field, AliasChoices
+from pydantic import Field, AliasChoices, ConfigDict
 from typing import List, Optional
 from datetime import date as dt_date
 from . import BaseSchema, AuditSchema
 
 class TransactionBase(BaseSchema):
     date: Optional[dt_date] = Field(default=None, description="交易日期", examples=["2026-02-15"])
-    category: Optional[str] = Field(default=None, description="分類名稱 (若提供 category_id 可自動同步)", examples=["餐飲"])
-    category_id: Optional[int] = Field(default=None, description="結構化分類 ID")
+    category_id: int = Field(..., description="結構化分類 ID")
     item: str = Field(..., description="品項名稱", examples=["午餐"])
     paid_amount: int = Field(
         ...,
@@ -26,11 +25,11 @@ class TransactionBase(BaseSchema):
     related_transaction_id: Optional[int] = Field(default=None, description="關聯的原始交易 ID (沖銷用)")
 
 class TransactionCreate(TransactionBase):
-    pass
+    model_config = ConfigDict(extra="forbid")
 
 class TransactionUpdate(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
     date: Optional[dt_date] = None
-    category: Optional[str] = None
     category_id: Optional[int] = None
     item: Optional[str] = None
     paid_amount: Optional[int] = Field(
@@ -49,6 +48,7 @@ class TransactionUpdate(BaseSchema):
 
 class Transaction(TransactionBase, AuditSchema):
     id: int
+    category_name: str
     subscription_id: Optional[int] = None
     installment_id: Optional[int] = None
     card_name: Optional[str] = None

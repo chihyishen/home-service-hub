@@ -75,7 +75,7 @@
           </div>
           
           <div class="meta-row">
-            <span class="cat">{{ txn.category }}</span>
+            <span class="cat">{{ txn.categoryName }}</span>
             <span class="dot">•</span>
             <span class="payment">{{ txn.cardName || txn.paymentMethod }}</span>
             @if (txn.transactionAmount !== txn.paidAmount) {
@@ -146,6 +146,6 @@
     <ng-template pTemplate="footer">
       <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
 
-      <p-button label="儲存交易" (onClick)="saveTransaction()" [disabled]="!newTxn.item || !newTxn.category" styleClass="hub-btn-primary"></p-button>
+      <p-button label="儲存交易" (onClick)="saveTransaction()" [disabled]="!newTxn.item || !newTxn.categoryId" styleClass="hub-btn-primary"></p-button>
     </ng-template>
 </p-dialog>

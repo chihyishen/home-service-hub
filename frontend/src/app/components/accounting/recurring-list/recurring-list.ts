@@ -122,7 +122,6 @@ export class RecurringListComponent implements OnInit {
       return { 
           name: '', 
           amount: 0, 
-          category: '', 
           categoryId: null, 
           subType: type, 
           dayOfMonth: 1, 
@@ -225,7 +224,17 @@ export class RecurringListComponent implements OnInit {
 
   editSub(sub: Subscription) {
       this.isEditSub = true;
-      this.newSub = { ...sub, paymentMethod: sub.paymentMethod || '信用卡' };
+      this.newSub = {
+          id: sub.id,
+          name: sub.name,
+          amount: sub.amount,
+          categoryId: sub.categoryId,
+          subType: sub.subType,
+          paymentMethod: sub.paymentMethod || '信用卡',
+          dayOfMonth: sub.dayOfMonth,
+          cardId: sub.cardId ?? null,
+          active: sub.active,
+      };
       this.selectedSubPaymentValue = sub.cardId ? `CARD_${sub.cardId}` : 'CASH';
       this.displaySubDialog = true;
   }
@@ -244,10 +253,7 @@ export class RecurringListComponent implements OnInit {
   }
 
   onSubCategoryChange(id: number) {
-      const cat = this.categories().find(c => c.id === id);
-      if (cat) {
-          this.newSub.category = cat.name;
-      }
+      this.newSub.categoryId = id;
   }
 
   getCategoryColor(name: string) {
@@ -295,8 +301,19 @@ export class RecurringListComponent implements OnInit {
   }
 
   saveSub() {
+      const payload = {
+          name: this.newSub.name,
+          amount: this.newSub.amount,
+          categoryId: this.newSub.categoryId,
+          subType: this.newSub.subType,
+          paymentMethod: this.newSub.paymentMethod,
+          dayOfMonth: this.newSub.dayOfMonth,
+          cardId: this.newSub.cardId,
+          active: this.newSub.active,
+      };
+
       if (this.isEditSub) {
-          this.accountingService.updateSubscription(this.newSub.id, this.newSub).subscribe({
+          this.accountingService.updateSubscription(this.newSub.id, payload).subscribe({
               next: () => {
                   this.messageService.add({ severity: 'success', summary: '成功', detail: '項目已更新' });
                   this.displaySubDialog = false;
@@ -304,7 +321,7 @@ export class RecurringListComponent implements OnInit {
               }
           });
       } else {
-          this.accountingService.createSubscription(this.newSub).subscribe({
+          this.accountingService.createSubscription(payload).subscribe({
               next: () => {
                   this.messageService.add({ severity: 'success', summary: '成功', detail: '項目已建立' });
                   this.displaySubDialog = false;

@@ -8,8 +8,7 @@ class Subscription(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     amount = Column(Integer)
-    category = Column(String)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     sub_type = Column(String, default="SUBSCRIPTION") # FIXED_EXPENSE or SUBSCRIPTION
     payment_method = Column(String, default="信用卡")
     day_of_month = Column(Integer)
@@ -18,6 +17,10 @@ class Subscription(Base, TimestampMixin):
 
     card = relationship("CreditCard", back_populates="subscriptions")
     category_info = relationship("Category")
+
+    @property
+    def category_name(self) -> str:
+        return self.category_info.name
 
 class Installment(Base, TimestampMixin):
     __tablename__ = "installments"

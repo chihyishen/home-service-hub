@@ -15,10 +15,9 @@ def _create_category(client: TestClient, name: str, color: str) -> dict:
     return response.json()
 
 
-def _build_transaction(*, category: str, category_id: int | None, item: str) -> models.Transaction:
+def _build_transaction(*, category_id: int, item: str) -> models.Transaction:
     return models.Transaction(
         date=date.today(),
-        category=category,
         category_id=category_id,
         item=item,
         paid_amount=100,
@@ -28,11 +27,10 @@ def _build_transaction(*, category: str, category_id: int | None, item: str) -> 
     )
 
 
-def _build_subscription(*, category: str, category_id: int | None, name: str) -> models.Subscription:
+def _build_subscription(*, category_id: int, name: str) -> models.Subscription:
     return models.Subscription(
         name=name,
         amount=200,
-        category=category,
         category_id=category_id,
         sub_type="SUBSCRIPTION",
         payment_method="Cash",
@@ -44,15 +42,11 @@ def _build_subscription(*, category: str, category_id: int | None, name: str) ->
 def test_update_category_syncs_linked_transactions_and_subscriptions(client: TestClient, db_session):
     category = _create_category(client, name="餐飲", color="#111111")
 
-    linked_transaction = _build_transaction(category="餐飲", category_id=category["id"], item="午餐")
-    legacy_transaction = _build_transaction(category="餐飲", category_id=None, item="舊資料")
-    linked_subscription = _build_subscription(category="餐飲", category_id=category["id"], name="午餐訂閱")
-    legacy_subscription = _build_subscription(category="餐飲", category_id=None, name="舊訂閱")
+    linked_transaction = _build_transaction(category_id=category["id"], item="午餐")
+    linked_subscription = _build_subscription(category_id=category["id"], name="午餐訂閱")
     db_session.add_all([
         linked_transaction,
-        legacy_transaction,
         linked_subscription,
-        legacy_subscription,
     ])
     db_session.commit()
 
@@ -67,18 +61,12 @@ def test_update_category_syncs_linked_transactions_and_subscriptions(client: Tes
 
     db_session.expire_all()
     refreshed_linked_transaction = db_session.get(models.Transaction, linked_transaction.id)
-    refreshed_legacy_transaction = db_session.get(models.Transaction, legacy_transaction.id)
     refreshed_linked_subscription = db_session.get(models.Subscription, linked_subscription.id)
-    refreshed_legacy_subscription = db_session.get(models.Subscription, legacy_subscription.id)
 
     assert refreshed_linked_transaction.category_id == category["id"]
-    assert refreshed_linked_transaction.category == "外食"
-    assert refreshed_legacy_transaction.category_id is None
-    assert refreshed_legacy_transaction.category == "餐飲"
+    assert refreshed_linked_transaction.category_name == "外食"
     assert refreshed_linked_subscription.category_id == category["id"]
-    assert refreshed_linked_subscription.category == "外食"
-    assert refreshed_legacy_subscription.category_id is None
-    assert refreshed_legacy_subscription.category == "餐飲"
+    assert refreshed_linked_subscription.category_name == "外食"
 
 
 def test_category_merge_preview_returns_source_target_and_affected_counts(client: TestClient, db_session):
@@ -87,10 +75,10 @@ def test_category_merge_preview_returns_source_target_and_affected_counts(client
 
     db_session.add_all(
         [
-            _build_transaction(category="餐飲", category_id=source["id"], item="午餐"),
-            _build_transaction(category="餐飲", category_id=source["id"], item="晚餐"),
-            _build_transaction(category="外食", category_id=target["id"], item="宵夜"),
-            _build_subscription(category="餐飲", category_id=source["id"], name="餐盒"),
+            _build_transaction(category_id=source["id"], item="午餐"),
+            _build_transaction(category_id=source["id"], item="晚餐"),
+            _build_transaction(category_id=target["id"], item="宵夜"),
+            _build_subscription(category_id=source["id"], name="餐盒"),
         ]
     )
     db_session.commit()
@@ -123,10 +111,9 @@ def test_category_merge_apply_repoints_records_and_deletes_source(client: TestCl
     source = _create_category(client, name="串流", color="#333333")
     target = _create_category(client, name="娛樂", color="#444444")
 
-    linked_transaction = _build_transaction(category="串流", category_id=source["id"], item="影音月費")
-    linked_subscription = _build_subscription(category="串流", category_id=source["id"], name="串流服務")
-    legacy_transaction = _build_transaction(category="串流", category_id=None, item="舊字串")
-    db_session.add_all([linked_transaction, linked_subscription, legacy_transaction])
+    linked_transaction = _build_transaction(category_id=source["id"], item="影音月費")
+    linked_subscription = _build_subscription(category_id=source["id"], name="串流服務")
+    db_session.add_all([linked_transaction, linked_subscription])
     db_session.commit()
 
     response = client.post(
@@ -147,15 +134,12 @@ def test_category_merge_apply_repoints_records_and_deletes_source(client: TestCl
     db_session.expire_all()
     merged_transaction = db_session.get(models.Transaction, linked_transaction.id)
     merged_subscription = db_session.get(models.Subscription, linked_subscription.id)
-    unchanged_legacy_transaction = db_session.get(models.Transaction, legacy_transaction.id)
 
     assert db_session.get(models.Category, source["id"]) is None
     assert merged_transaction.category_id == target["id"]
-    assert merged_transaction.category == "娛樂"
+    assert merged_transaction.category_name == "娛樂"
     assert merged_subscription.category_id == target["id"]
-    assert merged_subscription.category == "娛樂"
-    assert unchanged_legacy_transaction.category_id is None
-    assert unchanged_legacy_transaction.category == "串流"
+    assert merged_subscription.category_name == "娛樂"
 
 
 @pytest.mark.parametrize("path", ["/categories/merge-preview", "/categories/merge"])

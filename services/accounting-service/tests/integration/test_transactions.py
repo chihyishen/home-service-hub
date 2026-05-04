@@ -6,14 +6,41 @@ from app.services import analytics_service, billing_service, recurring_service, 
 from fastapi.testclient import TestClient
 
 
+def _get_or_create_category(db_session, name: str, color: str = "#64748b") -> models.Category:
+    category = db_session.query(models.Category).filter(models.Category.name == name).first()
+    if category:
+        return category
+
+    category = models.Category(name=name, color=color)
+    db_session.add(category)
+    db_session.flush()
+    return category
+
+
+def _transaction_create(db_session, *, category_name: str, **kwargs) -> schemas.TransactionCreate:
+    category = _get_or_create_category(db_session, category_name)
+    return schemas.TransactionCreate(category_id=category.id, **kwargs)
+
+
+def _subscription_model(db_session, *, category_name: str, **kwargs) -> models.Subscription:
+    category = _get_or_create_category(db_session, category_name)
+    return models.Subscription(category_id=category.id, **kwargs)
+
+
+def _transaction_model(db_session, *, category_name: str, **kwargs) -> models.Transaction:
+    category = _get_or_create_category(db_session, category_name)
+    return models.Transaction(category_id=category.id, **kwargs)
+
+
 def test_transaction_and_refund(db_session):
     db_session.add(models.PaymentMethod(name="Cash", is_active=True))
     db_session.commit()
 
     tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
-            category="測試",
+        _transaction_create(
+            db_session,
+            category_name="測試",
             item="測試支出",
             paid_amount=1000,
             transaction_amount=1000,
@@ -33,7 +60,27 @@ def test_transaction_and_refund(db_session):
 
     today = date.today()
     report = analytics_service.get_monthly_report(db_session, today.year, today.month)
-    assert report.summary.total_income >= 200
+    assert report.summary.total_income == 0
+    assert report.summary.total_expense == 800
+
+
+def test_create_transaction_requires_category_id(client: TestClient, db_session):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+
+    response = client.post(
+        "/transactions/",
+        json={
+            "date": date.today().isoformat(),
+            "item": "午餐",
+            "paidAmount": 180,
+            "transactionAmount": 180,
+            "paymentMethod": "Cash",
+            "transactionType": "EXPENSE",
+        },
+    )
+
+    assert response.status_code == 422
 
 
 def test_refund_guards_and_explicit_payment_method_override(db_session):
@@ -56,9 +103,10 @@ def test_refund_guards_and_explicit_payment_method_override(db_session):
 
     created = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="餐飲",
             date=date.today(),
-            category="餐飲",
             item="午餐",
             paid_amount=1000,
             transaction_amount=1000,
@@ -103,9 +151,10 @@ def test_refund_guards_and_explicit_payment_method_override(db_session):
 
     income = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="薪資",
             date=date.today(),
-            category="薪資",
             item="薪水",
             paid_amount=5000,
             transaction_amount=5000,
@@ -127,10 +176,11 @@ def test_monthly_report_is_read_only_and_uses_integer_amounts(db_session):
     db_session.commit()
 
     today = date.today()
-    subscription = models.Subscription(
+    subscription = _subscription_model(
+        db_session,
+        category_name="娛樂",
         name="串流月費",
         amount=290,
-        category="娛樂",
         sub_type="SUBSCRIPTION",
         payment_method="Cash",
         day_of_month=min(today.day, 28),
@@ -154,10 +204,11 @@ def test_monthly_report_keeps_explicitly_generated_recurring_without_extra_write
     db_session.add(models.PaymentMethod(name="Cash", is_active=True))
     db_session.commit()
 
-    subscription = models.Subscription(
+    subscription = _subscription_model(
+        db_session,
+        category_name="健康",
         name="健身房",
         amount=1299,
-        category="健康",
         sub_type="SUBSCRIPTION",
         payment_method="Cash",
         day_of_month=min(today.day, 28),
@@ -196,9 +247,10 @@ def test_card_usage_supports_negative_net_refunds(db_session):
 
     transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="測試",
             date=today,
-            category="測試",
             item="一般消費",
             paid_amount=1000,
             transaction_amount=1000,
@@ -208,9 +260,10 @@ def test_card_usage_supports_negative_net_refunds(db_session):
     )
     transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="測試",
             date=today,
-            category="測試",
             item="退刷入帳",
             paid_amount=1500,
             transaction_amount=1500,
@@ -251,9 +304,10 @@ def test_card_usage_summary_and_status_reduce_refunds(db_session):
 
     expense = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="測試",
             date=today,
-            category="測試",
             item="測試刷卡",
             paid_amount=1000,
             transaction_amount=1000,
@@ -281,9 +335,10 @@ def test_get_transactions_supports_agent_filters(db_session):
 
     manual_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="餐飲",
             date=today,
-            category="餐飲",
             item="午餐",
             paid_amount=180,
             transaction_amount=180,
@@ -293,9 +348,10 @@ def test_get_transactions_supports_agent_filters(db_session):
 
     subscription_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="娛樂",
             date=today,
-            category="娛樂",
             item="影音訂閱",
             paid_amount=300,
             transaction_amount=300,
@@ -306,9 +362,10 @@ def test_get_transactions_supports_agent_filters(db_session):
 
     installment_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="3C",
             date=today,
-            category="3C",
             item="手機分期",
             paid_amount=1200,
             transaction_amount=1200,
@@ -319,9 +376,10 @@ def test_get_transactions_supports_agent_filters(db_session):
 
     income_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="薪資",
             date=today,
-            category="薪資",
             item="薪水",
             paid_amount=50000,
             transaction_amount=50000,
@@ -362,9 +420,10 @@ def test_get_transactions_manual_only_defaults_to_today_manual_expense(db_sessio
 
     manual_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="餐飲",
             date=today,
-            category="餐飲",
             item="晚餐",
             paid_amount=220,
             transaction_amount=220,
@@ -374,9 +433,10 @@ def test_get_transactions_manual_only_defaults_to_today_manual_expense(db_sessio
 
     subscription_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="娛樂",
             date=today,
-            category="娛樂",
             item="串流月費",
             paid_amount=290,
             transaction_amount=290,
@@ -387,9 +447,10 @@ def test_get_transactions_manual_only_defaults_to_today_manual_expense(db_sessio
 
     income_tx = transaction_service.create_transaction(
         db_session,
-        schemas.TransactionCreate(
+        _transaction_create(
+            db_session,
+            category_name="薪資",
             date=today,
-            category="薪資",
             item="獎金",
             paid_amount=3000,
             transaction_amount=3000,
@@ -432,10 +493,10 @@ def test_get_transactions_uses_constant_queries_for_card_and_category(db_session
     for index in range(3):
         transaction_service.create_transaction(
             db_session,
-            schemas.TransactionCreate(
+            _transaction_create(
+                db_session,
+                category_name="交通",
                 date=date.today(),
-                category="交通",
-                category_id=category.id,
                 item=f"通勤 {index + 1}",
                 paid_amount=100 + index,
                 transaction_amount=100 + index,
@@ -478,10 +539,10 @@ def test_annual_report_endpoint_is_read_only_and_returns_camel_case(client: Test
 
     category = db_session.query(models.Category).filter(models.Category.name == "餐飲").first()
     db_session.add(
-        models.Transaction(
+        _transaction_model(
+            db_session,
+            category_name="餐飲",
             date=date(today.year, 1, 10),
-            category="舊餐飲",
-            category_id=category.id,
             item="午餐",
             paid_amount=320,
             transaction_amount=320,
@@ -490,10 +551,11 @@ def test_annual_report_endpoint_is_read_only_and_returns_camel_case(client: Test
         )
     )
     db_session.add(
-        models.Subscription(
+        _subscription_model(
+            db_session,
+            category_name="娛樂",
             name="尚未產生的訂閱",
             amount=199,
-            category="娛樂",
             sub_type="SUBSCRIPTION",
             payment_method="Cash",
             day_of_month=min(today.day, 28),

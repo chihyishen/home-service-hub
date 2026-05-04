@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from datetime import date as dt_date
 from typing import Optional
 from . import BaseSchema, AuditSchema
@@ -6,8 +6,7 @@ from . import BaseSchema, AuditSchema
 class SubscriptionBase(BaseSchema):
     name: str = Field(..., description="項目名稱", examples=["Netflix"])
     amount: int = Field(..., description="每月金額")
-    category: str = Field(..., description="分類名稱", examples=["娛樂"])
-    category_id: Optional[int] = Field(default=None, description="分類 ID")
+    category_id: int = Field(..., description="分類 ID")
     sub_type: str = Field(default="SUBSCRIPTION", description="類型: FIXED_EXPENSE (固定支出) 或 SUBSCRIPTION (訂閱)")
     payment_method: str = Field(default="信用卡", description="支付方式", examples=["信用卡", "Apple Pay"])
     day_of_month: int = Field(..., description="每月扣款日 (1-31)", examples=[15])
@@ -15,12 +14,12 @@ class SubscriptionBase(BaseSchema):
     active: bool = Field(default=True, description="是否啟用中")
 
 class SubscriptionCreate(SubscriptionBase):
-    pass
+    model_config = ConfigDict(extra="forbid")
 
 class SubscriptionUpdate(BaseSchema): # 修正：繼承 BaseSchema
+    model_config = ConfigDict(extra="forbid")
     name: Optional[str] = None
     amount: Optional[int] = None
-    category: Optional[str] = None
     category_id: Optional[int] = None
     sub_type: Optional[str] = None
     payment_method: Optional[str] = None
@@ -30,6 +29,7 @@ class SubscriptionUpdate(BaseSchema): # 修正：繼承 BaseSchema
 
 class Subscription(SubscriptionBase, AuditSchema):
     id: int
+    category_name: str
     card_name: Optional[str] = None
 
 class InstallmentBase(BaseSchema):

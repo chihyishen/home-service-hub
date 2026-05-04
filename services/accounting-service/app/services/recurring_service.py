@@ -4,8 +4,25 @@ from datetime import date
 from .. import models, schemas
 from fastapi import HTTPException
 import logging
+from .accounting_validation import (
+    ensure_payment_method_exists,
+    resolve_card_payment_defaults,
+    resolve_category_name,
+)
+from .billing_service import safe_date_replace
 
 logger = logging.getLogger(__name__)
+
+
+def _get_or_create_installment_category_id(db: Session) -> int:
+    category = db.query(models.Category).filter(models.Category.name == "分期付款").first()
+    if category:
+        return int(category.id)
+
+    category = models.Category(name="分期付款")
+    db.add(category)
+    db.flush()
+    return int(category.id)
 
 # --- 自動化生成邏輯 ---
 
@@ -26,10 +43,8 @@ def generate_recurring_items(db: Session):
         ).first()
         
         if not exists:
-            day = min(sub.day_of_month, 28)
             new_pending = models.Transaction(
-                date=today.replace(day=day),
-                category=sub.category,
+                date=safe_date_replace(today.year, today.month, sub.day_of_month),
                 category_id=sub.category_id,
                 item=sub.name,
                 paid_amount=sub.amount,
@@ -55,10 +70,9 @@ def generate_recurring_items(db: Session):
         if not exists:
             current_period = inst.total_periods - inst.remaining_periods + 1
             item_name = f"{inst.name} (第 {current_period}/{inst.total_periods} 期)"
-            day = min(inst.start_date.day, 28)
             new_pending = models.Transaction(
-                date=today.replace(day=day),
-                category="分期付款",
+                date=safe_date_replace(today.year, today.month, inst.start_date.day),
+                category_id=_get_or_create_installment_category_id(db),
                 item=item_name,
                 paid_amount=inst.monthly_amount,
                 transaction_amount=inst.monthly_amount,
@@ -75,7 +89,10 @@ def generate_recurring_items(db: Session):
 # --- 訂閱管理 (Subscription CRUD) ---
 
 def get_subscriptions(db: Session):
-    subs = db.query(models.Subscription).options(joinedload(models.Subscription.card)).all()
+    subs = db.query(models.Subscription).options(
+        joinedload(models.Subscription.card),
+        joinedload(models.Subscription.category_info),
+    ).all()
     for s in subs:
         if s.card:
             s.card_name = s.card.name
@@ -83,25 +100,27 @@ def get_subscriptions(db: Session):
 
 def create_subscription(db: Session, sub: schemas.SubscriptionCreate):
     # 校驗分類
-    if sub.category_id:
-        cat = db.query(models.Category).filter(models.Category.id == sub.category_id).first()
-        if not cat:
-            raise HTTPException(status_code=400, detail="Invalid category_id")
-        sub.category = cat.name
-    
-    # 校驗付款工具
-    if sub.payment_method:
-        pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == sub.payment_method).first()
-        if not pm_exists:
-            raise HTTPException(status_code=400, detail=f"Invalid payment_method: {sub.payment_method}")
-    
+    resolve_category_name(
+        db,
+        sub.category_id,
+        invalid_detail_template="Invalid category_id",
+    )
+
     # 校驗卡片
     if sub.card_id:
-        card = db.query(models.CreditCard).filter(models.CreditCard.id == sub.card_id).first()
-        if not card:
-            raise HTTPException(status_code=400, detail="Invalid card_id")
-        if not sub.payment_method or sub.payment_method == "信用卡":
-            sub.payment_method = card.default_payment_method or "Apple Pay"
+        sub.payment_method = resolve_card_payment_defaults(
+            db,
+            sub.card_id,
+            sub.payment_method,
+            invalid_detail_template="Invalid card_id",
+        )
+    
+    # 校驗付款工具
+    ensure_payment_method_exists(
+        db,
+        sub.payment_method,
+        invalid_detail_template="Invalid payment_method: {payment_method}",
+    )
 
     db_sub = models.Subscription(**sub.model_dump())
     db.add(db_sub)
@@ -121,25 +140,28 @@ def update_subscription(db: Session, sub_id: int, sub_update: schemas.Subscripti
     update_data = sub_update.model_dump(exclude_unset=True)
     
     # 校驗與同步分類
-    if "category_id" in update_data:
-        cat = db.query(models.Category).filter(models.Category.id == update_data["category_id"]).first()
-        if not cat:
-            raise HTTPException(status_code=400, detail="Invalid category_id")
-        update_data["category"] = cat.name
-
-    # 校驗付款工具
-    if "payment_method" in update_data and update_data["payment_method"]:
-        pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == update_data["payment_method"]).first()
-        if not pm_exists:
-            raise HTTPException(status_code=400, detail=f"Invalid payment_method: {update_data['payment_method']}")
+    if "category_id" in update_data and update_data["category_id"] is not None:
+        resolve_category_name(
+            db,
+            update_data["category_id"],
+            invalid_detail_template="Invalid category_id",
+        )
 
     # 校驗卡片
     if "card_id" in update_data and update_data["card_id"]:
-        card = db.query(models.CreditCard).filter(models.CreditCard.id == update_data["card_id"]).first()
-        if not card:
-            raise HTTPException(status_code=400, detail="Invalid card_id")
-        if "payment_method" not in update_data or update_data["payment_method"] == "信用卡":
-            update_data["payment_method"] = card.default_payment_method or "Apple Pay"
+        update_data["payment_method"] = resolve_card_payment_defaults(
+            db,
+            update_data["card_id"],
+            update_data.get("payment_method"),
+            invalid_detail_template="Invalid card_id",
+        )
+
+    if "payment_method" in update_data and update_data["payment_method"]:
+        ensure_payment_method_exists(
+            db,
+            update_data["payment_method"],
+            invalid_detail_template="Invalid payment_method: {payment_method}",
+        )
 
     for key, value in update_data.items():
         setattr(db_sub, key, value)
@@ -185,19 +207,21 @@ def _get_installment_or_404(db: Session, inst_id: int):
     return db_inst
 
 def create_installment(db: Session, inst: schemas.InstallmentCreate):
-    # 校驗付款工具
-    if inst.payment_method:
-        pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == inst.payment_method).first()
-        if not pm_exists:
-            raise HTTPException(status_code=400, detail=f"Invalid payment_method: {inst.payment_method}")
-
     # 校驗卡片
     if inst.card_id:
-        card = db.query(models.CreditCard).filter(models.CreditCard.id == inst.card_id).first()
-        if not card:
-            raise HTTPException(status_code=400, detail="Invalid card_id")
-        if not inst.payment_method or inst.payment_method == "信用卡":
-            inst.payment_method = card.default_payment_method or "Apple Pay"
+        inst.payment_method = resolve_card_payment_defaults(
+            db,
+            inst.card_id,
+            inst.payment_method,
+            invalid_detail_template="Invalid card_id",
+        )
+
+    # 校驗付款工具
+    ensure_payment_method_exists(
+        db,
+        inst.payment_method,
+        invalid_detail_template="Invalid payment_method: {payment_method}",
+    )
 
     db_inst = models.Installment(**inst.model_dump())
     db.add(db_inst)
@@ -214,19 +238,21 @@ def update_installment(db: Session, inst_id: int, inst_update: schemas.Installme
     
     update_data = inst_update.model_dump(exclude_unset=True)
     
-    # 校驗付款工具
-    if "payment_method" in update_data and update_data["payment_method"]:
-        pm_exists = db.query(models.PaymentMethod).filter(models.PaymentMethod.name == update_data["payment_method"]).first()
-        if not pm_exists:
-            raise HTTPException(status_code=400, detail=f"Invalid payment_method: {update_data['payment_method']}")
-
     # 校驗卡片
     if "card_id" in update_data and update_data["card_id"]:
-        card = db.query(models.CreditCard).filter(models.CreditCard.id == update_data["card_id"]).first()
-        if not card:
-            raise HTTPException(status_code=400, detail="Invalid card_id")
-        if "payment_method" not in update_data or update_data["payment_method"] == "信用卡":
-            update_data["payment_method"] = card.default_payment_method or "Apple Pay"
+        update_data["payment_method"] = resolve_card_payment_defaults(
+            db,
+            update_data["card_id"],
+            update_data.get("payment_method"),
+            invalid_detail_template="Invalid card_id",
+        )
+
+    if "payment_method" in update_data and update_data["payment_method"]:
+        ensure_payment_method_exists(
+            db,
+            update_data["payment_method"],
+            invalid_detail_template="Invalid payment_method: {payment_method}",
+        )
 
     for key, value in update_data.items():
         setattr(db_inst, key, value)
