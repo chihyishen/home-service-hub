@@ -4,19 +4,18 @@ from sqlalchemy.orm import Session
 from .. import models
 
 
-def resolve_category_name(
+def ensure_category_exists(
     db: Session,
     category_id: int,
     *,
     invalid_detail_template: str = "Invalid category_id: {category_id}",
-) -> str:
+) -> None:
     category = db.query(models.Category).filter(models.Category.id == category_id).first()
     if not category:
         raise HTTPException(
             status_code=400,
             detail=invalid_detail_template.format(category_id=category_id),
         )
-    return category.name
 
 
 def ensure_payment_method_exists(

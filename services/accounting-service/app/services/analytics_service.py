@@ -8,10 +8,8 @@ from .refund_utils import get_refunded_amounts
 from typing import List
 
 
-def _resolve_category_name(transaction: models.Transaction) -> str:
-    if transaction.category_info and transaction.category_info.name:
-        return transaction.category_info.name
-    return "未分類"
+def _category_name(transaction: models.Transaction) -> str:
+    return transaction.category_info.name
 
 
 def _populate_top_expense_fields(db: Session, transactions: list[models.Transaction]) -> None:
@@ -112,7 +110,7 @@ def get_annual_report(db: Session, year: int) -> schemas.analytics.AnnualReport:
             monthly_income[month_index] += amount
             continue
 
-        category_name = _resolve_category_name(transaction)
+        category_name = _category_name(transaction)
         _ensure_category_month_bucket(category_monthly_map, category_name)
 
         net_amount = _get_net_expense_amount(transaction, refunded_amounts)
@@ -202,7 +200,7 @@ def get_monthly_report(db: Session, year: int, month: int) -> schemas.MonthlyRep
             continue
 
         # 統計分類
-        category_name = _resolve_category_name(t)
+        category_name = _category_name(t)
         category_map[category_name] = category_map.get(category_name, 0) + net_amount
 
         # 統計支付來源 (以卡片名稱為準，若無卡片則使用支付方式名稱如「現金」)
@@ -292,14 +290,14 @@ def get_monthly_compare_report(db: Session, year: int, month: int) -> schemas.an
         net_amount = _get_net_expense_amount(t, refunded_amounts)
         if net_amount <= 0:
             continue
-        category_name = _resolve_category_name(t)
+        category_name = _category_name(t)
         current_map[category_name] = current_map.get(category_name, 0) + net_amount
 
     for t in previous_month_txns:
         net_amount = _get_net_expense_amount(t, refunded_amounts)
         if net_amount <= 0:
             continue
-        category_name = _resolve_category_name(t)
+        category_name = _category_name(t)
         previous_map[category_name] = previous_map.get(category_name, 0) + net_amount
 
     all_categories = sorted(set(current_map.keys()) | set(previous_map.keys()))

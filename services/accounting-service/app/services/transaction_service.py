@@ -7,9 +7,9 @@ tracer = get_tracer("accounting-service")
 from fastapi import HTTPException
 from typing import Optional
 from .accounting_validation import (
+    ensure_category_exists,
     ensure_payment_method_exists,
     resolve_card_payment_defaults,
-    resolve_category_name,
 )
 from .refund_utils import get_refunded_amounts
 
@@ -150,7 +150,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
 
         # --- 資料校驗與自動同步 ---
         # 1. 校驗分類
-        resolve_category_name(db, transaction.category_id)
+        ensure_category_exists(db, transaction.category_id)
 
         # 2. 校驗卡片並同步預設付款工具
         if transaction.card_id:
@@ -217,8 +217,10 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
         update_data = transaction_update.model_dump(exclude_unset=True)
 
         # --- 資料校驗與自動同步 ---
-        if "category_id" in update_data and update_data["category_id"] is not None:
-            resolve_category_name(db, update_data["category_id"])
+        if "category_id" in update_data:
+            if update_data["category_id"] is None:
+                raise HTTPException(status_code=400, detail="category_id cannot be null")
+            ensure_category_exists(db, update_data["category_id"])
 
         if "card_id" in update_data:
             if update_data["card_id"]:

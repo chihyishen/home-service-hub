@@ -5,9 +5,9 @@ from .. import models, schemas
 from fastapi import HTTPException
 import logging
 from .accounting_validation import (
+    ensure_category_exists,
     ensure_payment_method_exists,
     resolve_card_payment_defaults,
-    resolve_category_name,
 )
 from .billing_service import safe_date_replace
 
@@ -100,7 +100,7 @@ def get_subscriptions(db: Session):
 
 def create_subscription(db: Session, sub: schemas.SubscriptionCreate):
     # 校驗分類
-    resolve_category_name(
+    ensure_category_exists(
         db,
         sub.category_id,
         invalid_detail_template="Invalid category_id",
@@ -140,8 +140,10 @@ def update_subscription(db: Session, sub_id: int, sub_update: schemas.Subscripti
     update_data = sub_update.model_dump(exclude_unset=True)
     
     # 校驗與同步分類
-    if "category_id" in update_data and update_data["category_id"] is not None:
-        resolve_category_name(
+    if "category_id" in update_data:
+        if update_data["category_id"] is None:
+            raise HTTPException(status_code=400, detail="category_id cannot be null")
+        ensure_category_exists(
             db,
             update_data["category_id"],
             invalid_detail_template="Invalid category_id",
