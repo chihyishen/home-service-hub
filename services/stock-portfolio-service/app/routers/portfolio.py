@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
@@ -17,11 +17,18 @@ def get_summary(db: Session = Depends(get_db)):
 
 @router.post("/transactions", response_model=schemas.Transaction)
 def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    return portfolio_service.create_transaction(db, transaction)
+    try:
+        return portfolio_service.create_transaction(db, transaction)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 @router.put("/transactions/{transaction_id}", response_model=schemas.Transaction)
 def update_transaction(transaction_id: int, transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    updated = portfolio_service.update_transaction(db, transaction_id, transaction)
+    try:
+        updated = portfolio_service.update_transaction(db, transaction_id, transaction)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     if not updated:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return updated
@@ -34,8 +41,13 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     return {"message": "Transaction deleted"}
 
 @router.get("/transactions", response_model=List[schemas.Transaction])
-def get_transactions(db: Session = Depends(get_db)):
-    return db.query(models.Transaction).order_by(models.Transaction.trade_date.desc()).all()
+def get_transactions(
+    limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    symbol: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return portfolio_service.list_transactions(db, limit=limit, offset=offset, symbol=symbol)
 
 @router.post("/dividends", response_model=schemas.Dividend)
 def create_dividend(dividend: schemas.DividendCreate, db: Session = Depends(get_db)):
@@ -56,5 +68,10 @@ def delete_dividend(dividend_id: int, db: Session = Depends(get_db)):
     return {"message": "Dividend deleted"}
 
 @router.get("/dividends", response_model=List[schemas.Dividend])
-def get_dividends(db: Session = Depends(get_db)):
-    return db.query(models.Dividend).order_by(models.Dividend.ex_dividend_date.desc()).all()
+def get_dividends(
+    limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    symbol: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return portfolio_service.list_dividends(db, limit=limit, offset=offset, symbol=symbol)

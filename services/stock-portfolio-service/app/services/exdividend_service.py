@@ -1,9 +1,9 @@
 import logging
-import requests
 from datetime import date
 from typing import List, Optional, Set
 
 from ..schemas.portfolio import ExDividendRecord
+from .twse_client import get_twse_client
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +74,9 @@ def fetch_upcoming_exdividends(held_symbols: Set[str]) -> List[ExDividendRecord]
     """
     if not held_symbols:
         return []
+
     try:
-        resp = requests.get(TWSE_EXDIVIDEND_URL, timeout=10, verify=False)
-        resp.raise_for_status()
-        raw = resp.json()
+        raw = get_twse_client().fetch_exdividend_json(TWSE_EXDIVIDEND_URL)
         if not isinstance(raw, list):
             logger.warning("TWSE ex-dividend API returned unexpected format")
             return []

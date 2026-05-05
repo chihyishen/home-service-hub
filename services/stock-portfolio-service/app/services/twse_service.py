@@ -1,23 +1,17 @@
-import requests
 import time
 import logging
 import json
-import os
 from typing import Dict, List, Any
 from decimal import Decimal, InvalidOperation
 from shared_lib import get_tracer
+from .twse_client import get_twse_client
+
 tracer = get_tracer("stock-portfolio-service")
 
 logger = logging.getLogger(__name__)
 
 class TWSEapiError(Exception):
     pass
-
-def _bool_env(name: str, default: bool = True) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() not in {"0", "false", "no", "off"}
 
 def _to_decimal(val: Any) -> Decimal:
     """
@@ -44,33 +38,25 @@ def fetch_raw_quotes(symbols: List[str]) -> Dict[str, Any]:
     ch_list = [f"tse_{s}.tw|otc_{s}.tw" for s in clean_symbols]
     ex_ch = "|".join(ch_list)
     url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={ex_ch}&_={int(time.time() * 1000)}"
-    
-    # 預設跳過 SSL 驗證以提升內部服務發查穩定性
-    verify_ssl = _bool_env("TWSE_SSL_VERIFY", False)
 
-    with tracer.start_as_current_span("twse_network_request") as span:
-        span.set_attribute("http.url", url)
-        span.set_attribute("stock.symbols", clean_symbols)
-        
-        try:
-            response = requests.get(url, timeout=10, verify=verify_ssl)
-            response.raise_for_status()
-            
-            raw_text = response.text
-            text = raw_text.lstrip("\ufeff").strip()
-            
-            # 偵測 JSON 邊界處理 BOM
-            first_brace = text.find("{")
-            last_brace = text.rfind("}")
-            if first_brace == -1 or last_brace == -1:
-                logger.error(f"TWSE 回傳格式異常: {text[:200]}")
-                return {}
-                
-            return json.loads(text[first_brace:last_brace + 1])
-            
-        except Exception as e:
-            logger.error(f"TWSE 網路請求失敗: {str(e)}")
-            return {}
+    raw_text = get_twse_client().fetch_quote_text(url, clean_symbols)
+    if not raw_text:
+        return {}
+
+    text = raw_text.lstrip("\ufeff").strip()
+
+    # 偵測 JSON 邊界處理 BOM
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace == -1 or last_brace == -1:
+        logger.error(f"TWSE 回傳格式異常: {text[:200]}")
+        return {}
+
+    try:
+        return json.loads(text[first_brace:last_brace + 1])
+    except json.JSONDecodeError as exc:
+        logger.error(f"TWSE JSON 解析失敗: {exc}")
+        return {}
 
 def parse_twse_msg_array(msg_array: List[Dict], target_symbols: List[str]) -> Dict[str, Dict]:
     """
@@ -125,7 +111,7 @@ def parse_twse_msg_array(msg_array: List[Dict], target_symbols: List[str]) -> Di
                 "yesterday_close": y_close_val,
                 "time": item.get("t") or item.get("%")
             }
-            logger.info(f"解析股票 [{symbol}]: 價格={price_val}, 來源={source}, 昨收={y_close_val}")
+            logger.debug(f"解析股票 [{symbol}]: 價格={price_val}, 來源={source}, 昨收={y_close_val}")
             
     return results
 
@@ -149,4 +135,5 @@ def get_stock_quotes(symbols: List[str]) -> Dict[str, Dict]:
             
         results = parse_twse_msg_array(msg_array, symbols)
         span.set_attribute("stock.result_count", len(results))
+        logger.info("TWSE quotes parsed: %s/%s symbols", len(results), len(symbols))
         return results

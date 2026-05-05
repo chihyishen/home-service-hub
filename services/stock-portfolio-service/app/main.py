@@ -2,6 +2,10 @@ from shared_lib import create_app
 
 from .database import engine, get_db
 from .routers import portfolio, exdividend
+from .services.twse_client import bootstrap_truststore
+
+
+bootstrap_truststore()
 
 app = create_app(
     title="Home Service Hub - Stock Portfolio API",

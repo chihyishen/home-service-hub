@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Dict, List, Optional, Tuple
-from datetime import date as date_type
+from datetime import date as date_type, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 import math
 import os
@@ -18,6 +18,12 @@ def _calculate_xirr(cash_flows: List[Tuple[date_type, Decimal]]) -> Optional[Dec
     Returns None if calculation is impossible or fails.
     - amounts < 0: outflows (buy)
     - amounts > 0: inflows (sell, dividend, terminal market value)
+
+    Decimal/float boundary: ``pyxirr`` requires IEEE-754 ``float`` inputs and
+    returns a ``float``. We coerce here with ``float(cf[1])`` and convert
+    back via ``Decimal(str(round(result, 6)))``. For portfolio values within
+    ~15 significant digits this is safe; the round at 6 decimal places is
+    the canonical XIRR display precision (annualised return).
     """
     if len(cash_flows) < 2:
         return None
@@ -33,7 +39,7 @@ def _calculate_xirr(cash_flows: List[Tuple[date_type, Decimal]]) -> Optional[Dec
         from pyxirr import xirr as _xirr
         result = _xirr(
             [cf[0] for cf in cash_flows],
-            [float(cf[1]) for cf in cash_flows],
+            [float(cf[1]) for cf in cash_flows],  # required: pyxirr is float-only
         )
         if result is None or not isinstance(result, float):
             return None
@@ -53,6 +59,140 @@ def sanitize_symbol(symbol: str) -> str:
     return symbol.split('.')[0].upper().strip()
 
 
+def _resolve_sort_trade_date(
+    trade_date: datetime,
+) -> datetime:
+    if trade_date.tzinfo is None:
+        return trade_date
+    return trade_date.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def _validate_symbol_ledger(symbol: str, ledger_entries: List[Dict[str, object]]) -> None:
+    available_quantity = 0
+
+    for entry in sorted(
+        ledger_entries,
+        key=lambda item: (item["sort_trade_date"], item["sort_id"]),
+    ):
+        quantity = int(entry["quantity"])
+        quantity_before_sell = available_quantity
+
+        if entry["type"] == models.TransactionType.BUY:
+            available_quantity += quantity
+            continue
+
+        available_quantity -= quantity
+        if available_quantity >= 0:
+            continue
+
+        if quantity_before_sell <= 0:
+            raise ValueError(f"Cannot sell {quantity} shares of {symbol} without holdings")
+
+        raise ValueError(
+            f"Cannot sell {quantity} shares of {symbol}; only {quantity_before_sell} available"
+        )
+
+
+def _validate_transaction_ledger(
+    db: Session,
+    transaction_data: Dict[str, object],
+    existing_transaction: Optional[models.Transaction] = None,
+) -> None:
+    proposed_symbol = sanitize_symbol(str(transaction_data["symbol"]))
+    symbols_to_validate = {proposed_symbol}
+    if existing_transaction is not None:
+        symbols_to_validate.add(sanitize_symbol(existing_transaction.symbol))
+
+    ledger_map: Dict[str, List[Dict[str, object]]] = {symbol: [] for symbol in symbols_to_validate}
+    persisted_transactions = (
+        db.query(models.Transaction)
+        .order_by(models.Transaction.trade_date, models.Transaction.id)
+        .all()
+    )
+
+    for transaction in persisted_transactions:
+        if existing_transaction is not None and transaction.id == existing_transaction.id:
+            continue
+
+        symbol = sanitize_symbol(transaction.symbol)
+        if symbol not in symbols_to_validate:
+            continue
+
+        ledger_map[symbol].append(
+            {
+                "sort_trade_date": _resolve_sort_trade_date(transaction.trade_date),
+                "sort_id": transaction.id,
+                "type": transaction.type,
+                "quantity": transaction.quantity,
+            }
+        )
+
+    ledger_map[proposed_symbol].append(
+        {
+            "sort_trade_date": _resolve_sort_trade_date(transaction_data["trade_date"]),
+            "sort_id": existing_transaction.id if existing_transaction is not None else float("inf"),
+            "type": models.TransactionType(
+                getattr(transaction_data["type"], "value", transaction_data["type"])
+            ),
+            "quantity": transaction_data["quantity"],
+        }
+    )
+
+    for symbol, entries in ledger_map.items():
+        _validate_symbol_ledger(symbol, entries)
+
+
+def _aggregate_active_holdings(
+    transactions: List[models.Transaction],
+) -> Dict[str, Dict[str, object]]:
+    holdings: Dict[str, Dict[str, object]] = {}
+
+    for transaction in sorted(
+        transactions,
+        key=lambda item: (_resolve_sort_trade_date(item.trade_date), item.id or float("inf")),
+    ):
+        symbol = sanitize_symbol(transaction.symbol)
+        if symbol not in holdings:
+            holdings[symbol] = {
+                "symbol": symbol,
+                "name": transaction.name,
+                "total_quantity": 0,
+            }
+
+        holdings[symbol]["total_quantity"] += (
+            transaction.quantity
+            if transaction.type == models.TransactionType.BUY
+            else -transaction.quantity
+        )
+        if transaction.name and not holdings[symbol]["name"]:
+            holdings[symbol]["name"] = transaction.name
+
+    return {
+        symbol: holding
+        for symbol, holding in holdings.items()
+        if int(holding["total_quantity"]) > 0
+    }
+
+
+def get_active_holdings(db: Session) -> Dict[str, Dict[str, object]]:
+    transactions = (
+        db.query(models.Transaction)
+        .order_by(models.Transaction.trade_date, models.Transaction.id)
+        .all()
+    )
+    return _aggregate_active_holdings(transactions)
+
+
+def _get_quote_status(active_symbols: List[str], quotes: Dict[str, Dict]) -> str:
+    if not active_symbols:
+        return "ok"
+    if not quotes:
+        return "unavailable"
+    if len(quotes) < len(active_symbols):
+        return "partial"
+    return "ok"
+
+
 def _env_decimal(name: str, default: str) -> Decimal:
     val = os.getenv(name)
     if not val:
@@ -69,13 +209,19 @@ def _estimate_sell_costs(gross_market_value: Decimal) -> Decimal:
     - 手續費: 0.1425% * 2.8折 = 0.0399%
     - 證交稅: 0.1% (ETF 常見口徑)
     - 成本採整數元無條件捨去
+    - 最低手續費: 1 元（國泰證券 2.8 折期間電子下單低消 1 元；
+      若實際扣費為 0 元的小額部位，估算仍保留 1 元偏保守）
     可用環境變數覆蓋:
-    PORTFOLIO_SELL_FEE_RATE_BASE, PORTFOLIO_SELL_FEE_DISCOUNT, PORTFOLIO_SELL_TAX_RATE
+    PORTFOLIO_SELL_FEE_RATE_BASE, PORTFOLIO_SELL_FEE_DISCOUNT,
+    PORTFOLIO_SELL_TAX_RATE, PORTFOLIO_SELL_MIN_FEE
     """
     fee_rate_base = _env_decimal("PORTFOLIO_SELL_FEE_RATE_BASE", "0.001425")
     fee_discount = _env_decimal("PORTFOLIO_SELL_FEE_DISCOUNT", "0.28")
     tax_rate = _env_decimal("PORTFOLIO_SELL_TAX_RATE", "0.001")
+    min_fee = _env_decimal("PORTFOLIO_SELL_MIN_FEE", "1")
     fee = (gross_market_value * fee_rate_base * fee_discount).quantize(Decimal("1"), rounding=ROUND_DOWN)
+    if gross_market_value > 0:
+        fee = max(fee, min_fee)
     tax = (gross_market_value * tax_rate).quantize(Decimal("1"), rounding=ROUND_DOWN)
     return fee + tax
 
@@ -85,9 +231,15 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
     """
     with tracer.start_as_current_span("calculate_portfolio_summary") as span:
         # 1. 取得所有交易紀錄
-        transactions = db.query(models.Transaction).order_by(models.Transaction.trade_date).all()
+        transactions = db.query(models.Transaction).order_by(models.Transaction.trade_date, models.Transaction.id).all()
         # 2. 取得所有股利紀錄
         dividends = db.query(models.Dividend).all()
+        active_holdings = _aggregate_active_holdings(transactions)
+        active_symbols = list(active_holdings.keys())
+
+        span.set_attribute("portfolio.transaction_count", len(transactions))
+        span.set_attribute("portfolio.dividend_count", len(dividends))
+        span.set_attribute("portfolio.active_symbol_count", len(active_symbols))
 
         # 整理每檔股票的狀態
         holdings_map = {}
@@ -97,10 +249,10 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
         dividend_map = {}
         for d in dividends:
             symbol = sanitize_symbol(d.symbol)
-            dividend_map[symbol] = dividend_map.get(symbol, Decimal("0.0")) + Decimal(str(d.amount))
+            dividend_map[symbol] = dividend_map.get(symbol, Decimal("0.0")) + d.amount
             # XIRR: dividend inflow
             cf_date = d.ex_dividend_date.date() if hasattr(d.ex_dividend_date, 'date') else d.ex_dividend_date
-            cashflows_map.setdefault(symbol, []).append((cf_date, Decimal(str(d.amount))))
+            cashflows_map.setdefault(symbol, []).append((cf_date, d.amount))
 
         # 交易統計 (計算平均成本與持股數)
         for t in transactions:
@@ -118,12 +270,12 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             if t.type == models.TransactionType.BUY:
                 h["total_quantity"] += t.quantity
                 # 買入總成本 = (單價 * 股數) + 手續費
-                h["total_cost"] += (Decimal(t.quantity) * Decimal(str(t.price))) + Decimal(str(t.fee or "0.0"))
+                h["total_cost"] += (Decimal(t.quantity) * t.price) + (t.fee or Decimal("0.0"))
                 # 成交均價口徑(不含手續費)
-                h["total_cost_ex_fee"] += (Decimal(t.quantity) * Decimal(str(t.price)))
+                h["total_cost_ex_fee"] += (Decimal(t.quantity) * t.price)
                 # XIRR: buy outflow
                 cf_date = t.trade_date.date() if hasattr(t.trade_date, 'date') else t.trade_date
-                outflow = -((Decimal(t.quantity) * Decimal(str(t.price))) + Decimal(str(t.fee or "0.0")) + Decimal(str(t.tax or "0.0")))
+                outflow = -((Decimal(t.quantity) * t.price) + (t.fee or Decimal("0.0")) + (t.tax or Decimal("0.0")))
                 cashflows_map.setdefault(symbol, []).append((cf_date, outflow))
             elif t.type == models.TransactionType.SELL:
                 if h["total_quantity"] > 0:
@@ -135,16 +287,16 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                     h["total_cost_ex_fee"] -= (Decimal(t.quantity) * avg_unit_cost_ex_fee)
                     # XIRR: sell inflow
                     cf_date = t.trade_date.date() if hasattr(t.trade_date, 'date') else t.trade_date
-                    inflow = (Decimal(t.quantity) * Decimal(str(t.price))) - Decimal(str(t.fee or "0.0")) - Decimal(str(t.tax or "0.0"))
+                    inflow = (Decimal(t.quantity) * t.price) - (t.fee or Decimal("0.0")) - (t.tax or Decimal("0.0"))
                     cashflows_map.setdefault(symbol, []).append((cf_date, inflow))
                 else:
                     pass
 
-        # 只顯示還有持股的股票
-        active_symbols = [s for s, h in holdings_map.items() if h["total_quantity"] > 0]
-        
         # 3. 取得即時報價
         quotes = get_stock_quotes(active_symbols)
+        quote_status = _get_quote_status(active_symbols, quotes)
+        span.set_attribute("portfolio.quote_count", len(quotes))
+        span.set_attribute("portfolio.quote_status", quote_status)
 
         holdings_list = []
         total_market_value = Decimal("0.0")
@@ -239,13 +391,17 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             total_day_pnl=total_day_pnl.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             total_dividends=total_dividends.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             holdings=holdings_list,
-            portfolio_xirr=portfolio_xirr
+            portfolio_xirr=portfolio_xirr,
+            quotes_status=quote_status,
         )
 
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     # Task 2: 清理 symbol
     transaction_data = transaction.model_dump()
     transaction_data["symbol"] = sanitize_symbol(transaction_data["symbol"])
+    transaction_data["trade_date"] = transaction_data.get("trade_date") or datetime.now(timezone.utc)
+
+    _validate_transaction_ledger(db, transaction_data)
     
     db_transaction = models.Transaction(**transaction_data)
     db.add(db_transaction)
@@ -264,13 +420,38 @@ def create_dividend(db: Session, dividend: schemas.DividendCreate):
     db.refresh(db_dividend)
     return db_dividend
 
+
+def list_transactions(
+    db: Session,
+    limit: int = 200,
+    offset: int = 0,
+    symbol: Optional[str] = None,
+):
+    query = db.query(models.Transaction)
+    if symbol:
+        normalized_symbol = sanitize_symbol(symbol)
+        query = query.filter(models.Transaction.symbol == normalized_symbol)
+
+    return (
+        query.order_by(models.Transaction.trade_date.desc(), models.Transaction.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
 def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionCreate):
     db_transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
     if not db_transaction:
         return None
     
-    update_data = transaction_update.model_dump()
+    update_data = transaction_update.model_dump(exclude_unset=True)
     update_data["symbol"] = sanitize_symbol(update_data["symbol"])
+    if "trade_date" in update_data:
+        update_data["trade_date"] = update_data["trade_date"] or db_transaction.trade_date
+    else:
+        update_data["trade_date"] = db_transaction.trade_date
+
+    _validate_transaction_ledger(db, update_data, existing_transaction=db_transaction)
     
     for key, value in update_data.items():
         setattr(db_transaction, key, value)
@@ -287,12 +468,31 @@ def delete_transaction(db: Session, transaction_id: int):
     db.commit()
     return True
 
+
+def list_dividends(
+    db: Session,
+    limit: int = 200,
+    offset: int = 0,
+    symbol: Optional[str] = None,
+):
+    query = db.query(models.Dividend)
+    if symbol:
+        normalized_symbol = sanitize_symbol(symbol)
+        query = query.filter(models.Dividend.symbol == normalized_symbol)
+
+    return (
+        query.order_by(models.Dividend.ex_dividend_date.desc(), models.Dividend.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
 def update_dividend(db: Session, dividend_id: int, dividend_update: schemas.DividendCreate):
     db_dividend = db.query(models.Dividend).filter(models.Dividend.id == dividend_id).first()
     if not db_dividend:
         return None
     
-    update_data = dividend_update.model_dump()
+    update_data = dividend_update.model_dump(exclude_unset=True)
     update_data["symbol"] = sanitize_symbol(update_data["symbol"])
     
     for key, value in update_data.items():

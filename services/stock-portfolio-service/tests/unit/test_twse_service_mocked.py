@@ -1,13 +1,18 @@
+"""Mocked TWSE unit tests that stay in the default test run."""
+
+import pytest
 import unittest
 from decimal import Decimal
 from unittest.mock import patch
 
+from app.services.twse_client import reset_twse_client_state
 from app.services.twse_service import fetch_raw_quotes, get_stock_quotes, parse_twse_msg_array
 
 
 class _FakeResponse:
     def __init__(self, text: str):
         self.text = text
+        self.status_code = 200
 
     def raise_for_status(self):
         return None
@@ -16,8 +21,11 @@ class _FakeResponse:
 SAMPLE_TWSE_JSON = """{"msgArray":[{"c":"0050","n":"元大台灣50","z":"81.1500","y":"81.1000","t":"13:30:00"},{"c":"00919","n":"群益台灣精選高息","z":"24.6000","y":"24.2700","t":"13:30:00"}],"rtcode":"0000"}"""
 
 
-class TestTWSEServiceE2E(unittest.TestCase):
-    @patch("app.services.twse_service.requests.get")
+class TestTWSEServiceMocked(unittest.TestCase):
+    def setUp(self):
+        reset_twse_client_state()
+
+    @patch("app.services.twse_client.requests.get")
     def test_fetch_raw_quotes_from_text(self, mock_get):
         mock_get.return_value = _FakeResponse("\ufeffcallback(" + SAMPLE_TWSE_JSON + ");")
         data = fetch_raw_quotes(["0050.TW", "00919"])
@@ -34,7 +42,7 @@ class TestTWSEServiceE2E(unittest.TestCase):
         self.assertEqual(parsed["0050"]["current_price"], Decimal("81.1500"))
         self.assertEqual(parsed["00919"]["yesterday_close"], Decimal("24.2700"))
 
-    @patch("app.services.twse_service.requests.get")
+    @patch("app.services.twse_client.requests.get")
     def test_get_stock_quotes(self, mock_get):
         mock_get.return_value = _FakeResponse("callback(" + SAMPLE_TWSE_JSON + ");")
         quotes = get_stock_quotes(["0050.TW", "00919"])

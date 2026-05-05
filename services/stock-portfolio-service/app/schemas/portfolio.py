@@ -1,50 +1,87 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from datetime import datetime, date
-from typing import List, Optional
+from typing import List, Literal, Optional
 from enum import Enum
 from decimal import Decimal
+
+
+def _normalize_symbol(value: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError("symbol must be a string")
+
+    normalized = value.split('.')[0].strip().upper()
+    if not normalized:
+        raise ValueError("symbol must not be blank")
+
+    return normalized
 
 class TransactionType(str, Enum):
     BUY = "BUY"
     SELL = "SELL"
 
 class TransactionBase(BaseModel):
+    """Shared fields for transaction read/write.
+
+    NOTE: ``decimal_places`` is intentionally NOT enforced here. Pydantic
+    *rejects* Decimals with more than the declared precision rather than
+    rounding them, which would crash the GET response if a high-precision
+    value ever reached this layer. Strict precision is enforced on
+    ``TransactionCreate`` (the input edge) and at the DB layer via
+    ``NUMERIC(12, 2)``. This class stays permissive on output.
+    """
+
     symbol: str
     name: Optional[str] = None
     type: TransactionType
     quantity: int
-    price: Decimal = Field(..., decimal_places=2)
+    price: Decimal
     trade_date: Optional[datetime] = None
-    fee: Decimal = Field(default=Decimal("0.0"), decimal_places=2)
-    tax: Decimal = Field(default=Decimal("0.0"), decimal_places=2)
+    fee: Decimal = Decimal("0.0")
+    tax: Decimal = Decimal("0.0")
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        return _normalize_symbol(value)
 
 class TransactionCreate(TransactionBase):
-    pass
+    quantity: int = Field(..., gt=0)
+    price: Decimal = Field(..., gt=Decimal("0"), decimal_places=2)
+    fee: Decimal = Field(default=Decimal("0.0"), ge=Decimal("0"), decimal_places=2)
+    tax: Decimal = Field(default=Decimal("0.0"), ge=Decimal("0"), decimal_places=2)
 
 class Transaction(TransactionBase):
     id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DividendBase(BaseModel):
+    """Shared fields for dividend read/write.
+
+    See ``TransactionBase`` for the rationale on omitting ``decimal_places``.
+    """
+
     symbol: str
-    amount: Decimal = Field(..., decimal_places=2)
+    amount: Decimal
     ex_dividend_date: datetime
     received_date: Optional[datetime] = None
 
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        return _normalize_symbol(value)
+
 class DividendCreate(DividendBase):
-    pass
+    amount: Decimal = Field(..., gt=Decimal("0"), decimal_places=2)
 
 class Dividend(DividendBase):
     id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- 計算後的模型 ---
 
@@ -73,6 +110,7 @@ class PortfolioSummary(BaseModel):
     total_dividends: Decimal
     holdings: List[StockHolding]
     portfolio_xirr: Optional[Decimal] = None          # 整體投資組合年化報酬率
+    quotes_status: Literal["ok", "partial", "unavailable"] = "ok"
 
 
 class ExDividendRecord(BaseModel):

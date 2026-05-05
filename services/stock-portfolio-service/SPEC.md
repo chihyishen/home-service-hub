@@ -5,9 +5,10 @@
 
 ## 2. 技術棧
 - **後端**: FastAPI (Python 3.13)
-- **資料庫**: PostgreSQL (透過 SQLAlchemy ORM)
+- **資料庫**: PostgreSQL (透過 SQLAlchemy ORM, 欄位採 `Numeric(12, 2)`)
 - **運算**: 全面採用 `decimal.Decimal` 確保金錢運算精確至小數點後兩位。
 - **追蹤**: 整合 OpenTelemetry 與 Jaeger/Tempo。
+- **安全性**: 使用 `truststore` 注入作業系統根憑證至 SSL 模組，此為服務進程全局行為，影響服務內所有 HTTPS 客戶端 (含 TWSE 與 OTLP 輸出)。
 
 ## 3. 損益計算邏輯
 
@@ -17,8 +18,9 @@
 
 ### 3.2 估算賣出成本 (券商口徑)
 為了貼近真實損益，系統會預估賣出時產生的成本：
-- **手續費**: `市值 * 0.1425% * 折扣` (預設 2.8 折)。
-- **證交稅**: `市值 * 0.1%` (採 ETF 通用稅率)。
+- **手續費**: `市值 * 0.1425% * 折扣` (預設 2.8 折)，採整數元無條件捨去。
+- **最低手續費**: 1 元 (國泰證券 2.8 折期間電子下單低消)。可透過 `PORTFOLIO_SELL_MIN_FEE` 覆寫；設為 `0` 即停用。
+- **證交稅**: `市值 * 0.1%` (採 ETF 通用稅率)，採整數元無條件捨去。
 - **淨市值**: `毛市值 - (估算手續費 + 估算證交稅)`。
 
 ### 3.3 損益維度
@@ -36,9 +38,15 @@
 ### 4.2 交易管理
 - `GET/POST /api/portfolio/transactions`: 交易紀錄 CRUD。
 - **代碼處理**: 自動移除 `.TW` 或 `.TWO` 後綴，統一存為純數字。
+- `GET /api/portfolio/transactions` 支援 additive query params: `limit`、`offset`、`symbol`。
 
 ### 4.3 股利管理
 - `GET/POST /api/portfolio/dividends`: 股利領取紀錄管理。
+- `GET /api/portfolio/dividends` 支援 additive query params: `limit`、`offset`、`symbol`。
+
+### 4.4 股利追蹤語意
+- `PortfolioSummary.total_dividends` 代表投資生涯累計已領股利，包含已平倉部位的股利。
+- 單一持股的 `total_dividends` 也代表該股票歷史累計股利，不因目前是否仍持有而歸零。
 
 ## 5. 前端功能
 - **Dashboard**: 即時更新損益，支援一鍵切換「含息/不含息」顯示模式。
@@ -48,3 +56,4 @@
 - `STOCK_DB`: 資料庫名稱。
 - `PORTFOLIO_SELL_FEE_DISCOUNT`: 券商手續費折扣 (預設 0.28)。
 - `PORTFOLIO_SELL_TAX_RATE`: 預估交易稅率 (預設 0.001)。
+- `PORTFOLIO_SELL_MIN_FEE`: 最低手續費 (預設 1 元；設為 0 停用)。
