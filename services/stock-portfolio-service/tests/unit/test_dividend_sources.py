@@ -9,46 +9,67 @@ import pytest
 from app.services.dividend_sources import twse_twt48u, twse_twt49u, tpex_otc
 
 
-# ---------- TWT48U ----------
+# ---------- TWT48U (TWT48U_ALL OpenAPI — English-keyed schema) ----------
+# TWSE migrated the dataset from /exchangeReport/TWT48U (Chinese keys,
+# slash-delimited ROC dates) to /exchangeReport/TWT48U_ALL: English keys
+# (Code/Date/Exdividend/CashDividend/StockDividendRatio) and 7-digit ROC
+# dates with no separators ("1150602" == ROC 115/06/02 == 2026-06-02).
 
-def test_twt48u_parses_payload():
+def test_twt48u_parses_cash_dividend_event():
     payload = [
         {
-            "股票代號": "2330",
-            "名稱": "台積電",
-            "除息交易日": "115/06/15",
-            "除權交易日": "",
-            "最近一次配息": "13",
-            "最近一次配股": "",
+            "Date": "1150602",
+            "Code": "00939",
+            "Name": "統一台灣高息動能",
+            "Exdividend": "息",
+            "CashDividend": "0.072000",
+            "StockDividendRatio": "",
         }
     ]
     rows = twse_twt48u.parse_twt48u(payload)
     assert len(rows) == 1
-    assert rows[0].symbol == "2330"
-    assert rows[0].ex_dividend_date == date(2026, 6, 15)
-    assert rows[0].cash_dividend == Decimal("13")
+    assert rows[0].symbol == "00939"
+    assert rows[0].ex_dividend_date == date(2026, 6, 2)
+    assert rows[0].cash_dividend == Decimal("0.072000")
     assert rows[0].stock_dividend is None
     assert rows[0].source == "TWSE_TWT48U"
 
 
+def test_twt48u_parses_rights_event():
+    payload = [
+        {
+            "Date": "1150611",
+            "Code": "1312",
+            "Name": "國喬",
+            "Exdividend": "權",
+            "CashDividend": "0",
+            "StockDividendRatio": "0.5",
+        }
+    ]
+    rows = twse_twt48u.parse_twt48u(payload)
+    assert rows[0].symbol == "1312"
+    assert rows[0].ex_dividend_date == date(2026, 6, 11)
+    assert rows[0].cash_dividend is None
+    assert rows[0].stock_dividend == Decimal("0.5")
+
+
 def test_twt48u_skips_when_no_date():
-    payload = [{"股票代號": "2330", "除息交易日": "", "除權交易日": ""}]
+    payload = [{"Code": "2330", "Date": "", "Exdividend": "息"}]
     assert twse_twt48u.parse_twt48u(payload) == []
 
 
 def test_twt48u_skips_when_no_symbol():
-    payload = [{"股票代號": "", "除息交易日": "115/06/15"}]
+    payload = [{"Code": "", "Date": "1150615", "CashDividend": "13"}]
     assert twse_twt48u.parse_twt48u(payload) == []
 
 
-def test_twt48u_falls_back_to_ex_rights_date():
-    payload = [{
-        "股票代號": "2330", "除息交易日": "",
-        "除權交易日": "115/06/16", "最近一次配股": "0.5",
-    }]
+def test_twt48u_accepts_bytes():
+    payload = json.dumps([
+        {"Code": "2330", "Date": "1150615", "Exdividend": "息", "CashDividend": "13"}
+    ]).encode("utf-8")
     rows = twse_twt48u.parse_twt48u(payload)
-    assert rows[0].ex_dividend_date == date(2026, 6, 16)
-    assert rows[0].stock_dividend == Decimal("0.5")
+    assert len(rows) == 1
+    assert rows[0].ex_dividend_date == date(2026, 6, 15)
 
 
 # ---------- TWT49U ----------
@@ -89,6 +110,18 @@ def test_twt49u_western_year_format():
     payload = [{"公司代號": "2330", "除權息日期": "2026/06/15", "現金股利": "13"}]
     rows = twse_twt49u.parse_twt49u(payload)
     assert rows[0].ex_dividend_date == date(2026, 6, 15)
+
+
+def test_twt49u_fetch_is_deprecated_no_network(monkeypatch):
+    """TWSE removed the standalone TWT49U endpoint (now 404); 除息/除權 are
+    both covered by TWT48U_ALL. fetch_twt49u must short-circuit to [] and
+    never touch the network."""
+    def _boom(*args, **kwargs):
+        raise AssertionError("fetch_twt49u must not perform network I/O")
+
+    monkeypatch.setattr(twse_twt49u, "_http_get", _boom)
+    assert twse_twt49u.fetch_twt49u() == []
+    assert twse_twt49u.fetch_twt49u(2026) == []
 
 
 # ---------- TPEx OTC ----------

@@ -109,11 +109,9 @@ def _extract_list_from_dict(payload: dict) -> list:
 
 
 def fetch_twt49u(year: Optional[int] = None) -> list[DividendEventRow]:
-    payload = _http_get(URL, {"response": "json"})
-    if payload is None:
-        return []
-    try:
-        return parse_twt49u(payload)
-    except (ValueError, json.JSONDecodeError) as exc:
-        logger.error("Failed to parse TWT49U: %s", exc)
-        return []
+    """Deprecated: TWSE removed the standalone TWT49U OpenAPI endpoint (now
+    404). Both ex-dividend (息) and ex-rights (權) events are covered by
+    TWT48U_ALL (see ``twse_twt48u``), so this short-circuits to ``[]`` with
+    no network I/O. ``parse_twt49u`` is retained for any historical callers.
+    """
+    return []
