@@ -3,18 +3,100 @@ export enum TransactionType {
   SELL = 'SELL'
 }
 
+export type PositionSide = 'LONG' | 'SHORT';
+
 export interface Transaction {
   id: number;
   symbol: string;
   name?: string;
   type: TransactionType;
+  position_side?: PositionSide;
   quantity: number;
   price: number;
   trade_date?: string | Date;
   fee: number;
   tax: number;
+  is_day_trade?: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export type ImportKind = 'transactions' | 'dividends';
+
+export interface ImportRow {
+  row_index: number;
+  fingerprint: string;
+  payload: Record<string, string | null>;
+}
+
+export interface ImportError {
+  row_index: number;
+  message: string;
+}
+
+export interface UnresolvedName {
+  name: string;
+  occurrences: number;
+  sample_dates: string[];
+}
+
+export type OverrideStatus =
+  | 'verified'
+  | 'name_mismatch'
+  | 'not_traded_on_date'
+  | 'fetch_failed'
+  | 'user_overridden';
+
+export interface OverrideValidation {
+  name: string;
+  code: string;
+  status: OverrideStatus;
+  expected_name?: string | null;
+  fetched_name?: string | null;
+}
+
+export interface ImportResult {
+  parsed: number;
+  created: number;
+  skipped_duplicates: number;
+  rehashed?: number;
+  would_rehash?: number;
+  would_insert?: number;
+  would_skip_duplicate?: number;
+  skipped_unresolved?: number;
+  skipped_unverified?: number;
+  unresolved_names?: UnresolvedName[];
+  override_validations?: OverrideValidation[];
+  dry_run: boolean;
+  errors: ImportError[];
+  created_ids: number[];
+  rows: ImportRow[];
+  recalc_scheduled?: boolean;
+}
+
+export interface RecalcStepStatus {
+  name: string;
+  status: 'ok' | 'failed' | 'skipped' | 'partial';
+  detail?: Record<string, unknown>;
+  error?: string | null;
+}
+
+export interface RecalcStatus {
+  state: 'idle' | 'running' | 'completed' | 'partial' | 'failed';
+  started_at?: string;
+  finished_at?: string | null;
+  recalc_from?: string | null;
+  recalc_to?: string | null;
+  touched_symbols?: string[];
+  current_step?: string | null;
+  steps?: RecalcStepStatus[];
+}
+
+export interface RecalcTriggerResponse {
+  recalc_scheduled: boolean;
+  start_date: string;
+  end_date: string;
+  touched_symbols: string[];
 }
 
 export interface Dividend {
@@ -23,8 +105,26 @@ export interface Dividend {
   amount: number;
   ex_dividend_date: string | Date;
   received_date?: string | Date;
+  fee?: number;
+  tax?: number;
+  cash_dividend_per_share?: number;
+  stock_dividend_shares?: number;
+  source?: string;
+  quantity_at_record_date?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UpcomingEvent {
+  date: string;
+  symbol: string;
+  name?: string;
+  type: 'CASH_DIV' | 'STOCK_DIV' | 'BOTH' | 'FACE_VALUE';
+  cash_dividend?: string;
+  stock_dividend_shares?: string;
+  ratio?: string;
+  reference_price_change?: string;
+  source?: string;
 }
 
 export interface StockHolding {
@@ -51,8 +151,29 @@ export interface PortfolioSummary {
   total_unrealized_pnl_percent: number;
   total_day_pnl: number;
   total_dividends: number;
+  total_realized_pnl: number;     // 累積已實現損益（含當沖）
   holdings: StockHolding[];
   portfolio_xirr?: number;    // 整體投資組合年化報酬率
+}
+
+export interface NetworthPoint {
+  date: string;
+  total_market_value: string;
+  total_cost: string;
+  total_unrealized_pnl: string;
+  total_dividends: string;
+  total_realized_pnl: string;
+  portfolio_xirr: string | null;
+}
+
+export interface CorporateAction {
+  id: number;
+  symbol: string;
+  effective_date: string;
+  action_type: string;
+  ratio: string;
+  source: string;
+  source_event_key: string;
 }
 
 export interface ExDividendRecord {
@@ -63,3 +184,66 @@ export interface ExDividendRecord {
   cash_dividend?: string;
   stock_dividend?: string;
 }
+
+export interface Paged<T> {
+  items: T[];
+  total: number;
+}
+
+export interface TransactionQuery {
+  offset?: number;
+  limit?: number;
+  symbol?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  side?: 'BUY' | 'SELL' | null;
+  sort?: string;
+}
+
+export interface DividendQuery {
+  offset?: number;
+  limit?: number;
+  symbol?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  source?: string | null;
+  sort?: string;
+}
+
+export interface RealizedPnlEvent {
+  trade_date: string;
+  symbol: string;
+  name: string | null;
+  quantity: number;
+  sell_price: string;
+  avg_cost_at_sale: string;
+  fee: string;
+  tax: string;
+  proceeds_gross: string;
+  proceeds_net: string;
+  cost_out: string;
+  realized_pnl: string;
+  is_day_trade: boolean;
+  position_side: PositionSide;
+  note: string | null;
+}
+
+export interface RealizedPnlSummary {
+  filter_scope_total: string;
+  filter_scope_count: number;
+  ytd_total: string;
+  ytd_count: number;
+}
+
+export interface RealizedPnlQuery {
+  offset?: number;
+  limit?: number;
+  symbol?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  year?: number | null;
+  day_trade_only?: boolean | null;
+  sort?: string;
+}
+
+export type RealizedPnlPaged = Paged<RealizedPnlEvent> & { summary: RealizedPnlSummary };

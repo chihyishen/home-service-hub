@@ -19,6 +19,12 @@ class TransactionType(str, Enum):
     BUY = "BUY"
     SELL = "SELL"
 
+
+class PositionSide(str, Enum):
+    LONG = "LONG"
+    SHORT = "SHORT"
+
+
 class TransactionBase(BaseModel):
     """Shared fields for transaction read/write.
 
@@ -33,6 +39,7 @@ class TransactionBase(BaseModel):
     symbol: str
     name: Optional[str] = None
     type: TransactionType
+    position_side: PositionSide = PositionSide.LONG
     quantity: int
     price: Decimal
     trade_date: Optional[datetime] = None
@@ -52,6 +59,7 @@ class TransactionCreate(TransactionBase):
 
 class Transaction(TransactionBase):
     id: int
+    is_day_trade: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -67,6 +75,12 @@ class DividendBase(BaseModel):
     amount: Decimal
     ex_dividend_date: datetime
     received_date: Optional[datetime] = None
+    fee: Decimal = Decimal("0")
+    tax: Decimal = Decimal("0")
+    cash_dividend_per_share: Optional[Decimal] = None
+    stock_dividend_shares: int = 0
+    source: Optional[str] = None
+    quantity_at_record_date: Optional[Decimal] = None
 
     @field_validator("symbol")
     @classmethod
@@ -75,6 +89,9 @@ class DividendBase(BaseModel):
 
 class DividendCreate(DividendBase):
     amount: Decimal = Field(..., gt=Decimal("0"), decimal_places=2)
+    fee: Decimal = Field(default=Decimal("0"), ge=Decimal("0"), decimal_places=2)
+    tax: Decimal = Field(default=Decimal("0"), ge=Decimal("0"), decimal_places=2)
+    stock_dividend_shares: int = Field(default=0, ge=0)
 
 class Dividend(DividendBase):
     id: int
@@ -108,6 +125,7 @@ class PortfolioSummary(BaseModel):
     total_unrealized_pnl_percent: Decimal
     total_day_pnl: Decimal = Decimal("0.0")          # 投資組合今日總損益
     total_dividends: Decimal
+    total_realized_pnl: Decimal = Decimal("0.0")     # 累積已實現損益（含當沖）
     holdings: List[StockHolding]
     portfolio_xirr: Optional[Decimal] = None          # 整體投資組合年化報酬率
     quotes_status: Literal["ok", "partial", "unavailable"] = "ok"
@@ -120,3 +138,19 @@ class ExDividendRecord(BaseModel):
     ex_rights_date: Optional[date] = None       # 除權日
     cash_dividend: Optional[str] = None         # 現金股利（字串保留原始精度）
     stock_dividend: Optional[str] = None        # 股票股利
+
+
+# Sort field allowlists for paginated list endpoints. Server validates the
+# `sort` query param against these; UI option keys must be a subset.
+TransactionSortField = Literal["trade_date", "symbol", "type", "price", "quantity"]
+DividendSortField = Literal["ex_dividend_date", "symbol", "amount", "source"]
+
+
+class PagedTransactions(BaseModel):
+    items: List[Transaction]
+    total: int
+
+
+class PagedDividends(BaseModel):
+    items: List[Dividend]
+    total: int
