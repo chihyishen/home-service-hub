@@ -1,0 +1,28 @@
+name: Alembic migration integrity
+
+# Guards every Python service against duplicate revision IDs and multiple
+# heads — the failure modes that surface when PRs are merged or reordered
+# independently. Pure migration-graph inspection: no database required.
+
+on:
+  push:
+    paths:
+      - "services/*/alembic/**"
+      - "scripts/check_alembic_heads.py"
+      - ".github/workflows/alembic-heads.yml"
+  pull_request:
+    paths:
+      - "services/*/alembic/**"
+      - "scripts/check_alembic_heads.py"
+      - ".github/workflows/alembic-heads.yml"
+
+jobs:
+  alembic-heads:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install alembic
+      - run: python scripts/check_alembic_heads.py
