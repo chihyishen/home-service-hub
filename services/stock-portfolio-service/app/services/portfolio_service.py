@@ -7,11 +7,14 @@ _ONE_DAY = timedelta(days=1)
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 import math
 import os
+import logging
 from ..models import portfolio as models
 from ..models.corporate_action import CorporateAction
 from ..schemas import portfolio as schemas
 from .twse_service import get_stock_quotes
 from . import symbol_map_service
+
+logger = logging.getLogger(__name__)
 from shared_lib import get_tracer
 tracer = get_tracer("stock-portfolio-service")
 
@@ -430,6 +433,17 @@ def get_active_holdings(db: Session) -> Dict[str, Dict[str, object]]:
     return _aggregate_active_holdings(transactions, _load_corp_actions_by_symbol(db))
 
 
+def get_ever_held_symbols(db: Session) -> set:
+    """Every symbol the user has ever transacted or received a dividend for.
+
+    This is the allow-list for ``price_history``: a symbol stays in scope
+    even after it is fully sold, so its chart history remains available.
+    """
+    tx_symbols = db.query(models.Transaction.symbol).distinct()
+    dv_symbols = db.query(models.Dividend.symbol).distinct()
+    return {s for (s,) in tx_symbols} | {s for (s,) in dv_symbols}
+
+
 def _get_quote_status(active_symbols: List[str], quotes: Dict[str, Dict]) -> str:
     if not active_symbols:
         return "ok"
@@ -682,6 +696,43 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             quotes_status=quote_status,
         )
 
+def _schedule_symbol_history_backfill(symbol: str, from_date) -> None:
+    """Fire-and-forget per-symbol price-history backfill in a daemon thread.
+
+    No-op when ``SYMBOL_HISTORY_AUTOBACKFILL`` is falsy (the test suite and
+    any deployment that disables it) so we never spawn network threads where
+    they are not wanted. Runs in its own ``SessionLocal`` because the request
+    session must not be touched from another thread.
+    """
+    if os.getenv("SYMBOL_HISTORY_AUTOBACKFILL", "true").lower() in {"false", "0", "no"}:
+        return None
+
+    import threading
+
+    def _run() -> None:
+        from ..database import SessionLocal
+        from . import symbol_history_service
+
+        db = SessionLocal()
+        try:
+            today = datetime.now(timezone.utc).date()
+            written = symbol_history_service.backfill_symbol_history(
+                db, symbol, from_date, today
+            )
+            logger.info(
+                "symbol_history.autobackfill_done symbol=%s rows=%s", symbol, written
+            )
+        except Exception:  # noqa: BLE001 — background best-effort
+            logger.exception("symbol_history.autobackfill_failed symbol=%s", symbol)
+        finally:
+            db.close()
+
+    threading.Thread(
+        target=_run, name=f"history-backfill-{symbol}", daemon=True
+    ).start()
+    return None
+
+
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     # Task 2: 清理 symbol
     transaction_data = transaction.model_dump()
@@ -693,6 +744,16 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
 
     _validate_transaction_ledger(db, transaction_data)
 
+    # A symbol with no prior transaction is new to the portfolio; its price
+    # history must be backfilled separately (the full-market cron skips dates
+    # already covered by other symbols).
+    is_new_symbol = (
+        db.query(models.Transaction.id)
+        .filter(models.Transaction.symbol == transaction_data["symbol"])
+        .first()
+        is None
+    )
+
     db_transaction = models.Transaction(**transaction_data)
     db.add(db_transaction)
     db.flush()
@@ -703,6 +764,11 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     )
     db.commit()
     db.refresh(db_transaction)
+
+    if is_new_symbol:
+        _schedule_symbol_history_backfill(
+            db_transaction.symbol, _trade_calendar_date(db_transaction.trade_date)
+        )
     return db_transaction
 
 def create_dividend(db: Session, dividend: schemas.DividendCreate):

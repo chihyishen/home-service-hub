@@ -346,6 +346,17 @@ def fetch_tpex_date(date: dt_date) -> list[DailyPriceRow]:
 # ---------- Persistence ----------
 
 
+def filter_rows_to_symbols(
+    rows: Iterable[DailyPriceRow], symbols: set
+) -> list[DailyPriceRow]:
+    """Keep only rows whose symbol is in ``symbols`` (the ever-held set).
+
+    TWSE/TPEx return the whole market per day; we only ever read held
+    symbols, so everything else is dropped before it hits the database.
+    """
+    return [row for row in rows if row.symbol in symbols]
+
+
 def upsert_rows(db: Session, rows: Iterable[DailyPriceRow]) -> int:
     """Insert-or-update via composite-PK upsert. Returns count written.
 
@@ -406,7 +417,11 @@ def backfill_date(db: Session, date: dt_date, *, market: str = "BOTH") -> dict:
         twse_rows = fetch_twse_date(date)
     if market in {"TPEX", "BOTH"}:
         tpex_rows = fetch_tpex_date(date)
-    written = upsert_rows(db, [*twse_rows, *tpex_rows])
+    from . import portfolio_service
+
+    ever_held = portfolio_service.get_ever_held_symbols(db)
+    kept = filter_rows_to_symbols([*twse_rows, *tpex_rows], ever_held)
+    written = upsert_rows(db, kept)
     return {
         "date": date.isoformat(),
         "market": market,

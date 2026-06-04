@@ -1,6 +1,7 @@
 import os
 
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
+os.environ.setdefault("SYMBOL_HISTORY_AUTOBACKFILL", "false")
 
 import pytest
 from fastapi.testclient import TestClient

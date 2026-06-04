@@ -39,6 +39,7 @@ from ..models.portfolio import PositionSide
 from ..models.portfolio_snapshot import PortfolioSnapshot
 from ..models.price_history import PriceHistory
 from . import market_data_service
+from . import portfolio_service
 from .portfolio_service import _load_adjusted_transactions
 from .realized_pnl_service import iter_realized_events
 
@@ -323,6 +324,7 @@ def backfill_prices_range(
     # per-date wall time without raising rate-limit pressure (still one
     # request per second to each host).
     pool = ThreadPoolExecutor(max_workers=2)
+    ever_held = portfolio_service.get_ever_held_symbols(db)
     try:
         for date in _iter_trading_days(from_d, to_d):
             if active_dates is not None and date not in active_dates:
@@ -404,7 +406,10 @@ def backfill_prices_range(
                 continue
 
             try:
-                written = market_data_service.upsert_rows(db, [*twse_rows, *tpex_rows])
+                kept = market_data_service.filter_rows_to_symbols(
+                    [*twse_rows, *tpex_rows], ever_held
+                )
+                written = market_data_service.upsert_rows(db, kept)
             except Exception as exc:  # noqa: BLE001
                 db.rollback()
                 logger.exception(

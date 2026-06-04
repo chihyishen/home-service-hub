@@ -1,17 +1,40 @@
 """Market-data parsers, upsert idempotency, and history endpoint."""
 
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
 
 from app.models.price_history import PriceHistory
+from app.schemas import portfolio as schemas
 from app.services import market_data_service as svc
+from app.services import portfolio_service
 
 
 TRADING_DAY = date(2026, 5, 14)
+
+
+def _seed_ever_held(db, *symbols):
+    """Make symbols 'ever held' so backfill_date persists their rows.
+
+    backfill_date only stores ever-held symbols, so tests that assert rows
+    were written must first establish a holding for those symbols.
+    """
+    for sym in symbols:
+        portfolio_service.create_transaction(
+            db,
+            schemas.TransactionCreate(
+                symbol=sym,
+                type=schemas.TransactionType("BUY"),
+                quantity=1,
+                price=Decimal("1.00"),
+                trade_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                fee=Decimal("0.00"),
+                tax=Decimal("0.00"),
+            ),
+        )
 
 
 def _twse_payload(*rows) -> dict:
@@ -198,6 +221,7 @@ def test_list_history_normalises_symbol_and_filters_range(db_session):
 
 
 def test_backfill_date_uses_mocked_fetchers(db_session):
+    _seed_ever_held(db_session, "2330", "3008")
     twse = [
         svc.DailyPriceRow(
             symbol="2330",
@@ -287,6 +311,7 @@ def test_history_endpoint_returns_range(client, db_session):
 
 
 def test_backfill_endpoint_triggers_service(client, db_session):
+    _seed_ever_held(db_session, "2330")
     fake = [
         svc.DailyPriceRow(
             symbol="2330", date=TRADING_DAY,

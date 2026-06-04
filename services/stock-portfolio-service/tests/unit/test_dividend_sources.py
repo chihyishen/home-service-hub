@@ -72,6 +72,42 @@ def test_twt48u_accepts_bytes():
     assert rows[0].ex_dividend_date == date(2026, 6, 15)
 
 
+class _FakeClient:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def fetch_exdividend_json(self, url):
+        return self._payload
+
+
+def test_twt48u_fetch_warns_when_snapshot_empty(monkeypatch, caplog):
+    """TWT48U_ALL returns the whole market (~hundreds of rows) on any
+    business day. An empty result means the upstream endpoint changed/broke
+    again (as TWT48U -> TWT48U_ALL did), so it must emit a loud signal
+    instead of silently returning []."""
+    import logging
+
+    monkeypatch.setattr(twse_twt48u, "get_twse_client", lambda: _FakeClient([]))
+    with caplog.at_level(logging.WARNING):
+        result = twse_twt48u.fetch_twt48u()
+    assert result == []
+    assert any(
+        "twt48u" in r.message.lower() and "empty" in r.message.lower()
+        for r in caplog.records
+    ), "expected an empty-snapshot warning"
+
+
+def test_twt48u_fetch_no_warning_on_normal_snapshot(monkeypatch, caplog):
+    import logging
+
+    payload = [{"Code": "00919", "Date": "1150616", "Exdividend": "息", "CashDividend": "0.6"}]
+    monkeypatch.setattr(twse_twt48u, "get_twse_client", lambda: _FakeClient(payload))
+    with caplog.at_level(logging.WARNING):
+        rows = twse_twt48u.fetch_twt48u()
+    assert len(rows) == 1
+    assert not any("empty" in r.message.lower() for r in caplog.records)
+
+
 # ---------- TWT49U ----------
 
 def test_twt49u_parses_payload():

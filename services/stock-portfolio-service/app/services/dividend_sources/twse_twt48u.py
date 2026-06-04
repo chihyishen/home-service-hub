@@ -96,4 +96,14 @@ def fetch_twt48u(year: Optional[int] = None) -> list[DividendEventRow]:
     except Exception as exc:  # noqa: BLE001 — network/parse failure must not kill the chain
         logger.error("Failed to fetch TWT48U_ALL: %s", exc)
         return []
+    if not raw:
+        # TWT48U_ALL returns the whole market on any business day; an empty
+        # payload means the endpoint changed or broke (as TWT48U did). Emit a
+        # loud signal so monitoring catches it instead of silently going blank.
+        logger.warning(
+            "twse_twt48u.empty_snapshot — TWT48U_ALL returned no rows; "
+            "the upstream OpenAPI endpoint (%s) may have changed",
+            URL,
+        )
+        return []
     return parse_twt48u(raw)
