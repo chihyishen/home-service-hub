@@ -10,6 +10,8 @@ import {
   ImportKind,
   ImportResult,
   NetworthPoint,
+  RecalcStatus,
+  RecalcTriggerResponse,
   CorporateAction,
   UpcomingEvent,
   Paged,
@@ -34,6 +36,18 @@ export class PortfolioService extends BaseApiService<Transaction> {
 
   getSummary(): Observable<PortfolioSummary> {
     return this.http.get<PortfolioSummary>('/api/portfolio/summary');
+  }
+
+  refreshQuotes(): Observable<{
+    refresh_scheduled: boolean;
+    date: string;
+    touched_symbols: string[];
+  } | null> {
+    return this.http.post<{
+      refresh_scheduled: boolean;
+      date: string;
+      touched_symbols: string[];
+    } | null>('/api/portfolio/imports/refresh-quotes', null);
   }
 
   getTransactions(query: TransactionQuery = {}): Observable<Paged<Transaction>> {
@@ -76,14 +90,67 @@ export class PortfolioService extends BaseApiService<Transaction> {
     return this.http.get<ExDividendRecord[]>('/api/portfolio/ex-dividends/upcoming');
   }
 
-  uploadCsv(kind: ImportKind, file: File, dryRun: boolean): Observable<ImportResult> {
+  verifyOverrideSymbol(
+    name: string,
+    code: string,
+    tradeDate: string,
+  ): Observable<{
+    name: string;
+    code: string;
+    status: 'verified' | 'name_mismatch' | 'not_traded_on_date' | 'fetch_failed' | 'user_overridden';
+    expected_name: string | null;
+    fetched_name: string | null;
+  }> {
+    return this.http.post<{
+      name: string;
+      code: string;
+      status:
+        | 'verified'
+        | 'name_mismatch'
+        | 'not_traded_on_date'
+        | 'fetch_failed'
+        | 'user_overridden';
+      expected_name: string | null;
+      fetched_name: string | null;
+    }>('/api/portfolio/imports/verify-symbol', {
+      name,
+      code,
+      trade_date: tradeDate,
+    });
+  }
+
+  uploadCsv(
+    kind: ImportKind,
+    file: File,
+    dryRun: boolean,
+    hasHeader: boolean = true,
+    nameOverrides?: Record<string, string>,
+    confirmedOverrides?: string[],
+  ): Observable<ImportResult> {
     const form = new FormData();
     form.append('file', file, file.name);
-    const url = `/api/portfolio/imports/${kind}?dry_run=${dryRun ? 'true' : 'false'}`;
+    if (nameOverrides && Object.keys(nameOverrides).length > 0) {
+      form.append('name_overrides', JSON.stringify(nameOverrides));
+    }
+    if (confirmedOverrides && confirmedOverrides.length > 0) {
+      form.append('confirmed_overrides', JSON.stringify(confirmedOverrides));
+    }
+    const url =
+      `/api/portfolio/imports/${kind}` +
+      `?dry_run=${dryRun ? 'true' : 'false'}` +
+      `&has_header=${hasHeader ? 'true' : 'false'}`;
     return this.http.post<ImportResult>(url, form);
   }
 
-  getNetworthHistory(from?: string, to?: string): Observable<NetworthPoint[]> {
+  getRecalcStatus(): Observable<RecalcStatus> {
+    return this.http.get<RecalcStatus>('/api/portfolio/imports/recalc/status');
+  }
+
+  triggerRecalc(range?: { start_date?: string; end_date?: string }): Observable<RecalcTriggerResponse> {
+    return this.http.post<RecalcTriggerResponse>('/api/portfolio/imports/recalc', range ?? {});
+  }
+
+  getNetworthHistory(from?: string, to?: string, interval: 'day' | 'week' | 'month' = 'day'): Observable<NetworthPoint[]> {
     let params: HttpParams | undefined;
 
     if (from) {
@@ -92,6 +159,10 @@ export class PortfolioService extends BaseApiService<Transaction> {
 
     if (to) {
       params = (params ?? new HttpParams()).set('to', to);
+    }
+
+    if (interval !== 'day') {
+      params = (params ?? new HttpParams()).set('interval', interval);
     }
 
     return this.http.get<NetworthPoint[]>('/api/portfolio/history', params ? { params } : {});

@@ -50,7 +50,7 @@ def test_parse_transactions_rejects_bad_header():
     ("row", "needle"),
     [
         (",BUY,10,600,2026-05-15T01:30:00Z,0,0,", "'symbol'"),
-        ("2330,HOLD,10,600,2026-05-15T01:30:00Z,0,0,", "BUY or SELL"),
+        ("2330,HOLD,10,600,2026-05-15T01:30:00Z,0,0,", "BUY/SELL"),
         ("2330,BUY,0,600,2026-05-15T01:30:00Z,0,0,", "positive"),
         ("2330,BUY,abc,600,2026-05-15T01:30:00Z,0,0,", "integer"),
         ("2330,BUY,10,-1,2026-05-15T01:30:00Z,0,0,", "positive"),
@@ -213,3 +213,204 @@ def test_endpoint_rejects_bad_header(client):
     body = response.json()
     error_text = body.get("detail") or body.get("message") or ""
     assert "header" in error_text
+
+
+# ---------- Localised headers + Chinese type values ----------
+
+
+def test_parse_transactions_accepts_chinese_headers():
+    raw = (
+        "代號,類別,股數,價格,交易日期,手續費,稅金,名稱\n"
+        "2330,買進,10,600.00,2026-05-15T01:30:00Z,28,0,台積電\n"
+        "0050,賣出,5,140.50,2026-05-15T02:00:00Z,5,14,\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert len(parsed.rows) == 2
+    assert parsed.rows[0].payload["type"] == "BUY"
+    assert parsed.rows[1].payload["type"] == "SELL"
+    assert parsed.rows[0].payload["symbol"] == "2330"
+
+
+def test_parse_transactions_mixes_english_and_chinese_columns():
+    raw = (
+        "代碼,type,股數,price,trade_date,fee,tax,name\n"
+        "2330,買,10,600,2026-05-15T01:30:00Z,28,0,\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert parsed.rows[0].payload["type"] == "BUY"
+
+
+def test_parse_transactions_ignores_unknown_extra_columns():
+    raw = (
+        "symbol,type,quantity,price,trade_date,fee,tax,name,備註\n"
+        "2330,BUY,10,600,2026-05-15T01:30:00Z,0,0,,broker-export\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert len(parsed.rows) == 1
+
+
+def test_parse_transactions_no_header_mode():
+    raw = b"2330,BUY,10,600.00,2026-05-15T01:30:00Z,28,0,\n"
+    parsed = import_service.parse_transactions_csv(raw, has_header=False)
+    assert parsed.errors == []
+    assert len(parsed.rows) == 1
+    assert parsed.rows[0].payload["symbol"] == "2330"
+
+
+def test_parse_dividends_accepts_chinese_headers():
+    raw = (
+        "代號,金額,除息日,入帳日\n"
+        "2330,3000,2026-06-12T00:00:00Z,2026-07-15T00:00:00Z\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_dividends_csv(raw)
+    assert parsed.errors == []
+    assert parsed.rows[0].payload["symbol"] == "2330"
+    assert parsed.rows[0].payload["amount"] == Decimal("3000")
+
+
+def test_endpoint_has_header_false_query(client):
+    raw = b"2330,BUY,10,600.00,2026-05-15T01:30:00Z,28,0,\n"
+    response = client.post(
+        "/api/portfolio/imports/transactions?has_header=false",
+        files={"file": ("tx.csv", BytesIO(raw), "text/csv")},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["created"] == 1
+
+
+# ---------------------------------------------------------------------------
+# order_id (委託書號) fingerprint disambiguation — fixes identical-fill collision.
+# ---------------------------------------------------------------------------
+
+
+def _fp(**kwargs) -> str:
+    """Helper: call _transaction_fingerprint with a fixed set of fingerprint inputs.
+
+    Overrides via **kwargs let each test mutate just the field it cares about.
+    """
+
+    base = dict(
+        symbol="0050",
+        type_="BUY",
+        quantity=1000,
+        price=Decimal("50.0000"),
+        trade_date=datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc),
+        fee=Decimal("0"),
+        tax=Decimal("0"),
+    )
+    base.update(kwargs)
+    return import_service._transaction_fingerprint(**base)
+
+
+def test_transaction_fingerprint_without_order_id_matches_legacy_canonical():
+    """Hash with no order_id == hash of the pre-feature canonical string format."""
+    from hashlib import sha256
+
+    legacy_canonical = "|".join(
+        (
+            import_service.SOURCE_TRANSACTIONS,
+            "0050",
+            "BUY",
+            "1000",
+            "50.0000",
+            datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc).isoformat(),
+            "0.0000",
+            "0.0000",
+        )
+    )
+    expected = sha256(legacy_canonical.encode("utf-8")).hexdigest()
+    assert _fp() == expected
+    assert _fp(order_id=None) == expected
+    assert _fp(order_id="") == expected
+
+
+def test_transaction_fingerprint_with_order_id_differs_from_legacy():
+    assert _fp() != _fp(order_id="OD-1")
+
+
+def test_transaction_fingerprint_distinct_order_ids_produce_distinct_hashes():
+    assert _fp(order_id="A") != _fp(order_id="B")
+
+
+def test_parse_transactions_identical_fills_with_distinct_order_ids():
+    raw = (
+        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-2\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert len(parsed.rows) == 2
+    assert parsed.rows[0].fingerprint != parsed.rows[1].fingerprint
+    assert parsed.rows[0].payload["order_id"] == "OD-1"
+    assert parsed.rows[1].payload["order_id"] == "OD-2"
+
+
+def test_parse_transactions_identical_fills_without_order_ids_collide(db_session):
+    """Documented limitation: identical same-day fills without order_id collide."""
+    raw = _tx_csv(
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,",
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,",
+    )
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert len(parsed.rows) == 2
+    # Both rows produce the same hash → commit dedupes the second.
+    assert parsed.rows[0].fingerprint == parsed.rows[1].fingerprint
+    result = import_service.commit_transactions(db_session, parsed, dry_run=False)
+    assert result.created == 1
+    assert result.skipped_duplicates == 1
+
+
+def test_parse_transactions_accepts_委託書號_synonym():
+    raw = (
+        "代號,類別,股數,價格,交易日期,手續費,稅金,名稱,委託書號\n"
+        "0050,買進,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-9\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert parsed.rows[0].payload["order_id"] == "OD-9"
+    # And the hash includes the order_id segment.
+    assert parsed.rows[0].fingerprint == _fp(order_id="OD-9")
+
+
+def test_parse_transactions_whitespace_order_id_treated_as_empty():
+    raw = (
+        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,   \n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.rows[0].payload["order_id"] is None
+    assert parsed.rows[0].fingerprint == _fp()  # legacy hash
+
+
+def test_parse_transactions_mixed_with_and_without_order_id():
+    raw = (
+        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,\n"
+    ).encode("utf-8")
+    parsed = import_service.parse_transactions_csv(raw)
+    assert parsed.errors == []
+    assert len(parsed.rows) == 2
+    assert parsed.rows[0].fingerprint != parsed.rows[1].fingerprint
+
+
+def test_commit_transactions_with_order_ids_reimport_is_noop(db_session):
+    raw = (
+        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
+        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-2\n"
+    ).encode("utf-8")
+    first = import_service.commit_transactions(
+        db_session, import_service.parse_transactions_csv(raw), dry_run=False
+    )
+    assert first.created == 2
+    second = import_service.commit_transactions(
+        db_session, import_service.parse_transactions_csv(raw), dry_run=False
+    )
+    assert second.created == 0
+    assert second.skipped_duplicates == 2

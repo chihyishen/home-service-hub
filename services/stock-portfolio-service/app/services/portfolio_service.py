@@ -163,6 +163,16 @@ def sanitize_symbol(symbol: str) -> str:
     return symbol.split('.')[0].upper().strip()
 
 
+def _escape_like_prefix(value: str) -> str:
+    """Escape SQL LIKE wildcards so user input is matched literally.
+
+    Without this, a ``%`` or ``_`` in the input would silently turn into
+    wildcards in the ILIKE pattern. Backslash is escaped first so it
+    cannot consume the escapes added afterwards.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _resolve_sort_trade_date(
     trade_date: datetime,
 ) -> datetime:
@@ -381,7 +391,18 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
     """
     with tracer.start_as_current_span("calculate_portfolio_summary") as span:
         # 1. 取得所有交易紀錄
-        transactions = db.query(models.Transaction).order_by(models.Transaction.trade_date, models.Transaction.id).all()
+        # Within the same trade_date, force BUY before SELL so a day-trade
+        # whose SELL row has a lower id than its BUY cannot drop the SELL
+        # silently against qty=0 and leave phantom holdings.
+        transactions = (
+            db.query(models.Transaction)
+            .order_by(
+                models.Transaction.trade_date,
+                models.Transaction.type.asc(),  # BUY < SELL alphabetically
+                models.Transaction.id,
+            )
+            .all()
+        )
         # 2. 取得所有股利紀錄
         dividends = db.query(models.Dividend).all()
         actions_by_symbol = _load_corp_actions_by_symbol(db)
@@ -434,6 +455,15 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                 if h["total_quantity"] > 0:
                     avg_unit_cost = h["total_cost"] / Decimal(h["total_quantity"])
                     avg_unit_cost_ex_fee = h["total_cost_ex_fee"] / Decimal(h["total_quantity"])
+                    sold_qty = min(int(t.quantity), int(h["total_quantity"]))
+                    sold_qty_dec = Decimal(sold_qty)
+                    cost_out = sold_qty_dec * avg_unit_cost
+                    proceeds = (
+                        sold_qty_dec * t.price
+                        - (t.fee or Decimal("0.0"))
+                        - (t.tax or Decimal("0.0"))
+                    )
+                    h["realized_pnl"] = h.get("realized_pnl", Decimal("0.0")) + (proceeds - cost_out)
                     h["total_quantity"] -= t.quantity
                     # 賣出時減少庫存成本 (簡易已實現計算方式)
                     h["total_cost"] -= (Decimal(t.quantity) * avg_unit_cost)
@@ -536,6 +566,13 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             all_cashflows_with_terminal = all_cashflows + [(date_type.today(), total_market_value)]
             portfolio_xirr = _calculate_xirr(all_cashflows_with_terminal)
 
+        # Sum realised P&L across ALL symbols (including pure day-trades that
+        # never appear in active_symbols because qty went to 0).
+        total_realized_pnl = sum(
+            (h.get("realized_pnl", Decimal("0.0")) for h in holdings_map.values()),
+            Decimal("0.0"),
+        )
+
         return schemas.PortfolioSummary(
             total_market_value=total_market_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             total_cost=total_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
@@ -543,6 +580,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             total_unrealized_pnl_percent=total_pnl_percent,
             total_day_pnl=total_day_pnl.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             total_dividends=total_dividends.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            total_realized_pnl=total_realized_pnl.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             holdings=holdings_list,
             portfolio_xirr=portfolio_xirr,
             quotes_status=quote_status,
@@ -636,7 +674,18 @@ def list_transactions(
 
     base = db.query(models.Transaction)
     if symbol:
-        base = base.filter(models.Transaction.symbol == sanitize_symbol(symbol))
+        # Prefix match so typing "0" shows every 0xxx ETF, "00" narrows to
+        # 00xxx, etc. Sanitize first to keep casing/whitespace consistent;
+        # only apply the filter if a non-empty stem remains so a
+        # whitespace-only input does not degenerate into ILIKE '%' and
+        # silently bypass filtering.
+        stem = sanitize_symbol(symbol)
+        if stem:
+            base = base.filter(
+                models.Transaction.symbol.ilike(
+                    f"{_escape_like_prefix(stem)}%", escape="\\"
+                )
+            )
     if date_from is not None:
         base = base.filter(
             models.Transaction.trade_date
@@ -728,7 +777,14 @@ def list_dividends(
 
     base = db.query(models.Dividend)
     if symbol:
-        base = base.filter(models.Dividend.symbol == sanitize_symbol(symbol))
+        # Prefix match — same UX as transactions list.
+        stem = sanitize_symbol(symbol)
+        if stem:
+            base = base.filter(
+                models.Dividend.symbol.ilike(
+                    f"{_escape_like_prefix(stem)}%", escape="\\"
+                )
+            )
     if date_from is not None:
         base = base.filter(
             models.Dividend.ex_dividend_date

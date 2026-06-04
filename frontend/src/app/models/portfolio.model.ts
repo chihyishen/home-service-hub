@@ -31,14 +31,69 @@ export interface ImportError {
   message: string;
 }
 
+export interface UnresolvedName {
+  name: string;
+  occurrences: number;
+  sample_dates: string[];
+}
+
+export type OverrideStatus =
+  | 'verified'
+  | 'name_mismatch'
+  | 'not_traded_on_date'
+  | 'fetch_failed'
+  | 'user_overridden';
+
+export interface OverrideValidation {
+  name: string;
+  code: string;
+  status: OverrideStatus;
+  expected_name?: string | null;
+  fetched_name?: string | null;
+}
+
 export interface ImportResult {
   parsed: number;
   created: number;
   skipped_duplicates: number;
+  rehashed?: number;
+  would_rehash?: number;
+  would_insert?: number;
+  would_skip_duplicate?: number;
+  skipped_unresolved?: number;
+  skipped_unverified?: number;
+  unresolved_names?: UnresolvedName[];
+  override_validations?: OverrideValidation[];
   dry_run: boolean;
   errors: ImportError[];
   created_ids: number[];
   rows: ImportRow[];
+  recalc_scheduled?: boolean;
+}
+
+export interface RecalcStepStatus {
+  name: string;
+  status: 'ok' | 'failed' | 'skipped' | 'partial';
+  detail?: Record<string, unknown>;
+  error?: string | null;
+}
+
+export interface RecalcStatus {
+  state: 'idle' | 'running' | 'completed' | 'partial' | 'failed';
+  started_at?: string;
+  finished_at?: string | null;
+  recalc_from?: string | null;
+  recalc_to?: string | null;
+  touched_symbols?: string[];
+  current_step?: string | null;
+  steps?: RecalcStepStatus[];
+}
+
+export interface RecalcTriggerResponse {
+  recalc_scheduled: boolean;
+  start_date: string;
+  end_date: string;
+  touched_symbols: string[];
 }
 
 export interface Dividend {
@@ -93,6 +148,7 @@ export interface PortfolioSummary {
   total_unrealized_pnl_percent: number;
   total_day_pnl: number;
   total_dividends: number;
+  total_realized_pnl: number;     // 累積已實現損益（含當沖）
   holdings: StockHolding[];
   portfolio_xirr?: number;    // 整體投資組合年化報酬率
 }
@@ -103,6 +159,7 @@ export interface NetworthPoint {
   total_cost: string;
   total_unrealized_pnl: string;
   total_dividends: string;
+  total_realized_pnl: string;
   portfolio_xirr: string | null;
 }
 
