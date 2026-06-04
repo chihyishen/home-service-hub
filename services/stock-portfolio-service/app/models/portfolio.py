@@ -19,6 +19,12 @@ class TransactionType(str, enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
 
+
+class PositionSide(str, enum.Enum):
+    LONG = "LONG"
+    SHORT = "SHORT"
+
+
 class Transaction(Base, TimestampMixin):
     __tablename__ = "transactions"
     __table_args__ = (
@@ -34,12 +40,20 @@ class Transaction(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     symbol = Column(String, index=True, nullable=False)  # 股票代碼, e.g., 2330
     name = Column(String, nullable=True)               # 股票名稱
+    instrument_type = Column(String(64), nullable=True)
     type = Column(Enum(TransactionType), nullable=False)
+    position_side = Column(
+        Enum(PositionSide, name="position_side_enum"),
+        nullable=False,
+        default=PositionSide.LONG,
+        server_default=PositionSide.LONG.value,
+    )
     quantity = Column(Integer, nullable=False)         # 股數
     price = Column(Numeric(12, 2), nullable=False)              # 成交單價
     trade_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     fee = Column(Numeric(12, 2), default=0.0)                   # 手續費 (選填)
     tax = Column(Numeric(12, 2), default=0.0)                   # 交易稅 (選填)
+    broker_day_trade_marker = Column(String(8), nullable=True)
     is_day_trade = Column(
         Boolean,
         nullable=False,

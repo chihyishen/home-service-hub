@@ -42,13 +42,74 @@ def refresh_all_from_twstock(db: Session) -> dict:
     for code, entry in twstock.codes.items():
         name = getattr(entry, "name", None)
         market = getattr(entry, "market", "") or ""
+        instrument_type = getattr(entry, "type", None)
         if not name or not code:
             continue
-        db.merge(SymbolMap(name=name, symbol=code, market=market[:8]))
+        db.merge(
+            SymbolMap(
+                name=name,
+                symbol=code,
+                market=market[:8],
+                type=(instrument_type[:32] if instrument_type else None),
+            )
+        )
         count += 1
     db.commit()
     logger.info("symbol_map.refreshed", extra={"count": count})
     return {"refreshed_count": count}
+
+
+_INELIGIBLE_TYPE_SUBSTRINGS: tuple[str, ...] = ("認購", "認售", "牛證", "熊證")
+
+
+def lookup_warrant_type(db: Session, symbol: str) -> Optional[str]:
+    """Return the live ``symbol_map.type`` only when it identifies a warrant."""
+    if not symbol:
+        return None
+    row = (
+        db.query(SymbolMap.type)
+        .filter(SymbolMap.symbol == symbol)
+        .first()
+    )
+    if row is None or not row[0]:
+        return None
+    type_value = row[0]
+    if any(token in type_value for token in _INELIGIBLE_TYPE_SUBSTRINGS):
+        return type_value
+    return None
+
+
+def is_day_trade_eligible(
+    db: Session, symbol: str, instrument_type: Optional[str] = None
+) -> bool:
+    """Return whether ``symbol`` is eligible for TW 現股當沖 classification.
+
+    Fail-open: unmapped symbols and rows with NULL or empty ``type``
+    resolve as eligible. Resolvable rows whose ``type`` CONTAINS any of
+    ``{認購, 認售, 牛證, 熊證}`` are ineligible (warrants + 牛熊證). The
+    substring check covers twstock's actual format ``上市認購(售)權證`` /
+    ``上櫃認購(售)權證`` rather than an exact-prefix match.
+
+    When ``instrument_type`` is non-None (including empty string), the
+    stamped value is authoritative and the live ``symbol_map`` lookup is
+    skipped — this preserves the snapshot-first contract for warrant rows
+    even if the caller explicitly stamped ``''``.
+    """
+    if instrument_type is not None:
+        return not any(
+            token in instrument_type for token in _INELIGIBLE_TYPE_SUBSTRINGS
+        )
+    if not symbol:
+        return True
+    row = (
+        db.query(SymbolMap.type)
+        .filter(SymbolMap.symbol == symbol)
+        .first()
+    )
+    if row is None or not row[0]:
+        return True
+    type_value = row[0]
+    return not any(token in type_value for token in _INELIGIBLE_TYPE_SUBSTRINGS)
 
 
 def resolve_name(db: Session, name: str) -> Optional[str]:

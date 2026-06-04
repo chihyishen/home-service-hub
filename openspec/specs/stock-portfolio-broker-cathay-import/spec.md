@@ -65,32 +65,56 @@ Unresolved names (missing from both overrides and static map) SHALL NOT roll bac
 
 ### Requirement: 國泰 type vocabulary collapses to BUY / SELL
 
-The 國泰 parser SHALL translate `買賣別` values to the home-hub `transactions.type` enum as follows:
+The 國泰 parser SHALL translate `買賣別` values to the home-hub `transactions.type` enum AND to the `transactions.position_side` enum as follows:
 
-| `買賣別` | `type` |
-|---|---|
-| `現買`, `資買`, `券買`, `沖買` | `BUY` |
-| `現賣`, `資賣`, `券賣`, `沖賣` | `SELL` |
+| `買賣別` | `type` | `position_side` |
+|---|---|---|
+| `現買`, `資買`, `沖買` | `BUY` | `LONG` |
+| `券買` | `BUY` | `SHORT` |
+| `現賣`, `資賣`, `沖賣` | `SELL` | `LONG` |
+| `券賣` | `SELL` | `SHORT` |
 
-The two-character prefix (`現`, `資`, `券`, `沖`) SHALL be preserved in the parsed payload as `broker_subtype` for frontend display only and SHALL NOT be included in the `import_fingerprint` canonical string nor persisted to the database.
+The two-character prefix (`現`, `資`, `券`, `沖`) SHALL still be preserved in the parsed payload as `broker_subtype` for backward compatibility but SHALL NOT be included in the `import_fingerprint` canonical string nor persisted to the database (the `position_side` column already replaces its de-facto persistence role).
 
-#### Scenario: Margin BUY collapses to BUY with subtype 資
+Additionally, the parser SHALL emit `broker_day_trade_marker` on the parsed payload — set to the literal `買賣別` value when it is `沖買` or `沖賣`, and `None` for every other value (including `現買`, `現賣`, `資買`, `資賣`, `券買`, `券賣`). The importer SHALL persist this value to a new nullable column `transactions.broker_day_trade_marker VARCHAR(8)` on both the insert path AND the business-key rehash path (so re-importing the same CSV propagates markers to legacy rows).
+
+#### Scenario: Margin BUY collapses to BUY/LONG with subtype 資
 
 - **GIVEN** a CSV row with `買賣別='資買'`
 - **WHEN** the row is parsed
-- **THEN** the payload SHALL have `type='BUY'` and `broker_subtype='資'`
+- **THEN** the parsed payload SHALL contain `type='BUY'`, `position_side='LONG'`, `broker_subtype='資'`, and `broker_day_trade_marker=None`
 
-#### Scenario: Day-trade SELL collapses to SELL with subtype 沖
+#### Scenario: Day-trade BUY emits 沖買 marker
+
+- **GIVEN** a CSV row with `買賣別='沖買'`
+- **WHEN** the row is parsed
+- **THEN** the parsed payload SHALL contain `type='BUY'`, `position_side='LONG'`, `broker_subtype='沖'`, and `broker_day_trade_marker='沖買'`
+
+#### Scenario: Day-trade SELL emits 沖賣 marker
 
 - **GIVEN** a CSV row with `買賣別='沖賣'`
 - **WHEN** the row is parsed
-- **THEN** the payload SHALL have `type='SELL'` and `broker_subtype='沖'`
+- **THEN** the parsed payload SHALL contain `type='SELL'`, `position_side='LONG'`, `broker_subtype='沖'`, and `broker_day_trade_marker='沖賣'`
 
-#### Scenario: Subtype does not affect fingerprint
+#### Scenario: Cash BUY emits no marker
 
-- **GIVEN** two CSV rows identical in every fingerprint field but one with `買賣別='現買'` and one with `買賣別='資買'`
-- **WHEN** both are parsed (both become `type='BUY'`)
-- **THEN** their `import_fingerprint` values SHALL be equal (the `broker_subtype` segment is NOT in the hash)
+- **GIVEN** a CSV row with `買賣別='現買'`
+- **WHEN** the row is parsed
+- **THEN** the parsed payload SHALL contain `broker_day_trade_marker=None`
+
+#### Scenario: Marker persists on insert path
+
+- **GIVEN** a fresh import of a 國泰 CSV containing one `沖買` row and one `現買` row for distinct symbols
+- **WHEN** the import commits (non-dry-run)
+- **THEN** the new `transactions` row for the `沖買` symbol SHALL have `broker_day_trade_marker='沖買'`
+- **AND** the new `transactions` row for the `現買` symbol SHALL have `broker_day_trade_marker IS NULL`
+
+#### Scenario: Marker persists on business-key rehash path
+
+- **GIVEN** an existing `transactions` row whose business key (`symbol+type+position_side+quantity+price+fee+tax+trade_date`) matches a `沖買` row in a new 國泰 CSV upload, AND that existing row has `broker_day_trade_marker IS NULL` (e.g., inserted via a manual entry or pre-feature import)
+- **WHEN** the import commits and the rehash branch in `_commit_rehash` triggers (legacy-fingerprint match OR `_business_key_match`)
+- **THEN** the existing row's `broker_day_trade_marker` SHALL be updated to `沖買`
+- **AND** the `import_fingerprint` and `position_side` updates already performed by the rehash branch SHALL continue unchanged
 
 ### Requirement: Smart rehash backfill rewrites existing rows' fingerprints in place
 
@@ -257,4 +281,94 @@ When a 國泰 CSV is uploaded with `dry_run=true`, the parser SHALL compute the 
 - **WHEN** the CSV is uploaded with `dry_run=true`
 - **THEN** the response SHALL report `would_rehash=1995`, `would_insert=2`, `would_skip_duplicate=0`, `errors=[]`
 - **AND** no `transactions` row SHALL be modified or inserted
+
+### Requirement: 國泰 parser folds 利息 and 券手續費/標借費 into `fee`
+
+The 國泰 parser SHALL compute `fee` as the sum of `手續費` + `利息` + `券手續費/標借費`, all read from the CSV row. Each component SHALL default to `0` if the column is absent or blank. The aggregated `fee` SHALL be the single value persisted in `transactions.fee` and used in the `import_fingerprint`.
+
+#### Scenario: 資賣 row folds 利息 into fee
+
+- **GIVEN** a CSV row with `買賣別='資賣'`, `手續費=62`, `利息=23`, `券手續費/標借費=0`
+- **WHEN** the row is parsed
+- **THEN** the payload SHALL have `fee=85`
+
+#### Scenario: 券賣 row folds 券手續費 into fee
+
+- **GIVEN** a CSV row with `買賣別='券賣'`, `手續費=63`, `利息=0`, `券手續費/標借費=63`
+- **WHEN** the row is parsed
+- **THEN** the payload SHALL have `fee=126`
+
+#### Scenario: 券買 row folds 利息 (cover interest) into fee
+
+- **GIVEN** a CSV row with `買賣別='券買'`, `手續費=22`, `利息=88`, `券手續費/標借費=0`
+- **WHEN** the row is parsed
+- **THEN** the payload SHALL have `fee=110`
+
+#### Scenario: 現買/現賣 rows are unaffected (zero in all extra columns)
+
+- **GIVEN** a CSV row with `買賣別='現買'`, `手續費=22`, `利息=0`, `券手續費/標借費=0`
+- **WHEN** the row is parsed
+- **THEN** the payload SHALL have `fee=22` (no change vs pre-feature behavior)
+
+### Requirement: 國泰 parser writes position_side to transactions
+
+The Cathay rehash / insert path SHALL persist the parsed `position_side` value to the new `transactions.position_side` column. When a CSV row is matched to an existing DB row through the rehash path (legacy fingerprint match or business-key match), the matched row's `position_side` SHALL be updated to the recomputed CSV value alongside its fingerprint rehash.
+
+Legacy rows that cannot be matched (typically because the new fee-folding formula in `parse_cathay_rows` produces a different `fee` than what the older importer or manual entry persisted) WILL NOT be overwritten on re-import — the rehash falls through to `_insert_transaction` and creates a duplicate row instead. Operators MUST correct such legacy 短 rows via a targeted SQL `UPDATE ... SET position_side='SHORT' WHERE id IN (...)` rather than re-importing.
+
+#### Scenario: Insert path persists position_side
+
+- **GIVEN** a 國泰 CSV row with `買賣別='券賣'` and no existing matching transaction
+- **WHEN** the CSV is uploaded with `dry_run=false`
+- **THEN** the newly inserted `transactions` row SHALL have `position_side='SHORT'`
+
+#### Scenario: Matched-row rehash overwrites position_side
+
+- **GIVEN** an existing `transactions` row with `position_side='LONG'` whose `import_fingerprint` equals `_legacy_fingerprint(row)` for a 國泰 CSV row with `買賣別='券賣'` AND whose stored `fee` / `tax` match the new parser's computed values
+- **WHEN** the CSV is uploaded with `dry_run=false`
+- **THEN** the existing row's `position_side` SHALL be updated to `'SHORT'` alongside the `import_fingerprint` rehash
+
+#### Scenario: Unmatched legacy row produces a duplicate insert, not an overwrite
+
+- **GIVEN** an existing `transactions` row whose stored `fee` differs from the new parser's folded fee (e.g. legacy row has `fee=39` because only `手續費` was persisted; new parser computes `fee=141` from `手續費 + 利息 + 券手續費`)
+- **WHEN** the CSV is re-uploaded with `dry_run=false`
+- **THEN** the legacy fingerprint and business-key lookups SHALL both miss, the row SHALL be inserted as a new `transactions` row with the new fee + `position_side='SHORT'`, and the legacy LONG row SHALL remain unchanged (operator's responsibility to SQL-patch / delete)
+
+### Requirement: 國泰 import path snapshots `instrument_type` for warrant rows
+
+The 國泰 import path SHALL snapshot the symbol's current `symbol_map.type` onto `transactions.instrument_type` at insert time when the symbol resolves to a warrant (type contains any of 認購 / 認售 / 牛證 / 熊證). For non-warrant symbols and for symbols absent from `symbol_map`, `instrument_type` SHALL be left NULL.
+
+The snapshot SHALL be applied on:
+
+1. The first-time insert path (`_insert_transaction`).
+2. The legacy-fingerprint rehash branch (alongside the existing `broker_day_trade_marker` write).
+3. The business-key rehash branch (alongside the existing `broker_day_trade_marker` write).
+
+#### Scenario: Warrant insert stamps instrument_type from symbol_map
+- **WHEN** a 國泰 CSV row whose symbol maps to `symbol_map.type = '上市認購(售)權證'` is inserted
+- **THEN** the resulting `transactions` row has `instrument_type = '上市認購(售)權證'`
+
+#### Scenario: Non-warrant insert leaves instrument_type NULL
+- **WHEN** a 國泰 CSV row whose symbol maps to `symbol_map.type = '上市ETF'` is inserted
+- **THEN** the resulting `transactions` row has `instrument_type IS NULL`
+
+#### Scenario: Unmapped symbol leaves instrument_type NULL
+- **WHEN** a 國泰 CSV row whose symbol is absent from `symbol_map` is inserted
+- **THEN** the resulting `transactions` row has `instrument_type IS NULL`
+
+#### Scenario: Legacy-fingerprint rehash stamps instrument_type when symbol is warrant
+- **WHEN** the legacy-fingerprint rehash branch matches an existing warrant row
+- **THEN** the row's `instrument_type` is set to the current `symbol_map.type` even if the column was previously NULL
+
+#### Scenario: Business-key rehash stamps instrument_type when symbol is warrant
+- **WHEN** the business-key rehash branch matches an existing warrant row
+- **THEN** the row's `instrument_type` is set to the current `symbol_map.type`
+
+#### Scenario: Rehash on non-warrant row leaves instrument_type NULL
+- **WHEN** either rehash branch matches an existing row whose symbol is not a warrant in `symbol_map`
+- **THEN** the row's `instrument_type` remains NULL (no spurious write)
+
+#### Scenario: Rehash preserves an already-stamped instrument_type after warrant-code recycle
+- **WHEN** either rehash branch matches an existing row whose `instrument_type` is already non-NULL (e.g. `'上櫃認購(售)權證'`) AND the symbol's current `symbol_map.type` has changed to a different value (e.g. `'上市ETF'` after recycle)
+- **THEN** the existing `instrument_type` value SHALL be preserved unchanged (the rehash MUST NOT overwrite the historical snapshot with the post-recycle live value)
 

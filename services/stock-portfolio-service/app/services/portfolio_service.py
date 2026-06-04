@@ -11,6 +11,7 @@ from ..models import portfolio as models
 from ..models.corporate_action import CorporateAction
 from ..schemas import portfolio as schemas
 from .twse_service import get_stock_quotes
+from . import symbol_map_service
 from shared_lib import get_tracer
 tracer = get_tracer("stock-portfolio-service")
 
@@ -72,6 +73,14 @@ class _AdjustedTransaction:
     def tax(self):
         return self._base.tax
 
+    @property
+    def position_side(self):
+        return getattr(self._base, "position_side", models.PositionSide.LONG)
+
+    @property
+    def is_day_trade(self):
+        return getattr(self._base, "is_day_trade", False)
+
 
 def _factor_for_trade(actions: List[CorporateAction], trade_date) -> Decimal:
     """Cumulative product of every action strictly AFTER trade_date."""
@@ -114,6 +123,20 @@ def _load_corp_actions_by_symbol(db: Session) -> Dict[str, List[CorporateAction]
     for row in rows:
         grouped.setdefault(sanitize_symbol(row.symbol), []).append(row)
     return grouped
+
+
+def _load_adjusted_transactions(db: Session) -> List:
+    """Load transactions in the portfolio-summary order with split factors applied."""
+    transactions = (
+        db.query(models.Transaction)
+        .order_by(
+            models.Transaction.trade_date,
+            models.Transaction.type.asc(),
+            models.Transaction.id,
+        )
+        .all()
+    )
+    return _apply_corp_action_factors(transactions, _load_corp_actions_by_symbol(db))
 
 
 def _calculate_xirr(cash_flows: List[Tuple[date_type, Decimal]]) -> Optional[Decimal]:
@@ -191,6 +214,10 @@ def _trade_calendar_date(trade_date: datetime) -> date_type:
     return _resolve_sort_trade_date(trade_date).date()
 
 
+def _is_odd_lot(quantity: int) -> bool:
+    return quantity < 1000 or quantity % 1000 != 0
+
+
 def _recompute_day_trade_flags(
     db: Session, symbol: str, calendar_date: date_type
 ) -> None:
@@ -216,37 +243,79 @@ def _recompute_day_trade_flags(
         row for row in rows
         if _trade_calendar_date(row.trade_date) == calendar_date
     ]
-    has_buy = any(row.type == models.TransactionType.BUY for row in bucket)
-    has_sell = any(row.type == models.TransactionType.SELL for row in bucket)
-    new_flag = has_buy and has_sell
+    board_lot = [row for row in bucket if not _is_odd_lot(row.quantity)]
+    has_buy = any(row.type == models.TransactionType.BUY for row in board_lot)
+    has_sell = any(row.type == models.TransactionType.SELL for row in board_lot)
+    marker_present = any(
+        getattr(row, "broker_day_trade_marker", None) in {"沖買", "沖賣"}
+        for row in board_lot
+    )
+    if marker_present:
+        board_flag = all(
+            symbol_map_service.is_day_trade_eligible(
+                db, normalized, getattr(row, "instrument_type", None)
+            )
+            for row in board_lot
+        )
+    elif has_buy and has_sell:
+        board_flag = all(
+            symbol_map_service.is_day_trade_eligible(
+                db, normalized, getattr(row, "instrument_type", None)
+            )
+            for row in board_lot
+        )
+    else:
+        board_flag = False
     for row in bucket:
+        new_flag = False if _is_odd_lot(row.quantity) else board_flag
         if row.is_day_trade != new_flag:
             row.is_day_trade = new_flag
 
 
 def _validate_symbol_ledger(symbol: str, ledger_entries: List[Dict[str, object]]) -> None:
-    available_quantity = 0
+    long_qty = 0
+    short_qty = 0
 
     for entry in sorted(
         ledger_entries,
         key=lambda item: (item["sort_trade_date"], item["sort_id"]),
     ):
         quantity = int(entry["quantity"])
-        quantity_before_sell = available_quantity
+        side = entry.get("position_side", models.PositionSide.LONG)
+        if not isinstance(side, models.PositionSide):
+            side = models.PositionSide(side)
+        is_buy = entry["type"] == models.TransactionType.BUY
 
-        if entry["type"] == models.TransactionType.BUY:
-            available_quantity += quantity
+        if side is models.PositionSide.LONG and is_buy:
+            long_qty += quantity
+            continue
+        if side is models.PositionSide.SHORT and not is_buy:
+            short_qty += quantity
             continue
 
-        available_quantity -= quantity
-        if available_quantity >= 0:
+        if side is models.PositionSide.LONG:
+            available = long_qty
+            long_qty -= quantity
+            if long_qty >= 0:
+                continue
+            if available <= 0:
+                raise ValueError(
+                    f"Cannot sell {quantity} shares of {symbol} without holdings"
+                )
+            raise ValueError(
+                f"Cannot sell {quantity} shares of {symbol}; only {available} available"
+            )
+
+        available = short_qty
+        short_qty -= quantity
+        if short_qty >= 0:
             continue
-
-        if quantity_before_sell <= 0:
-            raise ValueError(f"Cannot sell {quantity} shares of {symbol} without holdings")
-
+        if available <= 0:
+            raise ValueError(
+                f"Cannot cover {quantity} shares of {symbol} without open short"
+            )
         raise ValueError(
-            f"Cannot sell {quantity} shares of {symbol}; only {quantity_before_sell} available"
+            f"Cannot cover {quantity} shares of {symbol}; only {available} open short"
         )
 
 
@@ -280,10 +349,21 @@ def _validate_transaction_ledger(
                 "sort_trade_date": _resolve_sort_trade_date(transaction.trade_date),
                 "sort_id": transaction.id,
                 "type": transaction.type,
+                "position_side": getattr(
+                    transaction, "position_side", models.PositionSide.LONG
+                ),
                 "quantity": transaction.quantity,
             }
         )
 
+    proposed_side_raw = transaction_data.get("position_side", models.PositionSide.LONG)
+    proposed_side = (
+        proposed_side_raw
+        if isinstance(proposed_side_raw, models.PositionSide)
+        else models.PositionSide(
+            getattr(proposed_side_raw, "value", proposed_side_raw)
+        )
+    )
     ledger_map[proposed_symbol].append(
         {
             "sort_trade_date": _resolve_sort_trade_date(transaction_data["trade_date"]),
@@ -291,6 +371,7 @@ def _validate_transaction_ledger(
             "type": models.TransactionType(
                 getattr(transaction_data["type"], "value", transaction_data["type"])
             ),
+            "position_side": proposed_side,
             "quantity": transaction_data["quantity"],
         }
     )
@@ -311,6 +392,12 @@ def _aggregate_active_holdings(
         adjusted,
         key=lambda item: (_resolve_sort_trade_date(item.trade_date), item.id or float("inf")),
     ):
+        t_side = getattr(transaction, "position_side", None) or models.PositionSide.LONG
+        if not isinstance(t_side, models.PositionSide):
+            t_side = models.PositionSide(t_side)
+        if t_side is not models.PositionSide.LONG:
+            continue
+
         symbol = sanitize_symbol(transaction.symbol)
         if symbol not in holdings:
             holdings[symbol] = {
@@ -407,6 +494,14 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
         dividends = db.query(models.Dividend).all()
         actions_by_symbol = _load_corp_actions_by_symbol(db)
         adjusted_transactions = _apply_corp_action_factors(transactions, actions_by_symbol)
+        from .realized_pnl_service import iter_realized_events
+        realized_events = list(iter_realized_events(adjusted_transactions))
+        realized_pnl_by_symbol: Dict[str, Decimal] = {}
+        for event in realized_events:
+            realized_pnl_by_symbol[event.symbol] = (
+                realized_pnl_by_symbol.get(event.symbol, Decimal("0.0"))
+                + event.realized_pnl
+            )
         active_holdings = _aggregate_active_holdings(transactions, actions_by_symbol)
         active_symbols = list(active_holdings.keys())
 
@@ -429,7 +524,16 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             cashflows_map.setdefault(symbol, []).append((cf_date, d.amount))
 
         # 交易統計 (計算平均成本與持股數，採用 corporate-action 調整後的視圖)
+        # SHORT rows are intentionally skipped here — long-side holdings_map only
+        # tracks long inventory. Realized P&L for short closes is aggregated via
+        # `realized_pnl_by_symbol` above (sourced from iter_realized_events).
         for t in adjusted_transactions:
+            t_side = getattr(t, "position_side", None) or models.PositionSide.LONG
+            if not isinstance(t_side, models.PositionSide):
+                t_side = models.PositionSide(t_side)
+            if t_side is not models.PositionSide.LONG:
+                continue
+
             symbol = sanitize_symbol(t.symbol)
             if symbol not in holdings_map:
                 holdings_map[symbol] = {
@@ -439,7 +543,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                     "total_cost": Decimal("0.0"),
                     "total_cost_ex_fee": Decimal("0.0"),
                 }
-            
+
             h = holdings_map[symbol]
             if t.type == models.TransactionType.BUY:
                 h["total_quantity"] += t.quantity
@@ -455,15 +559,6 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
                 if h["total_quantity"] > 0:
                     avg_unit_cost = h["total_cost"] / Decimal(h["total_quantity"])
                     avg_unit_cost_ex_fee = h["total_cost_ex_fee"] / Decimal(h["total_quantity"])
-                    sold_qty = min(int(t.quantity), int(h["total_quantity"]))
-                    sold_qty_dec = Decimal(sold_qty)
-                    cost_out = sold_qty_dec * avg_unit_cost
-                    proceeds = (
-                        sold_qty_dec * t.price
-                        - (t.fee or Decimal("0.0"))
-                        - (t.tax or Decimal("0.0"))
-                    )
-                    h["realized_pnl"] = h.get("realized_pnl", Decimal("0.0")) + (proceeds - cost_out)
                     h["total_quantity"] -= t.quantity
                     # 賣出時減少庫存成本 (簡易已實現計算方式)
                     h["total_cost"] -= (Decimal(t.quantity) * avg_unit_cost)
@@ -566,10 +661,11 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             all_cashflows_with_terminal = all_cashflows + [(date_type.today(), total_market_value)]
             portfolio_xirr = _calculate_xirr(all_cashflows_with_terminal)
 
-        # Sum realised P&L across ALL symbols (including pure day-trades that
-        # never appear in active_symbols because qty went to 0).
+        # Sum realised P&L across every symbol with realized events (long close +
+        # short cover + no-inventory anomalies). Sourced from iter_realized_events
+        # so the per-event sum invariant holds vs the realized-pnl endpoint.
         total_realized_pnl = sum(
-            (h.get("realized_pnl", Decimal("0.0")) for h in holdings_map.values()),
+            realized_pnl_by_symbol.values(),
             Decimal("0.0"),
         )
 
@@ -591,6 +687,9 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     transaction_data = transaction.model_dump()
     transaction_data["symbol"] = sanitize_symbol(transaction_data["symbol"])
     transaction_data["trade_date"] = transaction_data.get("trade_date") or datetime.now(timezone.utc)
+    transaction_data["instrument_type"] = symbol_map_service.lookup_warrant_type(
+        db, transaction_data["symbol"]
+    )
 
     _validate_transaction_ledger(db, transaction_data)
 
@@ -726,6 +825,11 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
         update_data["trade_date"] = update_data["trade_date"] or db_transaction.trade_date
     else:
         update_data["trade_date"] = db_transaction.trade_date
+
+    if update_data["symbol"] != old_symbol or db_transaction.instrument_type is None:
+        update_data["instrument_type"] = symbol_map_service.lookup_warrant_type(
+            db, update_data["symbol"]
+        )
 
     _validate_transaction_ledger(db, update_data, existing_transaction=db_transaction)
 
