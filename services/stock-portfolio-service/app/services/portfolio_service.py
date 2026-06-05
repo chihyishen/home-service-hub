@@ -10,6 +10,7 @@ import os
 import logging
 from ..models import portfolio as models
 from ..models.corporate_action import CorporateAction
+from ..models.symbol_map import SymbolMap
 from ..schemas import portfolio as schemas
 from .twse_service import get_stock_quotes
 from . import symbol_map_service
@@ -733,6 +734,75 @@ def _schedule_symbol_history_backfill(symbol: str, from_date) -> None:
     return None
 
 
+def _is_tpex_marker(value: object) -> bool:
+    text = str(value or "").strip().upper()
+    return "TPEX" in text or "OTC" in text or "上櫃" in text
+
+
+def _symbol_uses_tpex_history(db: Session, symbol: str) -> bool:
+    """Return true when symbol_map says the ticker lives on TPEx/OTC."""
+    rows = (
+        db.query(SymbolMap.market, SymbolMap.type)
+        .filter(SymbolMap.symbol == sanitize_symbol(symbol))
+        .all()
+    )
+    return any(_is_tpex_marker(market) or _is_tpex_marker(type_) for market, type_ in rows)
+
+
+def _schedule_tpex_symbol_history_backfill(symbol: str, from_date) -> None:
+    """Fire-and-forget TPEx history fill for a newly held OTC symbol.
+
+    TPEx has no cheap per-symbol equivalent to TWSE STOCK_DAY in this service,
+    so this deliberately fetches TPEx full-market rows per weekday and lets
+    ``market_data_service.backfill_date`` persist only ever-held symbols.
+    Unlike the normal networth backfill, this does not skip dates merely
+    because TPEx already has rows for other held symbols.
+    """
+    if os.getenv("SYMBOL_HISTORY_AUTOBACKFILL", "true").lower() in {"false", "0", "no"}:
+        return None
+
+    import threading
+    import time
+
+    def _run() -> None:
+        from ..database import SessionLocal
+        from . import market_data_service, networth_backfill_service
+
+        db = SessionLocal()
+        try:
+            today = datetime.now(timezone.utc).date()
+            throttle_sec = _env_decimal(
+                "SYMBOL_HISTORY_TPEX_THROTTLE_SEC", "1.5"
+            )
+            dates_processed = 0
+            rows_written = 0
+            for trading_day in networth_backfill_service._iter_trading_days(
+                from_date, today
+            ):
+                if dates_processed > 0 and throttle_sec > 0:
+                    time.sleep(float(throttle_sec))
+                result = market_data_service.backfill_date(
+                    db, trading_day, market="TPEX"
+                )
+                dates_processed += 1
+                rows_written += int(result.get("written", 0))
+            logger.info(
+                "symbol_history.tpex_autobackfill_done symbol=%s dates=%s rows=%s",
+                symbol,
+                dates_processed,
+                rows_written,
+            )
+        except Exception:  # noqa: BLE001 — background best-effort
+            logger.exception("symbol_history.tpex_autobackfill_failed symbol=%s", symbol)
+        finally:
+            db.close()
+
+    threading.Thread(
+        target=_run, name=f"history-backfill-tpex-{symbol}", daemon=True
+    ).start()
+    return None
+
+
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     # Task 2: 清理 symbol
     transaction_data = transaction.model_dump()
@@ -766,9 +836,11 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     db.refresh(db_transaction)
 
     if is_new_symbol:
-        _schedule_symbol_history_backfill(
-            db_transaction.symbol, _trade_calendar_date(db_transaction.trade_date)
-        )
+        trade_day = _trade_calendar_date(db_transaction.trade_date)
+        if _symbol_uses_tpex_history(db, db_transaction.symbol):
+            _schedule_tpex_symbol_history_backfill(db_transaction.symbol, trade_day)
+        else:
+            _schedule_symbol_history_backfill(db_transaction.symbol, trade_day)
     return db_transaction
 
 def create_dividend(db: Session, dividend: schemas.DividendCreate):

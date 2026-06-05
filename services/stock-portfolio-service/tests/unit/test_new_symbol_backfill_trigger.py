@@ -9,6 +9,7 @@ a symbol is seen — and must NOT re-trigger on subsequent transactions.
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+from app.models.symbol_map import SymbolMap
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service as svc
 
@@ -37,6 +38,33 @@ def test_first_transaction_for_symbol_triggers_backfill(db_session, monkeypatch)
     assert calls == [("2454", date(2026, 3, 2))]
 
 
+def test_first_tpex_transaction_triggers_tpex_backfill(db_session, monkeypatch):
+    db_session.add(
+        SymbolMap(name="otc", symbol="5483", market="TPEX", type="上櫃股票")
+    )
+    db_session.commit()
+
+    twse_calls = []
+    tpex_calls = []
+    monkeypatch.setattr(
+        svc,
+        "_schedule_symbol_history_backfill",
+        lambda symbol, from_date: twse_calls.append((symbol, from_date)),
+    )
+    monkeypatch.setattr(
+        svc,
+        "_schedule_tpex_symbol_history_backfill",
+        lambda symbol, from_date: tpex_calls.append((symbol, from_date)),
+    )
+
+    svc.create_transaction(
+        db_session, _buy("5483", datetime(2026, 3, 2, 1, 30, tzinfo=timezone.utc))
+    )
+
+    assert twse_calls == []
+    assert tpex_calls == [("5483", date(2026, 3, 2))]
+
+
 def test_second_transaction_same_symbol_does_not_retrigger(db_session, monkeypatch):
     monkeypatch.setattr(svc, "_schedule_symbol_history_backfill", lambda *a, **k: None)
     svc.create_transaction(
@@ -60,3 +88,4 @@ def test_autobackfill_disabled_by_env_is_noop(monkeypatch):
     monkeypatch.setenv("SYMBOL_HISTORY_AUTOBACKFILL", "false")
     # Must return without spawning a thread / touching the network.
     assert svc._schedule_symbol_history_backfill("2454", date(2026, 3, 2)) is None
+    assert svc._schedule_tpex_symbol_history_backfill("5483", date(2026, 3, 2)) is None
