@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from app.models import portfolio as models
 from app.services import portfolio_service, realized_pnl_service
+from app.services.portfolio import summary
 
 
 def _tx(
@@ -28,7 +29,7 @@ def _tx(
     )
 
 
-@patch.object(portfolio_service, "get_stock_quotes")
+@patch.object(summary, "get_stock_quotes")
 def test_unfiltered_realized_events_sum_matches_portfolio_summary(
     mock_get_quotes, db_session
 ) -> None:
@@ -57,7 +58,7 @@ def test_unfiltered_realized_events_sum_matches_portfolio_summary(
     assert events_total.quantize(Decimal("0.01")) == summary.total_realized_pnl
 
 
-@patch.object(portfolio_service, "get_stock_quotes")
+@patch.object(summary, "get_stock_quotes")
 def test_unfiltered_realized_events_sum_matches_summary_mixed_long_and_short(
     mock_get_quotes, db_session
 ) -> None:

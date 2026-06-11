@@ -6,6 +6,7 @@ import pytest
 from app.models import portfolio as models
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service
+from app.services.portfolio import summary
 
 
 class TestEstimateSellCosts:
@@ -55,7 +56,7 @@ class TestPortfolioService:
         assert resolved_aware.tzinfo is None
         assert resolved_naive == naive_trade_date
 
-    @patch("app.services.portfolio_service.get_stock_quotes")
+    @patch("app.services.portfolio.summary.get_stock_quotes")
     def test_get_portfolio_summary_with_holdings(self, mock_get_quotes, db_session):
         db_session.add(
             models.Transaction(
@@ -110,7 +111,7 @@ class TestPortfolioService:
         assert summary.total_market_value > Decimal("0")
         assert summary.quotes_status == "ok"
 
-    @patch("app.services.portfolio_service.get_stock_quotes")
+    @patch("app.services.portfolio.summary.get_stock_quotes")
     def test_get_portfolio_summary_reports_partial_quote_status(self, mock_get_quotes, db_session):
         db_session.add_all(
             [
@@ -152,7 +153,7 @@ class TestPortfolioService:
 
         assert summary.quotes_status == "partial"
 
-    @patch("app.services.portfolio_service.get_stock_quotes")
+    @patch("app.services.portfolio.summary.get_stock_quotes")
     def test_get_portfolio_summary_reports_unavailable_quote_status(self, mock_get_quotes, db_session):
         db_session.add(
             models.Transaction(
@@ -398,7 +399,7 @@ class TestPortfolioService:
 
         assert db_session.query(models.Transaction).count() == 1
 
-    @patch("app.services.portfolio_service.get_stock_quotes")
+    @patch("app.services.portfolio.summary.get_stock_quotes")
     def test_create_transaction_allows_partial_sell(self, mock_get_quotes, db_session):
         mock_get_quotes.return_value = {
             "0050": {
@@ -596,7 +597,7 @@ def test_update_transaction_oversell_returns_http_400_and_preserves_row(client, 
     assert buy_transaction.quantity == 10
 
 
-@patch("app.services.portfolio_service.get_stock_quotes")
+@patch("app.services.portfolio.summary.get_stock_quotes")
 def test_portfolio_summary_keeps_lifetime_dividends_for_closed_positions(mock_get_quotes, db_session):
     mock_get_quotes.return_value = {}
 
@@ -638,7 +639,7 @@ def test_portfolio_summary_keeps_lifetime_dividends_for_closed_positions(mock_ge
     assert summary.total_dividends == Decimal("100.00")
 
 
-@patch.object(portfolio_service, "get_stock_quotes")
+@patch.object(summary, "get_stock_quotes")
 def test_portfolio_summary_applies_corporate_action_factor(mock_get_quotes, db_session):
     """A 1→10 face-value change adjusts pre-event qty x10 and price /10."""
     from app.models.corporate_action import CorporateAction
@@ -678,7 +679,7 @@ def test_portfolio_summary_applies_corporate_action_factor(mock_get_quotes, db_s
     assert holding.avg_cost == Decimal("60.00")
 
 
-@patch.object(portfolio_service, "get_stock_quotes")
+@patch.object(summary, "get_stock_quotes")
 def test_portfolio_summary_unchanged_without_corp_actions(mock_get_quotes, db_session):
     """Sanity: with no corporate actions, output identical to pre-feature."""
     mock_get_quotes.return_value = {
@@ -703,7 +704,7 @@ def test_portfolio_summary_unchanged_without_corp_actions(mock_get_quotes, db_se
     assert holding.avg_cost == Decimal("600.00")
 
 
-@patch.object(portfolio_service, "get_stock_quotes")
+@patch.object(summary, "get_stock_quotes")
 def test_portfolio_summary_post_event_transaction_not_adjusted(mock_get_quotes, db_session):
     """A transaction after the corp action stays at its nominal qty/price."""
     from app.models.corporate_action import CorporateAction

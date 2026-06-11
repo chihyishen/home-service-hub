@@ -61,7 +61,7 @@ def test_get_active_holdings_uses_same_day_ordering_and_symbol_normalization(db_
 
 
 @patch("app.routers.exdividend.fetch_upcoming_exdividends")
-@patch("app.services.portfolio_service.get_stock_quotes")
+@patch("app.services.portfolio.summary.get_stock_quotes")
 def test_summary_and_exdividend_use_same_active_symbols(mock_get_quotes, mock_fetch_exdividends, client, db_session):
     db_session.add_all(
         [

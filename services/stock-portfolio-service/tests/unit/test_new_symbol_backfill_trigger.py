@@ -13,6 +13,10 @@ from app.models.symbol_map import SymbolMap
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service as svc
 
+# create_transaction (now in portfolio.crud) resolves the backfill hooks from
+# its own module globals, so patches must target crud, not the facade.
+from app.services.portfolio import crud
+
 
 def _buy(symbol: str, day: datetime) -> schemas.TransactionCreate:
     return schemas.TransactionCreate(
@@ -29,7 +33,7 @@ def _buy(symbol: str, day: datetime) -> schemas.TransactionCreate:
 def test_first_transaction_for_symbol_triggers_backfill(db_session, monkeypatch):
     calls = []
     monkeypatch.setattr(
-        svc, "_schedule_symbol_history_backfill",
+        crud, "_schedule_symbol_history_backfill",
         lambda symbol, from_date: calls.append((symbol, from_date)),
     )
     svc.create_transaction(
@@ -47,12 +51,12 @@ def test_first_tpex_transaction_triggers_tpex_backfill(db_session, monkeypatch):
     twse_calls = []
     tpex_calls = []
     monkeypatch.setattr(
-        svc,
+        crud,
         "_schedule_symbol_history_backfill",
         lambda symbol, from_date: twse_calls.append((symbol, from_date)),
     )
     monkeypatch.setattr(
-        svc,
+        crud,
         "_schedule_tpex_symbol_history_backfill",
         lambda symbol, from_date: tpex_calls.append((symbol, from_date)),
     )
@@ -66,14 +70,14 @@ def test_first_tpex_transaction_triggers_tpex_backfill(db_session, monkeypatch):
 
 
 def test_second_transaction_same_symbol_does_not_retrigger(db_session, monkeypatch):
-    monkeypatch.setattr(svc, "_schedule_symbol_history_backfill", lambda *a, **k: None)
+    monkeypatch.setattr(crud, "_schedule_symbol_history_backfill", lambda *a, **k: None)
     svc.create_transaction(
         db_session, _buy("2454", datetime(2026, 3, 2, 1, 30, tzinfo=UTC))
     )
 
     calls = []
     monkeypatch.setattr(
-        svc, "_schedule_symbol_history_backfill",
+        crud, "_schedule_symbol_history_backfill",
         lambda symbol, from_date: calls.append((symbol, from_date)),
     )
     svc.create_transaction(
