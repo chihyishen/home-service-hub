@@ -1,11 +1,12 @@
+
 from pydantic import Field
-from typing import Optional
-from . import BaseSchema, AuditSchema
+
+from . import AuditSchema, BaseSchema
 
 
 class CategoryBase(BaseSchema):
     name: str = Field(..., description="分類名稱", examples=["餐飲"])
-    color: Optional[str] = Field(None, description="顯示顏色 (HEX)", examples=["#FF5733"])
+    color: str | None = Field(None, description="顯示顏色 (HEX)", examples=["#FF5733"])
 
 
 class CategoryCreate(CategoryBase):
@@ -13,8 +14,8 @@ class CategoryCreate(CategoryBase):
 
 
 class CategoryUpdate(BaseSchema):
-    name: Optional[str] = Field(None, description="分類名稱", examples=["餐飲"])
-    color: Optional[str] = Field(None, description="顯示顏色 (HEX)", examples=["#FF5733"])
+    name: str | None = Field(None, description="分類名稱", examples=["餐飲"])
+    color: str | None = Field(None, description="顯示顏色 (HEX)", examples=["#FF5733"])
 
 
 class Category(CategoryBase, AuditSchema):

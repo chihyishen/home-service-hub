@@ -1,7 +1,8 @@
-from . import BaseSchema
-from typing import List
 from datetime import date as dt_date
+
+from . import BaseSchema
 from .transaction import Transaction
+
 
 class CategorySummary(BaseSchema):
     category: str
@@ -32,9 +33,9 @@ class CardUsageSummary(BaseSchema):
 class MonthlyReport(BaseSchema):
     period: str
     summary: MonthlyReportSummary
-    expense_breakdown: List[CategorySummary]
-    payment_breakdown: List[PaymentMethodSummary]
-    top_expenses: List[Transaction]
+    expense_breakdown: list[CategorySummary]
+    payment_breakdown: list[PaymentMethodSummary]
+    top_expenses: list[Transaction]
 
 
 class MonthlyTrendPoint(BaseSchema):
@@ -46,7 +47,7 @@ class MonthlyTrendPoint(BaseSchema):
 
 class CategoryTrend(BaseSchema):
     category: str
-    monthly_amounts: List[int]
+    monthly_amounts: list[int]
     total: int
     average: int
 
@@ -62,8 +63,8 @@ class AnnualSummary(BaseSchema):
 
 class AnnualReport(BaseSchema):
     year: int
-    monthly_trend: List[MonthlyTrendPoint]
-    category_trend: List[CategoryTrend]
+    monthly_trend: list[MonthlyTrendPoint]
+    category_trend: list[CategoryTrend]
     summary: AnnualSummary
 
 
@@ -85,5 +86,5 @@ class MonthlyCompareSummary(BaseSchema):
 class MonthlyCompareReport(BaseSchema):
     period: str
     baseline_period: str
-    categories: List[CategoryDeltaSummary]
+    categories: list[CategoryDeltaSummary]
     summary: MonthlyCompareSummary

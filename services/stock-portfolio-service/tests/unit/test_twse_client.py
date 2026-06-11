@@ -1,8 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from requests.exceptions import ConnectionError, SSLError
-
 from app.services import twse_client
 from app.services.twse_client import (
     TLSMode,
@@ -12,6 +10,7 @@ from app.services.twse_client import (
     get_tls_mode,
     reset_twse_client_state,
 )
+from requests.exceptions import ConnectionError, SSLError
 
 
 class _FakeResponse:

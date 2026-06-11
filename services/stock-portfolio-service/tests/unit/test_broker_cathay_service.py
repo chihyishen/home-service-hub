@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from io import BytesIO
+from datetime import UTC, datetime
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
-
 from app.models import portfolio as models
 from app.services import broker_cathay_service, import_service
 from app.services.per_date_verify import OverrideValidation
@@ -49,7 +48,7 @@ def _legacy_fp() -> str:
         "BUY",
         1000,
         Decimal("56.3"),
-        datetime(2026, 5, 8, tzinfo=timezone.utc),
+        datetime(2026, 5, 8, tzinfo=UTC),
         Decimal("22"),
         Decimal("0"),
     )
@@ -61,7 +60,7 @@ def _new_fp(order_id: str) -> str:
         "BUY",
         1000,
         Decimal("56.3"),
-        datetime(2026, 5, 8, tzinfo=timezone.utc),
+        datetime(2026, 5, 8, tzinfo=UTC),
         Decimal("22"),
         Decimal("0"),
         order_id=order_id,
@@ -75,7 +74,7 @@ def _seed_legacy_transaction(db_session) -> models.Transaction:
         type=models.TransactionType.BUY,
         quantity=1000,
         price=Decimal("56.3"),
-        trade_date=datetime(2026, 5, 8, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 8, tzinfo=UTC),
         fee=Decimal("22"),
         tax=Decimal("0"),
         import_fingerprint=_legacy_fp(),
@@ -96,7 +95,7 @@ def test_detect_csv_format_generic_english_header():
 
 
 def test_detect_csv_format_blank_leading_lines():
-    raw = "\n\n根據您篩選的結果，總計有1筆資料\n".encode("utf-8")
+    raw = "\n\n根據您篩選的結果，總計有1筆資料\n".encode()
     assert import_service.detect_csv_format(raw) == "cathay"
 
 
@@ -203,7 +202,7 @@ def test_rehash_propagates_broker_day_trade_marker(db_session):
         position_side=models.PositionSide.LONG,
         quantity=1000,
         price=Decimal("56.3"),
-        trade_date=datetime(2026, 5, 8, 13, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 8, 13, 30, tzinfo=UTC),
         fee=Decimal("22"),
         tax=Decimal("0"),
         import_fingerprint=None,
@@ -229,7 +228,7 @@ def test_rehash_recomputes_is_day_trade_after_marker_write(db_session):
         position_side=models.PositionSide.LONG,
         quantity=1000,
         price=Decimal("56.3"),
-        trade_date=datetime(2026, 5, 8, 13, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 8, 13, 30, tzinfo=UTC),
         fee=Decimal("22"),
         tax=Decimal("0"),
         is_day_trade=False,
@@ -377,7 +376,7 @@ def test_ambiguous_name_surfaces_to_unresolved_panel(db_session, monkeypatch):
     instead of hard-failing the batch. The user picks the right ticker on the
     frontend; resolvable rows commit as usual."""
     monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, "模擬曖昧", ["A", "B"])
-    tx = _seed_legacy_transaction(db_session)
+    _seed_legacy_transaction(db_session)
     result = broker_cathay_service.parse_cathay_transactions_csv(
         _cathay_csv(_row(order_id="aT532"), _row(name="模擬曖昧", order_id="bad")),
         dry_run=False,
@@ -425,7 +424,7 @@ def test_endpoint_accepts_name_overrides_form_field(client, monkeypatch):
 
 
 def test_generic_path_response_has_empty_unresolved_names_for_shape_consistency(client):
-    raw = "symbol,type,quantity,price,trade_date,fee,tax,name\n2330,BUY,10,600,2026-05-15T01:30:00Z,28,0,台積電\n".encode("utf-8")
+    raw = "symbol,type,quantity,price,trade_date,fee,tax,name\n2330,BUY,10,600,2026-05-15T01:30:00Z,28,0,台積電\n".encode()
     response = client.post(
         "/api/portfolio/imports/transactions",
         files={"file": ("tx.csv", BytesIO(raw), "text/csv")},
@@ -535,7 +534,7 @@ def test_auto_resolved_rows_not_sent_to_per_date_verify(db_session, monkeypatch)
     assert calls == [
         {
             "name_to_code": {"新光金": "2888"},
-            "name_to_earliest_date": {"晶宏": datetime(2026, 5, 8, tzinfo=timezone.utc).date(), "新光金": datetime(2026, 5, 8, tzinfo=timezone.utc).date()},
+            "name_to_earliest_date": {"晶宏": datetime(2026, 5, 8, tzinfo=UTC).date(), "新光金": datetime(2026, 5, 8, tzinfo=UTC).date()},
             "confirmed": set(),
         }
     ]

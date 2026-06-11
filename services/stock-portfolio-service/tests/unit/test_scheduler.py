@@ -1,10 +1,9 @@
 """Scheduler boot, gate logic, and job callable wiring."""
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from app.services import scheduler as sched
 
 TW = timezone(timedelta(hours=8))

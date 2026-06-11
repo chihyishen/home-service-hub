@@ -5,10 +5,9 @@ pairs on those instruments must NOT flip to ``is_day_trade=True``, even
 though the bucket pair-rule would otherwise match. Unmapped symbols
 fail-open (eligible) to preserve legacy behavior on missing data.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from app.models import portfolio as models
 from app.models.symbol_map import SymbolMap
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service as svc
@@ -44,7 +43,7 @@ def test_warrant_pair_same_day_stays_non_day_trade(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="045378", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="045378", tx_type="SELL", trade_date=trade_day))
 
@@ -60,7 +59,7 @@ def test_otc_warrant_pair_same_day_stays_non_day_trade(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="738910", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="738910", tx_type="SELL", trade_date=trade_day))
 
@@ -76,7 +75,7 @@ def test_equity_pair_same_day_still_flips_day_trade(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="SELL", trade_date=trade_day))
 
@@ -92,7 +91,7 @@ def test_marker_pair_same_day_flips_day_trade(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="SELL", trade_date=trade_day))
     buy.broker_day_trade_marker = "沖買"
@@ -112,7 +111,7 @@ def test_marker_only_on_buy_still_flips_bucket(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="BUY", trade_date=trade_day))
     _set_marker_and_recompute(db_session, buy, "沖買")
 
@@ -126,7 +125,7 @@ def test_marker_on_warrant_rejected_by_eligibility_gate(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="045378", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="045378", tx_type="SELL", trade_date=trade_day))
     buy.broker_day_trade_marker = "沖買"
@@ -146,7 +145,7 @@ def test_odd_lot_pair_with_marker_stays_false(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(
         db_session,
         _payload(symbol="6491", tx_type="BUY", trade_date=trade_day, quantity=25),
@@ -172,7 +171,7 @@ def test_mixed_odd_lot_and_board_lot_bucket_only_board_flips(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     board_buy = svc.create_transaction(
         db_session,
         _payload(symbol="2330", tx_type="BUY", trade_date=trade_day, quantity=1000),
@@ -200,7 +199,7 @@ def test_board_lot_alone_with_odd_lot_opposing_side_stays_false(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     board_buy = svc.create_transaction(
         db_session,
         _payload(symbol="2330", tx_type="BUY", trade_date=trade_day, quantity=1000),
@@ -222,7 +221,7 @@ def test_no_marker_equity_pair_falls_back_to_heuristic(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="SELL", trade_date=trade_day))
 
@@ -238,7 +237,7 @@ def test_no_marker_no_pair_stays_false(db_session):
     )
     db_session.commit()
 
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="2330", tx_type="BUY", trade_date=trade_day))
 
     db_session.refresh(buy)
@@ -247,7 +246,7 @@ def test_no_marker_no_pair_stays_false(db_session):
 
 def test_unmapped_symbol_pair_same_day_flips_day_trade_fail_open(db_session):
     # No symbol_map row — fail-open preserves legacy behavior.
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(db_session, _payload(symbol="9999", tx_type="BUY", trade_date=trade_day))
     sell = svc.create_transaction(db_session, _payload(symbol="9999", tx_type="SELL", trade_date=trade_day))
 

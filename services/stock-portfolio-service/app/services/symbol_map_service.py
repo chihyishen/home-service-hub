@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -35,7 +34,7 @@ def refresh_all_from_twstock(db: Session) -> dict:
 
     try:
         twstock.__update_codes()  # type: ignore[attr-defined]
-    except Exception:  # noqa: BLE001 — refresh failure should not poison the upsert pass
+    except Exception:
         logger.exception("symbol_map.update_codes.failed")
 
     count = 0
@@ -62,7 +61,7 @@ def refresh_all_from_twstock(db: Session) -> dict:
 _INELIGIBLE_TYPE_SUBSTRINGS: tuple[str, ...] = ("認購", "認售", "牛證", "熊證")
 
 
-def lookup_warrant_type(db: Session, symbol: str) -> Optional[str]:
+def lookup_warrant_type(db: Session, symbol: str) -> str | None:
     """Return the live ``symbol_map.type`` only when it identifies a warrant."""
     if not symbol:
         return None
@@ -80,7 +79,7 @@ def lookup_warrant_type(db: Session, symbol: str) -> Optional[str]:
 
 
 def is_day_trade_eligible(
-    db: Session, symbol: str, instrument_type: Optional[str] = None
+    db: Session, symbol: str, instrument_type: str | None = None
 ) -> bool:
     """Return whether ``symbol`` is eligible for TW 現股當沖 classification.
 
@@ -112,7 +111,7 @@ def is_day_trade_eligible(
     return not any(token in type_value for token in _INELIGIBLE_TYPE_SUBSTRINGS)
 
 
-def resolve_name(db: Session, name: str) -> Optional[str]:
+def resolve_name(db: Session, name: str) -> str | None:
     """Return the ticker for a Chinese name, or None if unmapped."""
     row = (
         db.query(SymbolMap)

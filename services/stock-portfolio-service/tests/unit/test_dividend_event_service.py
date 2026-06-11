@@ -4,8 +4,6 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
-import pytest
-
 from app.models import portfolio as models
 from app.services import dividend_event_service as svc
 from app.services.dividend_sources import DividendEventRow

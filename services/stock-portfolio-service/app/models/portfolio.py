@@ -1,3 +1,6 @@
+import enum
+from decimal import Decimal
+
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -11,9 +14,9 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.sql import expression, func
-import enum
-from decimal import Decimal
+
 from ..database import Base, TimestampMixin
+
 
 class TransactionType(str, enum.Enum):
     BUY = "BUY"

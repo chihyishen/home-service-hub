@@ -1,22 +1,25 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import Column, func
-from typing import Dict, List, Optional, Tuple
-from datetime import date as date_type, datetime, timedelta, timezone
-
-_ONE_DAY = timedelta(days=1)
-from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
+import logging
 import math
 import os
-import logging
+from datetime import UTC, datetime, timedelta
+from datetime import date as date_type
+from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
+
+from shared_lib import get_tracer
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+
 from ..models import portfolio as models
 from ..models.corporate_action import CorporateAction
 from ..models.symbol_map import SymbolMap
 from ..schemas import portfolio as schemas
-from .twse_service import get_stock_quotes
 from . import symbol_map_service
+from .twse_service import get_stock_quotes
+
+_ONE_DAY = timedelta(days=1)
 
 logger = logging.getLogger(__name__)
-from shared_lib import get_tracer
+
 tracer = get_tracer("stock-portfolio-service")
 
 
@@ -86,7 +89,7 @@ class _AdjustedTransaction:
         return getattr(self._base, "is_day_trade", False)
 
 
-def _factor_for_trade(actions: List[CorporateAction], trade_date) -> Decimal:
+def _factor_for_trade(actions: list[CorporateAction], trade_date) -> Decimal:
     """Cumulative product of every action strictly AFTER trade_date."""
     target = trade_date.date() if hasattr(trade_date, "date") else trade_date
     factor = Decimal(1)
@@ -97,9 +100,9 @@ def _factor_for_trade(actions: List[CorporateAction], trade_date) -> Decimal:
 
 
 def _apply_corp_action_factors(
-    transactions: List[models.Transaction],
-    actions_by_symbol: Optional[Dict[str, List[CorporateAction]]],
-) -> List:
+    transactions: list[models.Transaction],
+    actions_by_symbol: dict[str, list[CorporateAction]] | None,
+) -> list:
     """Return transactions (or adjusted views) with factor applied."""
     if not actions_by_symbol:
         return list(transactions)
@@ -117,19 +120,19 @@ def _apply_corp_action_factors(
     return adjusted
 
 
-def _load_corp_actions_by_symbol(db: Session) -> Dict[str, List[CorporateAction]]:
+def _load_corp_actions_by_symbol(db: Session) -> dict[str, list[CorporateAction]]:
     rows = (
         db.query(CorporateAction)
         .order_by(CorporateAction.effective_date.asc(), CorporateAction.id.asc())
         .all()
     )
-    grouped: Dict[str, List[CorporateAction]] = {}
+    grouped: dict[str, list[CorporateAction]] = {}
     for row in rows:
         grouped.setdefault(sanitize_symbol(row.symbol), []).append(row)
     return grouped
 
 
-def _load_adjusted_transactions(db: Session) -> List:
+def _load_adjusted_transactions(db: Session) -> list:
     """Load transactions in the portfolio-summary order with split factors applied."""
     transactions = (
         db.query(models.Transaction)
@@ -143,7 +146,7 @@ def _load_adjusted_transactions(db: Session) -> List:
     return _apply_corp_action_factors(transactions, _load_corp_actions_by_symbol(db))
 
 
-def _calculate_xirr(cash_flows: List[Tuple[date_type, Decimal]]) -> Optional[Decimal]:
+def _calculate_xirr(cash_flows: list[tuple[date_type, Decimal]]) -> Decimal | None:
     """
     Compute XIRR from a list of (date, amount) pairs.
     Returns None if calculation is impossible or fails.
@@ -205,7 +208,7 @@ def _resolve_sort_trade_date(
 ) -> datetime:
     if trade_date.tzinfo is None:
         return trade_date
-    return trade_date.astimezone(timezone.utc).replace(tzinfo=None)
+    return trade_date.astimezone(UTC).replace(tzinfo=None)
 
 
 def _trade_calendar_date(trade_date: datetime) -> date_type:
@@ -233,7 +236,7 @@ def _recompute_day_trade_flags(
     """
 
     normalized = sanitize_symbol(symbol)
-    day_start = datetime.combine(calendar_date, datetime.min.time(), tzinfo=timezone.utc)
+    day_start = datetime.combine(calendar_date, datetime.min.time(), tzinfo=UTC)
     day_end = day_start + _ONE_DAY
     rows = (
         db.query(models.Transaction)
@@ -276,7 +279,7 @@ def _recompute_day_trade_flags(
             row.is_day_trade = new_flag
 
 
-def _validate_symbol_ledger(symbol: str, ledger_entries: List[Dict[str, object]]) -> None:
+def _validate_symbol_ledger(symbol: str, ledger_entries: list[dict[str, object]]) -> None:
     long_qty = 0
     short_qty = 0
 
@@ -325,15 +328,15 @@ def _validate_symbol_ledger(symbol: str, ledger_entries: List[Dict[str, object]]
 
 def _validate_transaction_ledger(
     db: Session,
-    transaction_data: Dict[str, object],
-    existing_transaction: Optional[models.Transaction] = None,
+    transaction_data: dict[str, object],
+    existing_transaction: models.Transaction | None = None,
 ) -> None:
     proposed_symbol = sanitize_symbol(str(transaction_data["symbol"]))
     symbols_to_validate = {proposed_symbol}
     if existing_transaction is not None:
         symbols_to_validate.add(sanitize_symbol(existing_transaction.symbol))
 
-    ledger_map: Dict[str, List[Dict[str, object]]] = {symbol: [] for symbol in symbols_to_validate}
+    ledger_map: dict[str, list[dict[str, object]]] = {symbol: [] for symbol in symbols_to_validate}
     persisted_transactions = (
         db.query(models.Transaction)
         .order_by(models.Transaction.trade_date, models.Transaction.id)
@@ -385,10 +388,10 @@ def _validate_transaction_ledger(
 
 
 def _aggregate_active_holdings(
-    transactions: List[models.Transaction],
-    actions_by_symbol: Optional[Dict[str, List[CorporateAction]]] = None,
-) -> Dict[str, Dict[str, object]]:
-    holdings: Dict[str, Dict[str, object]] = {}
+    transactions: list[models.Transaction],
+    actions_by_symbol: dict[str, list[CorporateAction]] | None = None,
+) -> dict[str, dict[str, object]]:
+    holdings: dict[str, dict[str, object]] = {}
 
     adjusted = _apply_corp_action_factors(transactions, actions_by_symbol)
 
@@ -425,7 +428,7 @@ def _aggregate_active_holdings(
     }
 
 
-def get_active_holdings(db: Session) -> Dict[str, Dict[str, object]]:
+def get_active_holdings(db: Session) -> dict[str, dict[str, object]]:
     transactions = (
         db.query(models.Transaction)
         .order_by(models.Transaction.trade_date, models.Transaction.id)
@@ -445,7 +448,7 @@ def get_ever_held_symbols(db: Session) -> set:
     return {s for (s,) in tx_symbols} | {s for (s,) in dv_symbols}
 
 
-def _get_quote_status(active_symbols: List[str], quotes: Dict[str, Dict]) -> str:
+def _get_quote_status(active_symbols: list[str], quotes: dict[str, dict]) -> str:
     if not active_symbols:
         return "ok"
     if not quotes:
@@ -511,7 +514,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
         adjusted_transactions = _apply_corp_action_factors(transactions, actions_by_symbol)
         from .realized_pnl_service import iter_realized_events
         realized_events = list(iter_realized_events(adjusted_transactions))
-        realized_pnl_by_symbol: Dict[str, Decimal] = {}
+        realized_pnl_by_symbol: dict[str, Decimal] = {}
         for event in realized_events:
             realized_pnl_by_symbol[event.symbol] = (
                 realized_pnl_by_symbol.get(event.symbol, Decimal("0.0"))
@@ -527,7 +530,7 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
 
         # 整理每檔股票的狀態
         holdings_map = {}
-        cashflows_map: Dict[str, List[Tuple[date_type, Decimal]]] = {}
+        cashflows_map: dict[str, list[tuple[date_type, Decimal]]] = {}
 
         # 股利統計
         dividend_map = {}
@@ -633,11 +636,11 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
             stock_div = dividend_map.get(symbol, Decimal("0.0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             # Per-stock XIRR: append terminal market value at today
-            stock_xirr: Optional[Decimal] = None
+            stock_xirr: Decimal | None = None
             if current_price > 0 and symbol in cashflows_map:
                 today = date_type.today()
                 stock_flows = sorted(cashflows_map.get(symbol, []), key=lambda x: x[0])
-                stock_flows_with_terminal = stock_flows + [(today, market_value)]
+                stock_flows_with_terminal = [*stock_flows, (today, market_value)]
                 stock_xirr = _calculate_xirr(stock_flows_with_terminal)
 
             holdings_list.append(schemas.StockHolding(
@@ -667,13 +670,13 @@ def get_portfolio_summary(db: Session) -> schemas.PortfolioSummary:
         total_pnl_percent = ((total_unrealized_pnl / total_cost) * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if total_cost > 0 else Decimal("0.0")
 
         # Portfolio XIRR: aggregate all cash flows across all held symbols
-        all_cashflows: List[Tuple[date_type, Decimal]] = []
+        all_cashflows: list[tuple[date_type, Decimal]] = []
         for symbol in active_symbols:
             all_cashflows.extend(cashflows_map.get(symbol, []))
         all_cashflows.sort(key=lambda x: x[0])
-        portfolio_xirr: Optional[Decimal] = None
+        portfolio_xirr: Decimal | None = None
         if total_market_value > 0 and all_cashflows:
-            all_cashflows_with_terminal = all_cashflows + [(date_type.today(), total_market_value)]
+            all_cashflows_with_terminal = [*all_cashflows, (date_type.today(), total_market_value)]
             portfolio_xirr = _calculate_xirr(all_cashflows_with_terminal)
 
         # Sum realised P&L across every symbol with realized events (long close +
@@ -716,14 +719,14 @@ def _schedule_symbol_history_backfill(symbol: str, from_date) -> None:
 
         db = SessionLocal()
         try:
-            today = datetime.now(timezone.utc).date()
+            today = datetime.now(UTC).date()
             written = symbol_history_service.backfill_symbol_history(
                 db, symbol, from_date, today
             )
             logger.info(
                 "symbol_history.autobackfill_done symbol=%s rows=%s", symbol, written
             )
-        except Exception:  # noqa: BLE001 — background best-effort
+        except Exception:
             logger.exception("symbol_history.autobackfill_failed symbol=%s", symbol)
         finally:
             db.close()
@@ -770,7 +773,7 @@ def _schedule_tpex_symbol_history_backfill(symbol: str, from_date) -> None:
 
         db = SessionLocal()
         try:
-            today = datetime.now(timezone.utc).date()
+            today = datetime.now(UTC).date()
             throttle_sec = _env_decimal(
                 "SYMBOL_HISTORY_TPEX_THROTTLE_SEC", "1.5"
             )
@@ -792,7 +795,7 @@ def _schedule_tpex_symbol_history_backfill(symbol: str, from_date) -> None:
                 dates_processed,
                 rows_written,
             )
-        except Exception:  # noqa: BLE001 — background best-effort
+        except Exception:
             logger.exception("symbol_history.tpex_autobackfill_failed symbol=%s", symbol)
         finally:
             db.close()
@@ -807,7 +810,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     # Task 2: 清理 symbol
     transaction_data = transaction.model_dump()
     transaction_data["symbol"] = sanitize_symbol(transaction_data["symbol"])
-    transaction_data["trade_date"] = transaction_data.get("trade_date") or datetime.now(timezone.utc)
+    transaction_data["trade_date"] = transaction_data.get("trade_date") or datetime.now(UTC)
     transaction_data["instrument_type"] = symbol_map_service.lookup_warrant_type(
         db, transaction_data["symbol"]
     )
@@ -855,7 +858,7 @@ def create_dividend(db: Session, dividend: schemas.DividendCreate):
     return db_dividend
 
 
-_TRANSACTION_SORT_FIELDS: Dict[str, Column] = {
+_TRANSACTION_SORT_FIELDS: dict[str, Column] = {
     "trade_date": models.Transaction.trade_date,
     "symbol": models.Transaction.symbol,
     "type": models.Transaction.type,
@@ -863,7 +866,7 @@ _TRANSACTION_SORT_FIELDS: Dict[str, Column] = {
     "quantity": models.Transaction.quantity,
 }
 
-_DIVIDEND_SORT_FIELDS: Dict[str, Column] = {
+_DIVIDEND_SORT_FIELDS: dict[str, Column] = {
     "ex_dividend_date": models.Dividend.ex_dividend_date,
     "symbol": models.Dividend.symbol,
     "amount": models.Dividend.amount,
@@ -871,7 +874,7 @@ _DIVIDEND_SORT_FIELDS: Dict[str, Column] = {
 }
 
 
-def _parse_sort(value: str, allowlist: Dict[str, Column]) -> Tuple[str, str]:
+def _parse_sort(value: str, allowlist: dict[str, Column]) -> tuple[str, str]:
     """Split ``"field:direction"`` and validate against ``allowlist``.
 
     Raises ``ValueError`` on bad syntax or unknown field. Caller maps that
@@ -892,15 +895,15 @@ def _parse_sort(value: str, allowlist: Dict[str, Column]) -> Tuple[str, str]:
 def list_transactions(
     db: Session,
     *,
-    symbol: Optional[str] = None,
-    date_from: Optional[date_type] = None,
-    date_to: Optional[date_type] = None,
-    side: Optional[str] = None,
+    symbol: str | None = None,
+    date_from: date_type | None = None,
+    date_to: date_type | None = None,
+    side: str | None = None,
     sort_field: str = "trade_date",
     sort_dir: str = "desc",
     offset: int = 0,
     limit: int = 25,
-) -> Tuple[List[models.Transaction], int]:
+) -> tuple[list[models.Transaction], int]:
     """Return ``(items, total)`` paged + filtered transactions.
 
     ``date_from`` / ``date_to`` are inclusive bounds on ``trade_date``.
@@ -926,12 +929,12 @@ def list_transactions(
     if date_from is not None:
         base = base.filter(
             models.Transaction.trade_date
-            >= datetime.combine(date_from, datetime.min.time(), tzinfo=timezone.utc)
+            >= datetime.combine(date_from, datetime.min.time(), tzinfo=UTC)
         )
     if date_to is not None:
         # date_to inclusive — use < (next day midnight)
         end_exclusive = (
-            datetime.combine(date_to, datetime.min.time(), tzinfo=timezone.utc) + _ONE_DAY
+            datetime.combine(date_to, datetime.min.time(), tzinfo=UTC) + _ONE_DAY
         )
         base = base.filter(models.Transaction.trade_date < end_exclusive)
     if side:
@@ -1004,15 +1007,15 @@ def delete_transaction(db: Session, transaction_id: int):
 def list_dividends(
     db: Session,
     *,
-    symbol: Optional[str] = None,
-    date_from: Optional[date_type] = None,
-    date_to: Optional[date_type] = None,
-    source: Optional[str] = None,
+    symbol: str | None = None,
+    date_from: date_type | None = None,
+    date_to: date_type | None = None,
+    source: str | None = None,
     sort_field: str = "ex_dividend_date",
     sort_dir: str = "desc",
     offset: int = 0,
     limit: int = 25,
-) -> Tuple[List[models.Dividend], int]:
+) -> tuple[list[models.Dividend], int]:
     """Return ``(items, total)`` paged + filtered dividends."""
     if sort_field not in _DIVIDEND_SORT_FIELDS:
         raise ValueError(f"sort field '{sort_field}' not allowed")
@@ -1030,11 +1033,11 @@ def list_dividends(
     if date_from is not None:
         base = base.filter(
             models.Dividend.ex_dividend_date
-            >= datetime.combine(date_from, datetime.min.time(), tzinfo=timezone.utc)
+            >= datetime.combine(date_from, datetime.min.time(), tzinfo=UTC)
         )
     if date_to is not None:
         end_exclusive = (
-            datetime.combine(date_to, datetime.min.time(), tzinfo=timezone.utc) + _ONE_DAY
+            datetime.combine(date_to, datetime.min.time(), tzinfo=UTC) + _ONE_DAY
         )
         base = base.filter(models.Dividend.ex_dividend_date < end_exclusive)
     if source is not None:

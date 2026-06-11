@@ -4,10 +4,7 @@ import json
 from datetime import date
 from decimal import Decimal
 
-import pytest
-
-from app.services.dividend_sources import twse_twt48u, twse_twt49u, tpex_otc
-
+from app.services.dividend_sources import tpex_otc, twse_twt48u, twse_twt49u
 
 # ---------- TWT48U (TWT48U_ALL OpenAPI — English-keyed schema) ----------
 # TWSE migrated the dataset from /exchangeReport/TWT48U (Chinese keys,
@@ -155,7 +152,9 @@ def test_twt49u_fetch_is_deprecated_no_network(monkeypatch):
     def _boom(*args, **kwargs):
         raise AssertionError("fetch_twt49u must not perform network I/O")
 
-    monkeypatch.setattr(twse_twt49u, "_http_get", _boom)
+    # raising=False: the module no longer even imports _http_get; the patch
+    # only fires if someone reintroduces network I/O under that name.
+    monkeypatch.setattr(twse_twt49u, "_http_get", _boom, raising=False)
     assert twse_twt49u.fetch_twt49u() == []
     assert twse_twt49u.fetch_twt49u(2026) == []
 

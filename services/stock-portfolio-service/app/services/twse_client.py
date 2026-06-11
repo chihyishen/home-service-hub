@@ -1,15 +1,15 @@
 import logging
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 import requests
 from requests import Response
 from requests.exceptions import RequestException, SSLError
-
 from shared_lib import get_tracer
 
 try:
@@ -59,17 +59,17 @@ class TWSERequestPolicy:
 
 
 @dataclass(frozen=True)
-class _CacheEntry(Generic[T]):
+class _CacheEntry[T]:
     expires_at: float
     value: T
 
 
-class _TTLCache(Generic[T]):
+class _TTLCache[T]:
     def __init__(self) -> None:
         self._entries: dict[Any, _CacheEntry[T]] = {}
         self._lock = Lock()
 
-    def get(self, key: Any) -> Optional[T]:
+    def get(self, key: Any) -> T | None:
         now = time.monotonic()
         with self._lock:
             entry = self._entries.get(key)
@@ -246,7 +246,7 @@ class TWSEClient:
             cache.set(cache_key, parsed, cache_ttl_sec)
             return parsed
 
-    def _request(self, url: str, span: Any) -> Optional[Response]:
+    def _request(self, url: str, span: Any) -> Response | None:
         bootstrap_truststore()
 
         if self.policy.tls_mode == TLSMode.INSECURE:
@@ -269,7 +269,7 @@ class TWSEClient:
             span.set_attribute("tls.fallback", True)
             return self._request_once(url, verify=False, span=span)
 
-    def _request_with_retries(self, url: str, *, verify: bool, span: Any) -> Optional[Response]:
+    def _request_with_retries(self, url: str, *, verify: bool, span: Any) -> Response | None:
         for attempt in range(1, self.policy.retry_max_attempts + 1):
             try:
                 return self._request_once(url, verify=verify, span=span, log_errors=False)
@@ -300,7 +300,7 @@ class TWSEClient:
         verify: bool,
         span: Any,
         log_errors: bool = True,
-    ) -> Optional[Response]:
+    ) -> Response | None:
         try:
             response = requests.get(url, timeout=self.policy.timeout_sec, verify=verify)
             span.set_attribute("http.status", response.status_code)

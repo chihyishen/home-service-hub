@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from datetime import date as dt_date
-from typing import Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -27,7 +26,7 @@ class BackfillResult(BaseModel):
     skipped_no_holding: int
 
 
-def _symbols_with_first_trade(db: Session) -> list[tuple[str, dt_date, Optional[str]]]:
+def _symbols_with_first_trade(db: Session) -> list[tuple[str, dt_date, str | None]]:
     """Every symbol that has at least one transaction, plus its first trade_date + latest name.
 
     Backfill must cover symbols the user has since fully sold — they
@@ -52,7 +51,7 @@ def _symbols_with_first_trade(db: Session) -> list[tuple[str, dt_date, Optional[
             & (Transaction.trade_date == aggregates.c.last_dt),
         )
     ).all()
-    out: list[tuple[str, dt_date, Optional[str]]] = []
+    out: list[tuple[str, dt_date, str | None]] = []
     seen: set[str] = set()
     for symbol, first_ts, name in rows:
         if first_ts is None or symbol in seen:
@@ -76,7 +75,7 @@ def backfill_dividends(db: Session = Depends(get_db)) -> BackfillResult:
         symbols_scanned += 1
         try:
             events = dividend_history_service.fetch_for_symbol_all_years(symbol, first)
-        except Exception as exc:  # noqa: BLE001 — per-symbol failure must not abort run
+        except Exception as exc:
             logger.exception(
                 "dividends.backfill.symbol_failed",
                 extra={"symbol": symbol, "error": str(exc)},
@@ -86,7 +85,7 @@ def backfill_dividends(db: Session = Depends(get_db)) -> BackfillResult:
             events_seen += 1
             try:
                 result = dividend_auto_record_service.auto_record_for_event(db, event, name=name)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 db.rollback()
                 logger.exception(
                     "dividends.backfill.event_failed",
@@ -101,7 +100,7 @@ def backfill_dividends(db: Session = Depends(get_db)) -> BackfillResult:
                 skipped_no_holding += 1
         try:
             db.commit()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.rollback()
             logger.exception(
                 "dividends.backfill.commit_failed",

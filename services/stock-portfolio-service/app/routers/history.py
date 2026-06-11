@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 from datetime import date as dt_date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -78,8 +77,8 @@ def _serialize_snapshot(row) -> dict:
 
 @snapshot_router.get("")
 def get_networth_history(
-    from_date: Optional[dt_date] = Query(default=None, alias="from"),
-    to_date: Optional[dt_date] = Query(default=None, alias="to"),
+    from_date: dt_date | None = Query(default=None, alias="from"),
+    to_date: dt_date | None = Query(default=None, alias="to"),
     interval: str = Query(default="day", pattern="^(day|week|month)$"),
     db: Session = Depends(get_db),
 ) -> list[dict]:
@@ -146,9 +145,9 @@ def _serialize_corp_action(row) -> dict:
 
 @corp_router.get("")
 def list_corporate_actions(
-    symbol: Optional[str] = Query(default=None),
-    from_date: Optional[dt_date] = Query(default=None, alias="from"),
-    to_date: Optional[dt_date] = Query(default=None, alias="to"),
+    symbol: str | None = Query(default=None),
+    from_date: dt_date | None = Query(default=None, alias="from"),
+    to_date: dt_date | None = Query(default=None, alias="to"),
     db: Session = Depends(get_db),
 ) -> list[dict]:
     rows = corporate_action_service.list_actions(

@@ -9,15 +9,13 @@ clean.
 from __future__ import annotations
 
 import importlib.util
-import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import create_engine, text
-
 
 _MIGRATION_PATH = (
     Path(__file__).resolve().parents[2]
@@ -91,7 +89,7 @@ def test_backfill_flips_warrant_pair_false_and_leaves_equity_unchanged(pg_engine
 
     warrant_symbol = f"W{uuid4().hex[:8]}"
     equity_symbol = f"E{uuid4().hex[:8]}"
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
 
     with pg_engine.connect() as conn:
         outer = conn.begin()

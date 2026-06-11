@@ -1,6 +1,5 @@
 import logging
 from datetime import date
-from typing import List, Optional, Set
 
 from ..schemas.portfolio import ExDividendRecord
 from .twse_client import get_twse_client
@@ -10,7 +9,7 @@ logger = logging.getLogger(__name__)
 TWSE_EXDIVIDEND_URL = "https://openapi.twse.com.tw/v1/exchangeReport/TWT48U"
 
 
-def roc_to_date(roc_str: str) -> Optional[date]:
+def roc_to_date(roc_str: str) -> date | None:
     """
     Convert ROC date string "114/06/15" to Python date(2025, 6, 15).
     ROC year + 1911 = Gregorian year.
@@ -30,8 +29,8 @@ def roc_to_date(roc_str: str) -> Optional[date]:
 
 
 def parse_twse_exdividend_records(
-    raw_records: list, held_symbols: Set[str]
-) -> List[ExDividendRecord]:
+    raw_records: list, held_symbols: set[str]
+) -> list[ExDividendRecord]:
     """
     Parse a list of raw TWSE API dicts into ExDividendRecord objects,
     keeping only records for symbols in held_symbols.
@@ -68,7 +67,7 @@ def parse_twse_exdividend_records(
     return results
 
 
-def fetch_upcoming_exdividends(held_symbols: Set[str]) -> List[ExDividendRecord]:
+def fetch_upcoming_exdividends(held_symbols: set[str]) -> list[ExDividendRecord]:
     """
     Fetch the TWSE upcoming ex-dividend table and return records for held_symbols only.
     """

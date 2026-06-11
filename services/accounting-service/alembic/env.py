@@ -1,17 +1,15 @@
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy import engine_from_config, pool
-
-from app.database import SQLALCHEMY_DATABASE_URL
-from app.database import Base
+import app.models.card
+import app.models.category
+import app.models.payment_method
+import app.models.recurring
 
 # Import all models so Base.metadata knows about them
 import app.models.transaction  # noqa: F401
-import app.models.card  # noqa: F401
-import app.models.category  # noqa: F401
-import app.models.payment_method  # noqa: F401
-import app.models.recurring  # noqa: F401
+from alembic import context
+from app.database import SQLALCHEMY_DATABASE_URL, Base
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)

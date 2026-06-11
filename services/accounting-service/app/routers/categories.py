@@ -1,7 +1,8 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-from .. import schemas, models
+
+from .. import models, schemas
 from ..database import get_db
 from ..schemas.category import CategoryMergePreview, CategoryMergeRequest, CategoryMergeResult
 
@@ -54,7 +55,7 @@ def _build_category_merge_preview(
         affected_subscriptions=affected_subscriptions,
     )
 
-@router.get("/", response_model=List[schemas.Category], summary="獲獲取所有分類")
+@router.get("/", response_model=list[schemas.Category], summary="獲獲取所有分類")
 def list_categories(db: Session = Depends(get_db)):
     return db.query(models.Category).all()
 

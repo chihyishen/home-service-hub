@@ -9,7 +9,7 @@ backfill). These tests pin the two pieces that keep the table lean:
   before persistence.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from app.schemas import portfolio as schemas
@@ -45,17 +45,17 @@ def _row(symbol: str) -> mds.DailyPriceRow:
 
 def test_get_ever_held_symbols_includes_all_transacted(db_session):
     svc.create_transaction(
-        db_session, _buy("0050", datetime(2025, 11, 10, 1, 30, tzinfo=timezone.utc))
+        db_session, _buy("0050", datetime(2025, 11, 10, 1, 30, tzinfo=UTC))
     )
     svc.create_transaction(
-        db_session, _buy("00919", datetime(2026, 2, 3, 1, 30, tzinfo=timezone.utc))
+        db_session, _buy("00919", datetime(2026, 2, 3, 1, 30, tzinfo=UTC))
     )
     assert svc.get_ever_held_symbols(db_session) == {"0050", "00919"}
 
 
 def test_get_ever_held_symbols_keeps_sold_out_positions(db_session):
     """A fully-sold position is still 'ever held' — its chart history stays."""
-    day = datetime(2025, 11, 10, 1, 30, tzinfo=timezone.utc)
+    day = datetime(2025, 11, 10, 1, 30, tzinfo=UTC)
     svc.create_transaction(db_session, _buy("2330", day))
     svc.create_transaction(
         db_session,
@@ -64,7 +64,7 @@ def test_get_ever_held_symbols_keeps_sold_out_positions(db_session):
             type=schemas.TransactionType("SELL"),
             quantity=1000,
             price=Decimal("12.00"),
-            trade_date=datetime(2026, 1, 5, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 1, 5, 1, 30, tzinfo=UTC),
             fee=Decimal("0.00"),
             tax=Decimal("0.00"),
         ),

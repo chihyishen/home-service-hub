@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, JSON, Boolean
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+
 from ..database import Base, TimestampMixin
+
 
 class CreditCard(Base, TimestampMixin):
     __tablename__ = "credit_cards"

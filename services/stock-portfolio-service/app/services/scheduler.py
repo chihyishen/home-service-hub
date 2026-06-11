@@ -22,13 +22,13 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import date, datetime, time, timezone, timedelta
-from typing import Callable, ContextManager
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from datetime import date, datetime, time, timedelta, timezone
+from datetime import timedelta as _timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-
-from datetime import timedelta as _timedelta
 
 from . import (
     dividend_auto_record_service,
@@ -68,7 +68,7 @@ def _today_tw() -> date:
     return _now_tw().date()
 
 
-def run_tw_daily_prices(session_factory: Callable[[], ContextManager]) -> dict:
+def run_tw_daily_prices(session_factory: Callable[[], AbstractContextManager]) -> dict:
     """Backfill TWSE+TPEx EoD for today (TW)."""
     today = _today_tw()
     with session_factory() as db:
@@ -85,7 +85,7 @@ def run_tw_daily_prices(session_factory: Callable[[], ContextManager]) -> dict:
     return result
 
 
-def run_quote_refresh(session_factory: Callable[[], ContextManager]) -> dict:
+def run_quote_refresh(session_factory: Callable[[], AbstractContextManager]) -> dict:
     """Pre-warm TWSE quote cache for active-holding symbols."""
     if not is_tw_market_session(_now_tw()):
         logger.debug("scheduler.quote_refresh.skipped_outside_session")
@@ -103,7 +103,7 @@ def run_quote_refresh(session_factory: Callable[[], ContextManager]) -> dict:
     return {"requested": len(symbols), "received": len(quotes)}
 
 
-def run_portfolio_snapshot(session_factory: Callable[[], ContextManager]) -> dict:
+def run_portfolio_snapshot(session_factory: Callable[[], AbstractContextManager]) -> dict:
     """Persist today's PortfolioSummary into ``portfolio_snapshot``.
 
     Swallows any exception raised by the underlying service so the
@@ -113,7 +113,7 @@ def run_portfolio_snapshot(session_factory: Callable[[], ContextManager]) -> dic
     try:
         with session_factory() as db:
             snapshot = portfolio_snapshot_service.write_today_snapshot(db)
-    except Exception as exc:  # noqa: BLE001 — scheduler must not die
+    except Exception as exc:
         logger.exception("scheduler.portfolio_snapshot.failed", extra={"error": str(exc)})
         return {"status": "failed", "error": str(exc)}
     logger.info(
@@ -142,7 +142,7 @@ def _event_row_to_historical(row, source: str) -> HistoricalDividendEvent:
     )
 
 
-def run_dividend_auto_record(session_factory: Callable[[], ContextManager]) -> dict:
+def run_dividend_auto_record(session_factory: Callable[[], AbstractContextManager]) -> dict:
     """Record dividend events whose ex-date falls in the last 7 days.
 
     Pulls the merged upcoming-events feed for currently-held symbols,
@@ -179,7 +179,7 @@ def run_dividend_auto_record(session_factory: Callable[[], ContextManager]) -> d
                 if result.stock_inserted:
                     stock_inserted += 1
             db.commit()
-    except Exception as exc:  # noqa: BLE001 — scheduler must not die
+    except Exception as exc:
         logger.exception(
             "scheduler.dividend_auto_record.failed", extra={"error": str(exc)}
         )
@@ -200,19 +200,19 @@ def run_dividend_auto_record(session_factory: Callable[[], ContextManager]) -> d
     }
 
 
-def run_symbol_map_refresh(session_factory: Callable[[], ContextManager]) -> dict:
+def run_symbol_map_refresh(session_factory: Callable[[], AbstractContextManager]) -> dict:
     """Refresh symbol_map from twstock; swallow upstream errors so the cron keeps running."""
     try:
         with session_factory() as db:
             result = symbol_map_service.refresh_all_from_twstock(db)
-    except Exception as exc:  # noqa: BLE001 — scheduler must not die
+    except Exception as exc:
         logger.exception("scheduler.symbol_map_refresh.failed", extra={"error": str(exc)})
         return {"status": "failed", "error": str(exc)}
     logger.info("scheduler.symbol_map_refresh.done", extra={"count": result["refreshed_count"]})
     return {"status": "ok", **result}
 
 
-def build_scheduler(session_factory: Callable[[], ContextManager]) -> BackgroundScheduler:
+def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> BackgroundScheduler:
     """Construct a configured ``BackgroundScheduler``; caller starts it."""
     scheduler = BackgroundScheduler(timezone=TW_TIMEZONE)
     scheduler.add_job(

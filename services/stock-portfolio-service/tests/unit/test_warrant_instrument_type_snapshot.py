@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-
 from app.models import portfolio as models
 from app.models.symbol_map import SymbolMap
 from app.schemas import portfolio as schemas
@@ -13,12 +12,11 @@ from app.services import (
     symbol_map_service,
 )
 
-
 CATHAY_HEADER = (
     "股名,日期,成交股數,淨收付金額,買賣別,成交價,成本,手續費,交易稅,"
     "融資金額/券擔保品,資自備款/券保證金,利息,稅款,券手續費/標借費,委託書號\n"
 )
-CATHAY_TRADE_DATE = datetime(2026, 5, 8, tzinfo=timezone.utc)
+CATHAY_TRADE_DATE = datetime(2026, 5, 8, tzinfo=UTC)
 
 
 def _cathay_csv(name: str, *, order_id: str = "snap1") -> bytes:
@@ -27,7 +25,7 @@ def _cathay_csv(name: str, *, order_id: str = "snap1") -> bytes:
         f"22,0,0,0,0,0,0,{order_id}"
     )
     return (
-        "根據您篩選的結果，總計有1筆資料\n"  # noqa: RUF001 — fullwidth punctuation matches Cathay CSV header literally
+        "根據您篩選的結果，總計有1筆資料\n"
         + CATHAY_HEADER
         + row
         + "\n"
@@ -61,7 +59,7 @@ def _seed_cathay_match(
         trade_date=(
             CATHAY_TRADE_DATE
             if branch == "legacy"
-            else datetime(2026, 5, 8, 13, 30, tzinfo=timezone.utc)
+            else datetime(2026, 5, 8, 13, 30, tzinfo=UTC)
         ),
         fee=Decimal("22"),
         tax=Decimal("0"),
@@ -159,7 +157,7 @@ def test_recompute_keeps_stamped_warrant_ineligible_after_symbol_map_recycle(
     symbol_map = SymbolMap(
         name="warrant", symbol="045378", market="TWSE", type="上市認購(售)權證"
     )
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = models.Transaction(
         symbol="045378",
         name="old warrant",
@@ -264,7 +262,7 @@ def test_create_transaction_stamps_warrant_and_leaves_etf_null(db_session):
             price=Decimal("50.00"),
             fee=Decimal("0.00"),
             tax=Decimal("0.00"),
-            trade_date=datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 5, 15, 1, 30, tzinfo=UTC),
         ),
     )
     etf = portfolio_service.create_transaction(
@@ -277,7 +275,7 @@ def test_create_transaction_stamps_warrant_and_leaves_etf_null(db_session):
             price=Decimal("50.00"),
             fee=Decimal("0.00"),
             tax=Decimal("0.00"),
-            trade_date=datetime(2026, 5, 16, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 5, 16, 1, 30, tzinfo=UTC),
         ),
     )
 
@@ -338,7 +336,7 @@ def test_update_transaction_restamps_instrument_type_when_symbol_changes(db_sess
             price=Decimal("50.00"),
             fee=Decimal("0.00"),
             tax=Decimal("0.00"),
-            trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=UTC),
         ),
     )
     assert created.instrument_type is None
@@ -354,7 +352,7 @@ def test_update_transaction_restamps_instrument_type_when_symbol_changes(db_sess
             price=Decimal("50.00"),
             fee=Decimal("0.00"),
             tax=Decimal("0.00"),
-            trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=UTC),
         ),
     )
     assert updated.instrument_type == "上市認購(售)權證"
@@ -375,7 +373,7 @@ def test_update_transaction_restamps_when_existing_stamp_is_null(db_session):
         price=Decimal("50.00"),
         fee=Decimal("0.00"),
         tax=Decimal("0.00"),
-        trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=UTC),
     )
     db_session.add(legacy)
     db_session.commit()
@@ -391,7 +389,7 @@ def test_update_transaction_restamps_when_existing_stamp_is_null(db_session):
             price=Decimal("55.00"),
             fee=Decimal("0.00"),
             tax=Decimal("0.00"),
-            trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 5, 20, 1, 30, tzinfo=UTC),
         ),
     )
     assert updated.instrument_type == "上市認購(售)權證"

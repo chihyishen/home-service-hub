@@ -12,10 +12,10 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal, InvalidOperation
-from typing import Any, Optional
+from typing import Any
 
-from . import DividendEventRow
 from ..twse_client import get_twse_client
+from . import DividendEventRow
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def _roc_to_date(roc_str: object):
         return None
 
 
-def _decimal_or_none(value: Any) -> Optional[Decimal]:
+def _decimal_or_none(value: Any) -> Decimal | None:
     if value is None:
         return None
     text = str(value).strip().replace(",", "")
@@ -89,11 +89,11 @@ def parse_twt48u(raw: bytes | str | list[dict[str, Any]]) -> list[DividendEventR
     return rows
 
 
-def fetch_twt48u(year: Optional[int] = None) -> list[DividendEventRow]:
+def fetch_twt48u(year: int | None = None) -> list[DividendEventRow]:
     """TWT48U_ALL has no year filter — returns the current snapshot regardless."""
     try:
         raw = get_twse_client().fetch_exdividend_json(URL)
-    except Exception as exc:  # noqa: BLE001 — network/parse failure must not kill the chain
+    except Exception as exc:
         logger.error("Failed to fetch TWT48U_ALL: %s", exc)
         return []
     if not raw:

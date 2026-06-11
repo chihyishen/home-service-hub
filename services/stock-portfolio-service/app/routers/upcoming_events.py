@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import date as dt_date, datetime, timedelta, timezone
-from typing import Optional
+from datetime import date as dt_date
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -35,13 +35,13 @@ def _classify_dividend(cash, stock) -> str:
 
 @router.get("/upcoming-events")
 def get_upcoming_events(
-    from_: Optional[dt_date] = Query(default=None, alias="from"),
+    from_: dt_date | None = Query(default=None, alias="from"),
     db: Session = Depends(get_db),
 ) -> list[dict]:
     pivot = from_ or _today_tw()
     active = get_active_holdings(db)
     held_symbols = set(active.keys())
-    name_for: dict[str, Optional[str]] = {
+    name_for: dict[str, str | None] = {
         sym: (info.get("name") if isinstance(info, dict) else None)
         for sym, info in active.items()
     }

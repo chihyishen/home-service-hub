@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable
 from datetime import date as dt_date
 from decimal import Decimal, InvalidOperation
-from typing import Any, Iterable, Optional
+from typing import Any
 
-from . import DividendEventRow
 from ..market_data_service import _http_get
+from . import DividendEventRow
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def _roc_to_date(value: object):
         return None
 
 
-def _decimal_or_none(value: object) -> Optional[Decimal]:
+def _decimal_or_none(value: object) -> Decimal | None:
     if value is None:
         return None
     text = str(value).strip().replace(",", "")
@@ -57,7 +58,7 @@ def parse_tpex_otc(raw: bytes | str | dict[str, Any]) -> list[DividendEventRow]:
     return rows
 
 
-def _parse_row(source_row: object) -> Optional[DividendEventRow]:
+def _parse_row(source_row: object) -> DividendEventRow | None:
     if not isinstance(source_row, list) or len(source_row) < 15:
         return None
     ex_date = _roc_to_date(source_row[0])
@@ -109,7 +110,7 @@ def _iter_records(data: dict[str, Any]) -> Iterable[list]:
         yield direct
 
 
-def fetch_tpex_otc(year: Optional[int] = None) -> list[DividendEventRow]:
+def fetch_tpex_otc(year: int | None = None) -> list[DividendEventRow]:
     params: dict[str, str] = {"response": "json"}
     if year is not None:
         params["startDate"] = f"{year}/01/01"

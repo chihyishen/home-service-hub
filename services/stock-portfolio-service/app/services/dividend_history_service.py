@@ -14,11 +14,11 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import date as dt_date, datetime, timedelta, timezone
+from datetime import date as dt_date
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Iterable, Optional
-
 from functools import lru_cache
+from typing import Any
 
 from .dividend_sources import tpex_otc
 from .market_data_service import _http_get, _http_post_form
@@ -38,14 +38,14 @@ class HistoricalDividendEvent:
 
     symbol: str
     ex_date: dt_date
-    cash_dividend_per_share: Optional[Decimal]
-    stock_dividend_per_thousand: Optional[Decimal]
-    previous_close: Optional[Decimal]
-    reference_price: Optional[Decimal]
+    cash_dividend_per_share: Decimal | None
+    stock_dividend_per_thousand: Decimal | None
+    previous_close: Decimal | None
+    reference_price: Decimal | None
     source: str
 
 
-def _decimal_or_none(value: Any) -> Optional[Decimal]:
+def _decimal_or_none(value: Any) -> Decimal | None:
     """Lenient Decimal parse: strips commas, whitespace, and trailing units like ``元／股`` / ``股``."""
     if value is None:
         return None
@@ -63,7 +63,7 @@ def _decimal_or_none(value: Any) -> Optional[Decimal]:
     return result if result != 0 else None
 
 
-def _roc_to_date(text: str) -> Optional[dt_date]:
+def _roc_to_date(text: str) -> dt_date | None:
     if not text:
         return None
     parts = str(text).strip().replace("年", "/").replace("月", "/").replace("日", "").split("/")
@@ -107,12 +107,12 @@ def _fetch_detail_cached(symbol: str, detail_date_param: str) -> tuple:
     return (cash, stock)
 
 
-def _fetch_detail(symbol: str, detail_date_param: str) -> tuple[Optional[Decimal], Optional[Decimal]]:
+def _fetch_detail(symbol: str, detail_date_param: str) -> tuple[Decimal | None, Decimal | None]:
     cash, stock = _fetch_detail_cached(symbol, detail_date_param)
     return cash, stock
 
 
-def _fetch_detail_raw(symbol: str, detail_date_param: str) -> tuple[Optional[Decimal], Optional[Decimal]]:
+def _fetch_detail_raw(symbol: str, detail_date_param: str) -> tuple[Decimal | None, Decimal | None]:
     """Return (cash_dividend_per_share, stock_dividend_per_thousand).
 
     Mirrors node-twstock's ``fetchStocksDividendsDetail``: params
@@ -157,7 +157,7 @@ def _coerce_dict(raw: bytes | str | dict) -> dict:
 
 def parse_twt49u_response(
     symbol: str, payload: bytes | str | dict
-) -> list[tuple[dt_date, Optional[Decimal], Optional[Decimal], Optional[str], Optional[Decimal], Optional[str]]]:
+) -> list[tuple[dt_date, Decimal | None, Decimal | None, str | None, Decimal | None, str | None]]:
     """Parse the rwd/TWT49U JSON envelope and filter to ``symbol``.
 
     The upstream endpoint ignores ``stockNo`` and returns every event
@@ -184,7 +184,7 @@ def parse_twt49u_response(
     div_type_idx = field_to_idx.get("權/息")
     detail_idx = field_to_idx.get("詳細資料")
     out: list[
-        tuple[dt_date, Optional[Decimal], Optional[Decimal], Optional[str], Optional[Decimal], Optional[str]]
+        tuple[dt_date, Decimal | None, Decimal | None, str | None, Decimal | None, str | None]
     ] = []
     for row in rows:
         if not isinstance(row, list) or len(row) <= sym_idx:
@@ -207,7 +207,7 @@ def parse_twt49u_response(
             if div_type_idx is not None and div_type_idx < len(row)
             else None
         )
-        detail_param: Optional[str] = None
+        detail_param: str | None = None
         if detail_idx is not None and detail_idx < len(row):
             raw_detail = str(row[detail_idx])
             import re as _re
@@ -269,7 +269,7 @@ def fetch_symbol_year(symbol: str, year: int) -> list[HistoricalDividendEvent]:
     return events
 
 
-def _parse_tpex_history(payload: bytes | str | dict) -> list[tuple[str, dt_date, Optional[Decimal], Optional[Decimal]]]:
+def _parse_tpex_history(payload: bytes | str | dict) -> list[tuple[str, dt_date, Decimal | None, Decimal | None]]:
     """Parse TPEx exDailyQ POST response.
 
     Row schema (from node-twstock + observed payload):
@@ -284,7 +284,7 @@ def _parse_tpex_history(payload: bytes | str | dict) -> list[tuple[str, dt_date,
     rows = tables[0].get("data") if isinstance(tables[0], dict) else None
     if not isinstance(rows, list):
         return []
-    out: list[tuple[str, dt_date, Optional[Decimal], Optional[Decimal]]] = []
+    out: list[tuple[str, dt_date, Decimal | None, Decimal | None]] = []
     for row in rows:
         if not isinstance(row, list) or len(row) < 15:
             continue
@@ -319,7 +319,7 @@ def _fetch_tpex_year_cached(year: int) -> tuple:
         return tuple()
     try:
         return tuple(_parse_tpex_history(payload))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning(
             "dividend_history.tpex_failed",
             extra={"year": year, "error": str(exc)},
@@ -349,7 +349,7 @@ def fetch_tpex_symbol_year(symbol: str, year: int) -> list[HistoricalDividendEve
 
 
 def fetch_for_symbol_all_years(
-    symbol: str, since: dt_date, *, until_year: Optional[int] = None
+    symbol: str, since: dt_date, *, until_year: int | None = None
 ) -> list[HistoricalDividendEvent]:
     """Walk every calendar year from ``since.year`` to current TW year.
 
@@ -362,7 +362,7 @@ def fetch_for_symbol_all_years(
     for year in range(since.year, end_year + 1):
         try:
             year_events = fetch_symbol_year(symbol, year)
-        except Exception as exc:  # noqa: BLE001 — keep backfill loop alive
+        except Exception as exc:
             logger.exception(
                 "dividend_history.year_failed",
                 extra={"symbol": symbol, "year": year, "error": str(exc)},
@@ -371,7 +371,7 @@ def fetch_for_symbol_all_years(
         if not year_events:
             try:
                 year_events = fetch_tpex_symbol_year(symbol, year)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.exception(
                     "dividend_history.tpex_year_failed",
                     extra={"symbol": symbol, "year": year, "error": str(exc)},

@@ -3,9 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
-
 from app.services import broker_cathay_service, import_service
-
 
 CATHAY_HEADER = (
     "股名,日期,成交股數,淨收付金額,買賣別,成交價,成本,手續費,交易稅,"

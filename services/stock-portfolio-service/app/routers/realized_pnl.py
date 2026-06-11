@@ -1,5 +1,4 @@
 from datetime import date as date_type
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -8,16 +7,15 @@ from ..database import get_db
 from ..schemas.realized_pnl import RealizedPnlPagedOut
 from ..services import realized_pnl_service
 
-
 router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
 
 
 @router.get("/realized-pnl", response_model=RealizedPnlPagedOut)
 def get_realized_pnl(
-    symbol: Optional[str] = Query(default=None),
-    date_from: Optional[date_type] = Query(default=None),
-    date_to: Optional[date_type] = Query(default=None),
-    year: Optional[int] = Query(default=None),
+    symbol: str | None = Query(default=None),
+    date_from: date_type | None = Query(default=None),
+    date_to: date_type | None = Query(default=None),
+    year: int | None = Query(default=None),
     day_trade_only: bool = Query(default=False),
     sort: str = Query(default="trade_date:desc"),
     offset: int = Query(default=0, ge=0),

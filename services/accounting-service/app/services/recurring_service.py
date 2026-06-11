@@ -1,9 +1,11 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import extract
-from datetime import date
-from .. import models, schemas
-from fastapi import HTTPException
 import logging
+from datetime import date
+
+from fastapi import HTTPException
+from sqlalchemy import extract
+from sqlalchemy.orm import Session, joinedload
+
+from .. import models, schemas
 from .accounting_validation import (
     ensure_category_exists,
     ensure_payment_method_exists,
@@ -32,7 +34,7 @@ def generate_recurring_items(db: Session):
     current_month = today.month
     
     subs = db.query(models.Subscription).filter(
-        models.Subscription.active == True
+        models.Subscription.active.is_(True)
     ).all()
     
     for sub in subs:
@@ -164,7 +166,7 @@ def update_subscription(db: Session, sub_id: int, sub_update: schemas.Subscripti
         )
 
     # 校驗卡片
-    if "card_id" in update_data and update_data["card_id"]:
+    if update_data.get("card_id"):
         update_data["payment_method"] = resolve_card_payment_defaults(
             db,
             update_data["card_id"],
@@ -172,7 +174,7 @@ def update_subscription(db: Session, sub_id: int, sub_update: schemas.Subscripti
             invalid_detail_template="Invalid card_id",
         )
 
-    if "payment_method" in update_data and update_data["payment_method"]:
+    if update_data.get("payment_method"):
         ensure_payment_method_exists(
             db,
             update_data["payment_method"],
@@ -255,7 +257,7 @@ def update_installment(db: Session, inst_id: int, inst_update: schemas.Installme
     update_data = inst_update.model_dump(exclude_unset=True)
     
     # 校驗卡片
-    if "card_id" in update_data and update_data["card_id"]:
+    if update_data.get("card_id"):
         update_data["payment_method"] = resolve_card_payment_defaults(
             db,
             update_data["card_id"],
@@ -263,7 +265,7 @@ def update_installment(db: Session, inst_id: int, inst_update: schemas.Installme
             invalid_detail_template="Invalid card_id",
         )
 
-    if "payment_method" in update_data and update_data["payment_method"]:
+    if update_data.get("payment_method"):
         ensure_payment_method_exists(
             db,
             update_data["payment_method"],

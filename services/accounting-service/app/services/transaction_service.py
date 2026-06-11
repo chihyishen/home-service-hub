@@ -1,17 +1,19 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
 from datetime import date, timedelta
-from .. import models, schemas
-from shared_lib import get_tracer
-tracer = get_tracer("accounting-service")
+
 from fastapi import HTTPException
-from typing import Optional
+from shared_lib import get_tracer
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
+
+from .. import models, schemas
 from .accounting_validation import (
     ensure_category_exists,
     ensure_payment_method_exists,
     resolve_card_payment_defaults,
 )
 from .refund_utils import get_refunded_amounts
+
+tracer = get_tracer("accounting-service")
 
 VALID_TRANSACTION_TYPES = {"EXPENSE", "INCOME"}
 VALID_DATE_PRESETS = {"today", "yesterday", "this_month"}
@@ -61,15 +63,15 @@ def get_transactions(
     db: Session,
     skip: int = 0,
     limit: int = 100,
-    category: Optional[str] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
-    date_preset: Optional[str] = None,
-    transaction_type: Optional[str] = None,
+    category: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    date_preset: str | None = None,
+    transaction_type: str | None = None,
     exclude_subscription: bool = False,
     exclude_installment: bool = False,
     manual_only: bool = False,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
 ):
     with tracer.start_as_current_span("service.get_transactions") as span:
         query = _base_transaction_query(db)
@@ -174,7 +176,7 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: int):
     """
     針對一筆現有的支出建立沖銷(退款)紀錄
     """
-    with tracer.start_as_current_span("service.refund_transaction") as span:
+    with tracer.start_as_current_span("service.refund_transaction"):
         original = get_transaction(db, transaction_id)
 
         if refund_amount <= 0:
@@ -212,7 +214,7 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: int):
         return get_transaction(db, refund_tx.id)
 
 def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionUpdate):
-    with tracer.start_as_current_span("service.update_transaction") as span:
+    with tracer.start_as_current_span("service.update_transaction"):
         db_transaction = get_transaction(db, transaction_id)
         update_data = transaction_update.model_dump(exclude_unset=True)
 
@@ -233,7 +235,7 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
                 # 如果取消綁定卡片，支付方式若為卡片名稱，則改為現金或保持原樣 (這裡選擇保持原樣由使用者決定)
                 pass
 
-        if "payment_method" in update_data and update_data["payment_method"]:
+        if update_data.get("payment_method"):
             ensure_payment_method_exists(
                 db,
                 update_data["payment_method"],
@@ -247,7 +249,7 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
         return get_transaction(db, db_transaction.id)
 
 def delete_transaction(db: Session, transaction_id: int):
-    with tracer.start_as_current_span("service.delete_transaction") as span:
+    with tracer.start_as_current_span("service.delete_transaction"):
         db_transaction = get_transaction(db, transaction_id)
         db.delete(db_transaction)
         db.commit()

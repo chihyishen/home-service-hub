@@ -1,9 +1,9 @@
 from datetime import date
 
-from sqlalchemy import event
 from app import models, schemas
 from app.services import analytics_service, billing_service, recurring_service, transaction_service
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 
 
 def _get_or_create_category(db_session, name: str, color: str = "#64748b") -> models.Category:
@@ -513,7 +513,6 @@ def test_get_transactions_uses_constant_queries_for_card_and_category(db_session
     )
     db_session.commit()
 
-    category = db_session.query(models.Category).filter(models.Category.name == "交通").first()
     card = db_session.query(models.CreditCard).filter(models.CreditCard.name == "通勤卡").first()
 
     for index in range(3):
@@ -563,7 +562,6 @@ def test_annual_report_endpoint_is_read_only_and_returns_camel_case(client: Test
     )
     db_session.commit()
 
-    category = db_session.query(models.Category).filter(models.Category.name == "餐飲").first()
     db_session.add(
         _transaction_model(
             db_session,

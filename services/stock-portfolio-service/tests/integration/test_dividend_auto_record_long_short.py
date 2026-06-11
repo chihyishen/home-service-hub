@@ -7,7 +7,6 @@ from app.models.portfolio import Dividend, PositionSide, Transaction, Transactio
 from app.services.dividend_auto_record_service import auto_record_for_event
 from app.services.dividend_history_service import HistoricalDividendEvent
 
-
 TW = timezone(timedelta(hours=8))
 
 

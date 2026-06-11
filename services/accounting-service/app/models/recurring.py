@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date
+from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from ..database import Base, TimestampMixin
+
 
 class Subscription(Base, TimestampMixin):
     __tablename__ = "subscriptions"

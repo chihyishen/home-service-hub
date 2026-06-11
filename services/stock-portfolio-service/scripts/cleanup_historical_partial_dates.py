@@ -9,7 +9,7 @@ reviewed cleanup instead.
 import argparse
 from datetime import date
 from decimal import Decimal
-from typing import List, NamedTuple
+from typing import NamedTuple
 
 from app.database import SessionLocal
 from app.models.price_history import PriceHistory
@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def select_rows(session) -> List[PriceHistoryRow]:
+def select_rows(session) -> list[PriceHistoryRow]:
     rows = (
         session.query(
             PriceHistory.date,
@@ -56,12 +56,12 @@ def select_rows(session) -> List[PriceHistoryRow]:
     return [PriceHistoryRow(*row) for row in rows]
 
 
-def print_rows(rows: List[PriceHistoryRow]) -> None:
+def print_rows(rows: list[PriceHistoryRow]) -> None:
     for row in rows:
         print(f"{row.date.isoformat()} {row.source} {row.symbol} close={row.close}")
 
 
-def format_rows(rows: List[PriceHistoryRow]) -> str:
+def format_rows(rows: list[PriceHistoryRow]) -> str:
     return ", ".join(
         f"{row.date.isoformat()} {row.source} {row.symbol} close={row.close}"
         for row in rows

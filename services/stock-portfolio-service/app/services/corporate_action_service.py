@@ -15,10 +15,11 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date as dt_date
 from decimal import Decimal, InvalidOperation
-from typing import Any, Iterable, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -46,7 +47,7 @@ class CorporateActionRow:
 # ---------- ROC date ----------
 
 
-def parse_roc_date(value: str) -> Optional[dt_date]:
+def parse_roc_date(value: str) -> dt_date | None:
     if not value:
         return None
     match = _ROC_DATE_RE.match(value.strip())
@@ -67,7 +68,7 @@ def _clean(value: object) -> str:
     return str(value).replace(",", "").replace("\xa0", "").strip()
 
 
-def _decimal_or_none(value: object) -> Optional[Decimal]:
+def _decimal_or_none(value: object) -> Decimal | None:
     text = _clean(value)
     if not text or set(text) <= {"-"}:
         return None
@@ -193,9 +194,9 @@ def backfill_year(db: Session, year: int) -> dict:
 def list_actions(
     db: Session,
     *,
-    symbol: Optional[str] = None,
-    from_date: Optional[dt_date] = None,
-    to_date: Optional[dt_date] = None,
+    symbol: str | None = None,
+    from_date: dt_date | None = None,
+    to_date: dt_date | None = None,
 ) -> list[CorporateAction]:
     query = db.query(CorporateAction)
     if symbol is not None:

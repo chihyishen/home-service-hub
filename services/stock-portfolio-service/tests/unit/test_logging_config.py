@@ -3,15 +3,12 @@
 import io
 import json
 import logging
-import os
-from unittest.mock import patch
 
 import pytest
 import structlog
+from app import logging_config
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-
-from app import logging_config
 
 
 @pytest.fixture(autouse=True)

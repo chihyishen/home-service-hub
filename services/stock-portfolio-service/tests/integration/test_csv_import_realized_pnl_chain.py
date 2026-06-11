@@ -11,7 +11,6 @@ from app.models.price_history import PriceHistory
 from app.services import broker_cathay_service
 from app.services.networth_backfill_service import replay_snapshots_range
 
-
 _CATHAY_HEADER = (
     "股名,日期,成交股數,淨收付金額,買賣別,成交價,成本,手續費,交易稅,"
     "融資金額/券擔保品,資自備款/券保證金,利息,稅款,券手續費/標借費,委託書號\n"

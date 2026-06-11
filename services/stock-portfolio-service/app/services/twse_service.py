@@ -1,9 +1,11 @@
-import time
-import logging
 import json
-from typing import Dict, List, Any
+import logging
+import time
 from decimal import Decimal, InvalidOperation
+from typing import Any
+
 from shared_lib import get_tracer
+
 from .twse_client import get_twse_client
 
 tracer = get_tracer("stock-portfolio-service")
@@ -27,7 +29,7 @@ def _to_decimal(val: Any) -> Decimal:
     except (TypeError, ValueError, InvalidOperation):
         return Decimal("0.0")
 
-def fetch_raw_quotes(symbols: List[str]) -> Dict[str, Any]:
+def fetch_raw_quotes(symbols: list[str]) -> dict[str, Any]:
     """
     第一階段：發送網路請求並取得原始 JSON
     """
@@ -58,7 +60,7 @@ def fetch_raw_quotes(symbols: List[str]) -> Dict[str, Any]:
         logger.error(f"TWSE JSON 解析失敗: {exc}")
         return {}
 
-def parse_twse_msg_array(msg_array: List[Dict], target_symbols: List[str]) -> Dict[str, Dict]:
+def parse_twse_msg_array(msg_array: list[dict], target_symbols: list[str]) -> dict[str, dict]:
     """
     第二階段：從 msgArray 中解析出精確報價，支援成交價缺失時自動備援至五檔報價
     """
@@ -115,7 +117,7 @@ def parse_twse_msg_array(msg_array: List[Dict], target_symbols: List[str]) -> Di
             
     return results
 
-def get_stock_quotes(symbols: List[str]) -> Dict[str, Dict]:
+def get_stock_quotes(symbols: list[str]) -> dict[str, dict]:
     """
     進入點：協調發查與解析
     """

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import date as dt_date, datetime, timedelta, timezone
-from typing import Optional, Set
+from datetime import date as dt_date
+from datetime import datetime, timedelta, timezone
 
-from .dividend_sources import DividendEventRow
-from .dividend_sources import twse_twt48u, twse_twt49u, tpex_otc
+from .dividend_sources import DividendEventRow, tpex_otc, twse_twt48u, twse_twt49u
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def _safe_fetch(module, year: int) -> list[DividendEventRow]:
     }[module]
     try:
         return fetcher(year)
-    except Exception as exc:  # noqa: BLE001 — one bad source must not kill the chain
+    except Exception as exc:
         source_name = getattr(module, "SOURCE", module.__name__)
         logger.exception(
             "dividend_source.failed", extra={"source": source_name, "error": str(exc)}
@@ -37,7 +36,7 @@ def _safe_fetch(module, year: int) -> list[DividendEventRow]:
 
 
 def fetch_for_holdings(
-    held_symbols: Set[str], *, year: Optional[int] = None
+    held_symbols: set[str], *, year: int | None = None
 ) -> list[DividendEventRow]:
     if not held_symbols:
         return []
@@ -62,7 +61,7 @@ def fetch_for_holdings(
 
 
 def fetch_upcoming_for_holdings(
-    held_symbols: Set[str], *, from_date: Optional[dt_date] = None
+    held_symbols: set[str], *, from_date: dt_date | None = None
 ) -> list[DividendEventRow]:
     """Return merged events with ``ex_dividend_date >= from_date``.
 

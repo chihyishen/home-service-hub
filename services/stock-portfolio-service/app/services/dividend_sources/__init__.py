@@ -14,8 +14,8 @@ class DividendEventRow:
 
     symbol: str
     ex_dividend_date: dt_date
-    cash_dividend: Optional[Decimal]
-    stock_dividend: Optional[Decimal]
+    cash_dividend: Decimal | None
+    stock_dividend: Decimal | None
     source: str
 
 

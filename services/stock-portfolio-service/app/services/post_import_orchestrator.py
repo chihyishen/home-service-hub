@@ -22,9 +22,11 @@ import asyncio
 import logging
 import os
 import threading
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
-from datetime import date as dt_date, datetime, timedelta, timezone
-from typing import Callable, ContextManager, Optional
+from datetime import UTC, datetime, timedelta, timezone
+from datetime import date as dt_date
 
 from . import (
     dividend_auto_record_service,
@@ -39,7 +41,7 @@ logger = logging.getLogger(__name__)
 _TW_OFFSET = timezone(timedelta(hours=8))
 _RECALC_LOCK = threading.Lock()
 _RESULTS_LOCK = threading.Lock()
-_LATEST_RESULTS: dict[str, "ChainResult"] = {}
+_LATEST_RESULTS: dict[str, ChainResult] = {}
 _RESULT_TTL_SEC = 600  # status endpoint surfaces the last run for 10 min
 _FLAG_ENV = "POST_IMPORT_RECALC_ENABLED"
 
@@ -52,19 +54,19 @@ class StepResult:
     name: str
     status: str  # "ok" | "failed" | "skipped"
     detail: dict = field(default_factory=dict)
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class ChainResult:
     state: str  # "running" | "completed" | "partial" | "failed"
     started_at: str
-    finished_at: Optional[str] = None
-    recalc_from: Optional[str] = None
-    recalc_to: Optional[str] = None
+    finished_at: str | None = None
+    recalc_from: str | None = None
+    recalc_to: str | None = None
     touched_symbols: list[str] = field(default_factory=list)
     steps: list[StepResult] = field(default_factory=list)
-    current_step: Optional[str] = None
+    current_step: str | None = None
 
 
 # ---------- Module helpers ----------
@@ -94,14 +96,14 @@ def _prune_results_locked(now: datetime) -> None:
 
 def _store(result: ChainResult) -> None:
     with _RESULTS_LOCK:
-        _prune_results_locked(datetime.now(timezone.utc))
+        _prune_results_locked(datetime.now(UTC))
         _LATEST_RESULTS[result.started_at] = result
 
 
 def latest_status() -> dict:
     """Return the most recent chain result (or `{state: idle}` if none recent)."""
     with _RESULTS_LOCK:
-        _prune_results_locked(datetime.now(timezone.utc))
+        _prune_results_locked(datetime.now(UTC))
         if not _LATEST_RESULTS:
             return {"state": "idle"}
         most_recent_key = max(_LATEST_RESULTS.keys())
@@ -139,12 +141,12 @@ def reset_state_for_tests() -> None:
 # ---------- Chain steps ----------
 
 
-def _step_symbol_map_backfill(session_factory: Callable[[], ContextManager]) -> StepResult:
+def _step_symbol_map_backfill(session_factory: Callable[[], AbstractContextManager]) -> StepResult:
     try:
         with session_factory() as db:
             outcome = symbol_map_service.backfill_transactions(db, dry_run=False)
         return StepResult(name="symbol_map_backfill", status="ok", detail=outcome)
-    except Exception as exc:  # noqa: BLE001 — chain must continue
+    except Exception as exc:
         logger.exception(
             "post_import.step_failed",
             extra={"step": "symbol_map_backfill", "error": str(exc)},
@@ -155,7 +157,7 @@ def _step_symbol_map_backfill(session_factory: Callable[[], ContextManager]) -> 
 
 
 def _step_dividends(
-    session_factory: Callable[[], ContextManager],
+    session_factory: Callable[[], AbstractContextManager],
     touched_symbols: set[str],
     recalc_from: dt_date,
     recalc_to: dt_date,
@@ -195,7 +197,7 @@ def _step_dividends(
                         outcome = dividend_auto_record_service.auto_record_for_event(
                             db, historical
                         )
-                    except Exception as inner:  # noqa: BLE001 — one bad event must not kill the step
+                    except Exception as inner:
                         logger.exception(
                             "post_import.dividend_event_failed",
                             extra={
@@ -225,7 +227,7 @@ def _step_dividends(
         }
         status = "ok" if not per_event_errors else "partial"
         return StepResult(name="dividend_auto_record", status=status, detail=detail)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception(
             "post_import.step_failed",
             extra={"step": "dividend_auto_record", "error": str(exc)},
@@ -236,7 +238,7 @@ def _step_dividends(
 
 
 def _step_networth_backfill(
-    session_factory: Callable[[], ContextManager],
+    session_factory: Callable[[], AbstractContextManager],
     recalc_from: dt_date,
     recalc_to: dt_date,
 ) -> StepResult:
@@ -283,7 +285,7 @@ def _step_networth_backfill(
         }
         status = "ok" if not outcome.errors else "partial"
         return StepResult(name="networth_backfill", status=status, detail=detail)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception(
             "post_import.step_failed",
             extra={"step": "networth_backfill", "error": str(exc)},
@@ -304,7 +306,7 @@ def _final_state(steps: list[StepResult]) -> str:
 
 
 async def run_chain(
-    session_factory: Callable[[], ContextManager],
+    session_factory: Callable[[], AbstractContextManager],
     *,
     recalc_from: dt_date,
     recalc_to: dt_date,
@@ -313,7 +315,7 @@ async def run_chain(
     """Run the full recalc chain. Caller (``schedule_chain_sync``) holds
     ``_RECALC_LOCK`` for the duration so this coroutine does not touch the lock
     itself — see module docstring for why the lock is ``threading.Lock``."""
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     result = ChainResult(
         state="running",
         started_at=started.isoformat(),
@@ -346,7 +348,7 @@ async def run_chain(
         _store(result)
 
     result.current_step = None
-    result.finished_at = datetime.now(timezone.utc).isoformat()
+    result.finished_at = datetime.now(UTC).isoformat()
     result.state = _final_state(result.steps)
     _store(result)
     logger.info(
@@ -362,12 +364,12 @@ async def run_chain(
 
 
 async def run_chain_quotes_only(
-    session_factory: Callable[[], ContextManager],
+    session_factory: Callable[[], AbstractContextManager],
     *,
     today: dt_date,
     touched_symbols: set[str],
 ) -> ChainResult:
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     result = ChainResult(
         state="running",
         started_at=started.isoformat(),
@@ -389,7 +391,7 @@ async def run_chain_quotes_only(
     _store(result)
 
     result.current_step = None
-    result.finished_at = datetime.now(timezone.utc).isoformat()
+    result.finished_at = datetime.now(UTC).isoformat()
     result.state = _final_state(result.steps)
     _store(result)
     logger.info(
@@ -405,7 +407,7 @@ async def run_chain_quotes_only(
 
 
 def schedule_chain_sync(
-    session_factory: Callable[[], ContextManager],
+    session_factory: Callable[[], AbstractContextManager],
     *,
     recalc_from: dt_date,
     recalc_to: dt_date,
@@ -429,7 +431,7 @@ def schedule_chain_sync(
 
 
 def schedule_quotes_refresh_sync(
-    session_factory: Callable[[], ContextManager],
+    session_factory: Callable[[], AbstractContextManager],
     *,
     touched_symbols: set[str],
 ) -> ChainResult:

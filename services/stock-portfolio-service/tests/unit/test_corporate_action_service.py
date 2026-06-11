@@ -5,8 +5,6 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
 
-import pytest
-
 from app.models.corporate_action import CorporateAction
 from app.services import corporate_action_service as svc
 

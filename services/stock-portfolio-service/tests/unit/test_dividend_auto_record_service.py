@@ -2,8 +2,6 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
-import pytest
-
 from app.models.portfolio import Dividend, PositionSide, Transaction, TransactionType
 from app.services import dividend_auto_record_service as svc
 from app.services.dividend_history_service import HistoricalDividendEvent

@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Boolean, Column, Integer, String
+
 from ..database import Base, TimestampMixin
+
 
 class PaymentMethod(Base, TimestampMixin):
     __tablename__ = "payment_methods"

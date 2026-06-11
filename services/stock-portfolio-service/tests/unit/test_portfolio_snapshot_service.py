@@ -4,8 +4,6 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
 
-import pytest
-
 from app.models.portfolio_snapshot import PortfolioSnapshot
 from app.services import portfolio_snapshot_service as snap_svc
 

@@ -1,5 +1,6 @@
-from app.services.exdividend_service import parse_twse_exdividend_records, roc_to_date
 from datetime import date
+
+from app.services.exdividend_service import parse_twse_exdividend_records, roc_to_date
 
 
 class TestRocToDate:

@@ -1,7 +1,10 @@
-from datetime import date, timedelta
-from sqlalchemy.orm import Session
+from datetime import date
+
 from sqlalchemy import case, func, or_
+from sqlalchemy.orm import Session
+
 from .. import models, schemas
+
 
 def safe_date_replace(year, month, day):
     """

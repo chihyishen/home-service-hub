@@ -1,13 +1,13 @@
+
 from fastapi import APIRouter, Depends, Query
+from shared_lib import get_tracer
 from sqlalchemy.orm import Session
-from typing import List, Optional
 
 from ..database import get_db
 from ..schemas.portfolio import ExDividendRecord
 from ..services import dividend_event_service
 from ..services.exdividend_service import fetch_upcoming_exdividends
 from ..services.portfolio_service import get_active_holdings
-from shared_lib import get_tracer
 
 router = APIRouter(
     prefix="/api/portfolio",
@@ -17,7 +17,7 @@ router = APIRouter(
 tracer = get_tracer("stock-portfolio-service")
 
 
-@router.get("/ex-dividends/upcoming", response_model=List[ExDividendRecord])
+@router.get("/ex-dividends/upcoming", response_model=list[ExDividendRecord])
 def get_upcoming_exdividends(db: Session = Depends(get_db)):
     """
     Return upcoming ex-dividend announcements from TWSE for stocks
@@ -35,7 +35,7 @@ def get_upcoming_exdividends(db: Session = Depends(get_db)):
 
 @router.get("/dividend-events")
 def get_dividend_events(
-    year: Optional[int] = Query(default=None, ge=1900, le=2999),
+    year: int | None = Query(default=None, ge=1900, le=2999),
     db: Session = Depends(get_db),
 ) -> list[dict]:
     """Merged dividend / ex-rights events across TWT48U, TWT49U, and TPEx."""

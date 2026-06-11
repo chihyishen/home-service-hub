@@ -21,9 +21,9 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
-from datetime import date as dt_date, datetime, time, timezone, timedelta
-from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
-from typing import Optional
+from datetime import date as dt_date
+from datetime import datetime, time, timedelta, timezone
+from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -46,7 +46,7 @@ _TW_OFFSET = timezone(timedelta(hours=8))
 class AutoRecordResult:
     cash_inserted: bool
     stock_inserted: bool
-    skipped_reason: Optional[str]
+    skipped_reason: str | None
 
 
 def _qty_held_on(db: Session, symbol: str, on_date: dt_date) -> Decimal:
@@ -102,7 +102,7 @@ def auto_record_for_event(
     event: HistoricalDividendEvent,
     *,
     default_fee: Decimal = DEFAULT_HANDLING_FEE,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> AutoRecordResult:
     """Insert cash dividend + stock-dividend rows for one event.
 
@@ -194,7 +194,7 @@ def _insert_stock(
     ex_date: dt_date,
     shares: int,
     source: str,
-    name: Optional[str],
+    name: str | None,
 ) -> bool:
     fp = _make_fingerprint("auto-stk-div", source, symbol, ex_date, "stk")
     if db.execute(

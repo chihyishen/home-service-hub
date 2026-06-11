@@ -1,32 +1,34 @@
+import json
+import logging
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
+from shared_lib import get_tracer
 from sqlalchemy.orm import Session
-from typing import List, Optional
+
 from .. import schemas
 from ..database import get_db
 from ..services import transaction_service
-from shared_lib import get_tracer
+
 tracer = get_tracer("accounting-service")
-import json
-import logging
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=List[schemas.Transaction], summary="獲取交易清單")
+@router.get("/", response_model=list[schemas.Transaction], summary="獲取交易清單")
 def list_transactions(
     skip: int = 0,
     limit: int = 100,
-    category: Optional[str] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
-    date_preset: Optional[str] = None,
-    transaction_type: Optional[str] = None,
+    category: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    date_preset: str | None = None,
+    transaction_type: str | None = None,
     exclude_subscription: bool = False,
     exclude_installment: bool = False,
     manual_only: bool = False,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     db: Session = Depends(get_db),
 ):
     with tracer.start_as_current_span("router.list_transactions") as span:

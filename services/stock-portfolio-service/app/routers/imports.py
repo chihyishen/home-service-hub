@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import date as dt_date, datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta, timezone
+from datetime import date as dt_date
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy import case, func
@@ -89,7 +89,7 @@ def _serialize_result(
 
 def _touched_symbols_and_min_trade_date(
     db: Session, created_ids: list[int]
-) -> tuple[set[str], Optional[dt_date]]:
+) -> tuple[set[str], dt_date | None]:
     if not created_ids:
         return set(), None
     rows = (
@@ -106,7 +106,7 @@ def _touched_symbols_and_min_trade_date(
 
 def _touched_symbols_and_min_ex_date(
     db: Session, created_ids: list[int]
-) -> tuple[set[str], Optional[dt_date]]:
+) -> tuple[set[str], dt_date | None]:
     if not created_ids:
         return set(), None
     rows = (
@@ -125,7 +125,7 @@ def _maybe_schedule_chain(
     background_tasks: BackgroundTasks,
     *,
     touched_symbols: set[str],
-    recalc_from: Optional[dt_date],
+    recalc_from: dt_date | None,
 ) -> bool:
     if recalc_from is None or not touched_symbols:
         return False
@@ -318,7 +318,7 @@ def refresh_quotes(
         today,
         datetime.max.time(),
         tzinfo=timezone(timedelta(hours=8)),
-    ).astimezone(timezone.utc)
+    ).astimezone(UTC)
     signed_qty = case(
         (
             portfolio_models.Transaction.type

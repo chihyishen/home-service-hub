@@ -25,11 +25,12 @@ import statistics
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import date as dt_date, timedelta
+from datetime import date as dt_date
+from datetime import timedelta
 from decimal import Decimal
-from typing import Callable, Dict, List, Optional
 
 from sqlalchemy import case, delete, func, literal, select, union_all
 from sqlalchemy.orm import Session
@@ -38,8 +39,7 @@ from ..models import portfolio as portfolio_models
 from ..models.portfolio import PositionSide
 from ..models.portfolio_snapshot import PortfolioSnapshot
 from ..models.price_history import PriceHistory
-from . import market_data_service
-from . import portfolio_service
+from . import market_data_service, portfolio_service
 from .portfolio_service import _load_adjusted_transactions
 from .realized_pnl_service import iter_realized_events
 
@@ -65,7 +65,7 @@ class PriceBackfillResult:
     dates_skipped: int = 0
     dates_inactive: int = 0
     rows_written: int = 0
-    errors: List[BackfillError] = field(default_factory=list)
+    errors: list[BackfillError] = field(default_factory=list)
 
 
 @dataclass
@@ -74,7 +74,7 @@ class SnapshotReplayResult:
     dates_inactive: int = 0
     snapshots_written: int = 0
     stale_rows_deleted: int = 0
-    errors: List[BackfillError] = field(default_factory=list)
+    errors: list[BackfillError] = field(default_factory=list)
 
 
 # ---------- Helpers ----------
@@ -255,9 +255,9 @@ def compute_active_dates(
     ).all()
 
     active_dates: set[dt_date] = set()
-    current_symbol: Optional[str] = None
+    current_symbol: str | None = None
     running_qty = 0
-    open_date: Optional[dt_date] = None
+    open_date: dt_date | None = None
 
     def add_interval(start: dt_date, end: dt_date) -> None:
         clipped_start = max(start, from_d)
@@ -306,7 +306,7 @@ def backfill_prices_range(
     sleep: Callable[[float], None] = time.sleep,
     twse_fetcher: Callable[[dt_date], list] = market_data_service.fetch_twse_date,
     tpex_fetcher: Callable[[dt_date], list] = market_data_service.fetch_tpex_date,
-    active_dates: Optional[set[dt_date]] = None,
+    active_dates: set[dt_date] | None = None,
 ) -> PriceBackfillResult:
     """Walk ``[from_d, to_d]`` weekdays, persist TWSE+TPEx rows per date.
 
@@ -351,7 +351,7 @@ def backfill_prices_range(
                 )
                 twse_rows = twse_future.result() if twse_future else []
                 tpex_rows = tpex_future.result() if tpex_future else []
-            except Exception as exc:  # noqa: BLE001 — per-date isolation
+            except Exception as exc:
                 db.rollback()
                 logger.exception(
                     "networth_backfill.prices.fetch_failed",
@@ -410,7 +410,7 @@ def backfill_prices_range(
                     [*twse_rows, *tpex_rows], ever_held
                 )
                 written = market_data_service.upsert_rows(db, kept)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 db.rollback()
                 logger.exception(
                     "networth_backfill.prices.upsert_failed",
@@ -450,7 +450,7 @@ def _ex_date_of(d: portfolio_models.Dividend) -> dt_date:
 
 def _load_price_map(
     db: Session, from_d: dt_date, to_d: dt_date
-) -> Dict[tuple[str, dt_date], Decimal]:
+) -> dict[tuple[str, dt_date], Decimal]:
     """Pull all close prices in range as ``{(symbol, date): close}``."""
     rows = (
         db.query(PriceHistory.symbol, PriceHistory.date, PriceHistory.close)
@@ -465,7 +465,7 @@ def replay_snapshots_range(
     from_d: dt_date,
     to_d: dt_date,
     *,
-    active_dates: Optional[set[dt_date]] = None,
+    active_dates: set[dt_date] | None = None,
     dry_run: bool = False,
 ) -> SnapshotReplayResult:
     """Recompute one ``portfolio_snapshot`` row per date in range.
@@ -527,14 +527,14 @@ def replay_snapshots_range(
         Decimal(prior_snapshot.total_cost) if prior_snapshot is not None else None
     )
 
-    qty: Dict[str, int] = defaultdict(int)
-    cost: Dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    qty: dict[str, int] = defaultdict(int)
+    cost: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     # Signed running BUY-SELL per symbol (no clamp). Matches the
     # portfolio_service active-holdings convention: if net <= 0 at a
     # given date, treat the symbol as fully exited so a dropped SELL
     # (qty=0 at the time) doesn't leave phantom holdings behind once
     # later BUY+SELL pairs cancel out the deficit.
-    signed_net: Dict[str, int] = defaultdict(int)
+    signed_net: dict[str, int] = defaultdict(int)
     cumulative_dividends = Decimal("0")
     warned_missing: set[tuple[str, dt_date]] = set()
     stale_candidates: list[dt_date] = []
@@ -558,7 +558,7 @@ def replay_snapshots_range(
             sp.commit()
             result.snapshots_written += 1
             return True
-        except Exception as exc:  # noqa: BLE001 — per-date isolation
+        except Exception as exc:
             sp.rollback()
             logger.exception(
                 "networth_backfill.replay.date_failed",
@@ -712,7 +712,7 @@ def replay_snapshots_range(
 
     try:
         db.commit()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         db.rollback()
         logger.exception(
             "networth_backfill.replay.commit_failed",
@@ -734,7 +734,7 @@ class NetworthBackfillResult:
     snapshots_written: int = 0
     stale_rows_deleted: int = 0
     rows_written: int = 0
-    errors: List[BackfillError] = field(default_factory=list)
+    errors: list[BackfillError] = field(default_factory=list)
 
 
 def run_backfill(
@@ -744,7 +744,7 @@ def run_backfill(
     *,
     phase: str = "both",
     throttle_sec: float = DEFAULT_THROTTLE_SEC,
-    active_dates: Optional[set[dt_date]] = None,
+    active_dates: set[dt_date] | None = None,
 ) -> NetworthBackfillResult:
     """Dispatch on ``phase`` ∈ {prices, snapshots, both}."""
     combined = NetworthBackfillResult()
@@ -787,7 +787,7 @@ def _date_of(value: object) -> dt_date:
     return value.date() if hasattr(value, "date") else value  # type: ignore[return-value]
 
 
-def _main(argv: Optional[list[str]] = None) -> int:
+def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Rebuild portfolio_snapshot rows from transaction history."
     )

@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, JSON, Boolean
+from sqlalchemy import JSON, Column, Date, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from ..database import Base, TimestampMixin
+
 
 class Transaction(Base, TimestampMixin):
     __tablename__ = "transactions"

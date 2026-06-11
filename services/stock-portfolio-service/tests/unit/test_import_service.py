@@ -1,14 +1,12 @@
 """CSV importer: parsing, fingerprint stability, dedupe, dry-run, day-trade interaction."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from io import BytesIO
 
 import pytest
-
 from app.models import portfolio as models
 from app.services import import_service
-
 
 TX_HEADER = "symbol,type,quantity,price,trade_date,fee,tax,name\n"
 DIV_HEADER = "symbol,amount,ex_dividend_date,received_date\n"
@@ -33,7 +31,7 @@ def test_parse_transactions_happy_path():
     assert parsed.rows[0].payload["symbol"] == "2330"
     assert parsed.rows[0].payload["price"] == Decimal("600.00")
     assert parsed.rows[0].payload["trade_date"] == datetime(
-        2026, 5, 15, 1, 30, tzinfo=timezone.utc
+        2026, 5, 15, 1, 30, tzinfo=UTC
     )
     assert parsed.rows[1].payload["symbol"] == "0050"  # .TW stripped
     assert parsed.rows[1].payload["name"] is None
@@ -223,7 +221,7 @@ def test_parse_transactions_accepts_chinese_headers():
         "代號,類別,股數,價格,交易日期,手續費,稅金,名稱\n"
         "2330,買進,10,600.00,2026-05-15T01:30:00Z,28,0,台積電\n"
         "0050,賣出,5,140.50,2026-05-15T02:00:00Z,5,14,\n"
-    ).encode("utf-8")
+    ).encode()
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.errors == []
     assert len(parsed.rows) == 2
@@ -236,7 +234,7 @@ def test_parse_transactions_mixes_english_and_chinese_columns():
     raw = (
         "代碼,type,股數,price,trade_date,fee,tax,name\n"
         "2330,買,10,600,2026-05-15T01:30:00Z,28,0,\n"
-    ).encode("utf-8")
+    ).encode()
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.errors == []
     assert parsed.rows[0].payload["type"] == "BUY"
@@ -246,7 +244,7 @@ def test_parse_transactions_ignores_unknown_extra_columns():
     raw = (
         "symbol,type,quantity,price,trade_date,fee,tax,name,備註\n"
         "2330,BUY,10,600,2026-05-15T01:30:00Z,0,0,,broker-export\n"
-    ).encode("utf-8")
+    ).encode()
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.errors == []
     assert len(parsed.rows) == 1
@@ -264,7 +262,7 @@ def test_parse_dividends_accepts_chinese_headers():
     raw = (
         "代號,金額,除息日,入帳日\n"
         "2330,3000,2026-06-12T00:00:00Z,2026-07-15T00:00:00Z\n"
-    ).encode("utf-8")
+    ).encode()
     parsed = import_service.parse_dividends_csv(raw)
     assert parsed.errors == []
     assert parsed.rows[0].payload["symbol"] == "2330"
@@ -297,7 +295,7 @@ def _fp(**kwargs) -> str:
         type_="BUY",
         quantity=1000,
         price=Decimal("50.0000"),
-        trade_date=datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 15, 1, 30, tzinfo=UTC),
         fee=Decimal("0"),
         tax=Decimal("0"),
     )
@@ -316,7 +314,7 @@ def test_transaction_fingerprint_without_order_id_matches_legacy_canonical():
             "BUY",
             "1000",
             "50.0000",
-            datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc).isoformat(),
+            datetime(2026, 5, 15, 1, 30, tzinfo=UTC).isoformat(),
             "0.0000",
             "0.0000",
         )
@@ -337,10 +335,10 @@ def test_transaction_fingerprint_distinct_order_ids_produce_distinct_hashes():
 
 def test_parse_transactions_identical_fills_with_distinct_order_ids():
     raw = (
-        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-2\n"
-    ).encode("utf-8")
+        b"symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-2\n"
+    )
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.errors == []
     assert len(parsed.rows) == 2
@@ -369,7 +367,7 @@ def test_parse_transactions_accepts_委託書號_synonym():
     raw = (
         "代號,類別,股數,價格,交易日期,手續費,稅金,名稱,委託書號\n"
         "0050,買進,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-9\n"
-    ).encode("utf-8")
+    ).encode()
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.errors == []
     assert parsed.rows[0].payload["order_id"] == "OD-9"
@@ -379,9 +377,9 @@ def test_parse_transactions_accepts_委託書號_synonym():
 
 def test_parse_transactions_whitespace_order_id_treated_as_empty():
     raw = (
-        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,   \n"
-    ).encode("utf-8")
+        b"symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,   \n"
+    )
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.rows[0].payload["order_id"] is None
     assert parsed.rows[0].fingerprint == _fp()  # legacy hash
@@ -389,10 +387,10 @@ def test_parse_transactions_whitespace_order_id_treated_as_empty():
 
 def test_parse_transactions_mixed_with_and_without_order_id():
     raw = (
-        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,\n"
-    ).encode("utf-8")
+        b"symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,\n"
+    )
     parsed = import_service.parse_transactions_csv(raw)
     assert parsed.errors == []
     assert len(parsed.rows) == 2
@@ -401,10 +399,10 @@ def test_parse_transactions_mixed_with_and_without_order_id():
 
 def test_commit_transactions_with_order_ids_reimport_is_noop(db_session):
     raw = (
-        "symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
-        "0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-2\n"
-    ).encode("utf-8")
+        b"symbol,type,quantity,price,trade_date,fee,tax,name,order_id\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-1\n"
+        b"0050,BUY,1000,50.00,2026-05-15T01:30:00Z,0,0,,OD-2\n"
+    )
     first = import_service.commit_transactions(
         db_session, import_service.parse_transactions_csv(raw), dry_run=False
     )

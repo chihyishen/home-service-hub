@@ -1,11 +1,12 @@
 from datetime import date as date_type
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Literal, Optional
+
 from ..database import get_db
 from ..schemas import portfolio as schemas
 from ..services import portfolio_service
-from ..models import portfolio as models
 
 router = APIRouter(
     prefix="/api/portfolio",
@@ -45,10 +46,10 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 def get_transactions(
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    symbol: Optional[str] = Query(default=None),
-    date_from: Optional[date_type] = Query(default=None),
-    date_to: Optional[date_type] = Query(default=None),
-    side: Optional[Literal["BUY", "SELL"]] = Query(default=None),
+    symbol: str | None = Query(default=None),
+    date_from: date_type | None = Query(default=None),
+    date_to: date_type | None = Query(default=None),
+    side: Literal["BUY", "SELL"] | None = Query(default=None),
     sort: str = Query(default="trade_date:desc"),
     db: Session = Depends(get_db),
 ):
@@ -94,10 +95,10 @@ def delete_dividend(dividend_id: int, db: Session = Depends(get_db)):
 def get_dividends(
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    symbol: Optional[str] = Query(default=None),
-    date_from: Optional[date_type] = Query(default=None),
-    date_to: Optional[date_type] = Query(default=None),
-    source: Optional[str] = Query(default=None),
+    symbol: str | None = Query(default=None),
+    date_from: date_type | None = Query(default=None),
+    date_to: date_type | None = Query(default=None),
+    source: str | None = Query(default=None),
     sort: str = Query(default="ex_dividend_date:desc"),
     db: Session = Depends(get_db),
 ):

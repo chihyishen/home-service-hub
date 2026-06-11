@@ -5,10 +5,9 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal, InvalidOperation
-from typing import Any, Optional
+from typing import Any
 
 from . import DividendEventRow
-from ..market_data_service import _http_get
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ def _roc_to_date(roc_str: str):
         return None
 
 
-def _decimal_or_none(value: Any) -> Optional[Decimal]:
+def _decimal_or_none(value: Any) -> Decimal | None:
     if value is None:
         return None
     text = str(value).strip().replace(",", "")
@@ -108,7 +107,7 @@ def _extract_list_from_dict(payload: dict) -> list:
     return []
 
 
-def fetch_twt49u(year: Optional[int] = None) -> list[DividendEventRow]:
+def fetch_twt49u(year: int | None = None) -> list[DividendEventRow]:
     """Deprecated: TWSE removed the standalone TWT49U OpenAPI endpoint (now
     404). Both ex-dividend (息) and ex-rights (權) events are covered by
     TWT48U_ALL (see ``twse_twt48u``), so this short-circuits to ``[]`` with

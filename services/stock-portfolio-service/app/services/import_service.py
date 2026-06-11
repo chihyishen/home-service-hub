@@ -22,7 +22,7 @@ from __future__ import annotations
 import csv
 import io
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 from typing import Literal
@@ -155,7 +155,7 @@ def _parse_datetime(value: str, key: str, row_index: int) -> datetime:
             f"row {row_index}: column '{key}' is not ISO 8601: {value!r}"
         ) from exc
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
+        return parsed.replace(tzinfo=UTC)
     return parsed
 
 
@@ -259,7 +259,7 @@ def _transaction_fingerprint(
             type_,
             str(quantity),
             f"{price:.4f}",
-            trade_date.astimezone(timezone.utc).isoformat(),
+            trade_date.astimezone(UTC).isoformat(),
             f"{fee:.4f}",
             f"{tax:.4f}",
         )
@@ -282,8 +282,8 @@ def _dividend_fingerprint(
             SOURCE_DIVIDENDS,
             symbol,
             f"{amount:.4f}",
-            ex_dividend_date.astimezone(timezone.utc).isoformat(),
-            received_date.astimezone(timezone.utc).isoformat()
+            ex_dividend_date.astimezone(UTC).isoformat(),
+            received_date.astimezone(UTC).isoformat()
             if received_date is not None
             else "",
         )

@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-import io
-import os
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from app.models import portfolio as portfolio_models
 from app.services import post_import_orchestrator as orch
-
 
 TW = timezone(timedelta(hours=8))
 
@@ -58,7 +54,7 @@ def _make_tx(
         price=Decimal(price),
         fee=Decimal("0"),
         tax=Decimal("0"),
-        trade_date=datetime.now(timezone.utc) - timedelta(days=days_ago),
+        trade_date=datetime.now(UTC) - timedelta(days=days_ago),
     )
 
 
@@ -245,8 +241,10 @@ def test_recalc_lock_serializes_concurrent_chains(db_session):
          patch.object(orch, "_step_networth_backfill", side_effect=noop_networth):
         t1 = threading.Thread(target=runner, name="chain-a")
         t2 = threading.Thread(target=runner, name="chain-b")
-        t1.start(); t2.start()
-        t1.join(); t2.join()
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
 
     # Each thread enters + exits once → 4 events total.
     assert len(events) == 4, events
@@ -322,7 +320,7 @@ def test_latest_status_includes_stale_rows_deleted(db_session: Any) -> None:
     ):
         result = orch.ChainResult(
             state="running",
-            started_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
             recalc_from=today.isoformat(),
             recalc_to=today.isoformat(),
             steps=[
@@ -332,7 +330,7 @@ def test_latest_status_includes_stale_rows_deleted(db_session: Any) -> None:
             ],
         )
         result.state = "completed"
-        result.finished_at = datetime.now(timezone.utc).isoformat()
+        result.finished_at = datetime.now(UTC).isoformat()
         orch._store(result)
 
     status = orch.latest_status()
@@ -343,13 +341,13 @@ def test_latest_status_prunes_old_entries():
     # Inject a stale finished result and a fresh one; only fresh should surface.
     stale = orch.ChainResult(
         state="completed",
-        started_at=(datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
-        finished_at=(datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
+        started_at=(datetime.now(UTC) - timedelta(hours=1)).isoformat(),
+        finished_at=(datetime.now(UTC) - timedelta(hours=1)).isoformat(),
     )
     fresh = orch.ChainResult(
         state="completed",
-        started_at=datetime.now(timezone.utc).isoformat(),
-        finished_at=datetime.now(timezone.utc).isoformat(),
+        started_at=datetime.now(UTC).isoformat(),
+        finished_at=datetime.now(UTC).isoformat(),
     )
     orch._LATEST_RESULTS[stale.started_at] = stale
     orch._LATEST_RESULTS[fresh.started_at] = fresh
@@ -383,8 +381,8 @@ def test_import_transactions_schedules_recalc_on_success(client, db_session, mon
         )
         return orch.ChainResult(
             state="completed",
-            started_at=datetime.now(timezone.utc).isoformat(),
-            finished_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
+            finished_at=datetime.now(UTC).isoformat(),
         )
 
     monkeypatch.setattr(orch, "schedule_chain_sync", fake_schedule)
@@ -456,8 +454,8 @@ def test_manual_recalc_defaults_to_min_trade_date_and_today(client, db_session, 
         captured["touched_symbols"] = touched_symbols
         return orch.ChainResult(
             state="completed",
-            started_at=datetime.now(timezone.utc).isoformat(),
-            finished_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
+            finished_at=datetime.now(UTC).isoformat(),
         )
 
     monkeypatch.setattr(orch, "schedule_chain_sync", fake_schedule)
@@ -482,8 +480,8 @@ def test_manual_recalc_accepts_explicit_range(client, db_session, monkeypatch):
         captured["recalc_to"] = recalc_to
         return orch.ChainResult(
             state="completed",
-            started_at=datetime.now(timezone.utc).isoformat(),
-            finished_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
+            finished_at=datetime.now(UTC).isoformat(),
         )
 
     monkeypatch.setattr(orch, "schedule_chain_sync", fake_schedule)
@@ -497,7 +495,7 @@ def test_manual_recalc_accepts_explicit_range(client, db_session, monkeypatch):
 
 
 def test_refresh_quotes_schedules_open_holdings_only(client, db_session, monkeypatch):
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     db_session.add(_make_tx("2330", qty=100, days_ago=3))
     db_session.add(_make_tx("0050", qty=50, days_ago=2))
     db_session.add(_make_tx("6488", qty=10, days_ago=2))
@@ -516,8 +514,8 @@ def test_refresh_quotes_schedules_open_holdings_only(client, db_session, monkeyp
         calls.append({"touched_symbols": touched_symbols})
         return orch.ChainResult(
             state="completed",
-            started_at=datetime.now(timezone.utc).isoformat(),
-            finished_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
+            finished_at=datetime.now(UTC).isoformat(),
         )
 
     monkeypatch.setattr(orch, "today_tw", lambda: today)
@@ -535,7 +533,7 @@ def test_refresh_quotes_schedules_open_holdings_only(client, db_session, monkeyp
 
 
 def test_refresh_quotes_returns_204_for_empty_portfolio(client, monkeypatch):
-    monkeypatch.setattr(orch, "today_tw", lambda: datetime.now(timezone.utc).date())
+    monkeypatch.setattr(orch, "today_tw", lambda: datetime.now(UTC).date())
     schedule_mock = MagicMock()
     monkeypatch.setattr(orch, "schedule_quotes_refresh_sync", schedule_mock)
 
@@ -552,7 +550,7 @@ def test_refresh_quotes_returns_409_when_recalc_lock_is_held(
 ):
     db_session.add(_make_tx("2330", qty=100, days_ago=1))
     db_session.commit()
-    monkeypatch.setattr(orch, "today_tw", lambda: datetime.now(timezone.utc).date())
+    monkeypatch.setattr(orch, "today_tw", lambda: datetime.now(UTC).date())
     schedule_mock = MagicMock()
     monkeypatch.setattr(orch, "schedule_quotes_refresh_sync", schedule_mock)
     orch._RECALC_LOCK.acquire()

@@ -1,9 +1,8 @@
 from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app import models
+from fastapi.testclient import TestClient
 
 
 def _create_category(client: TestClient, name: str, color: str) -> dict:

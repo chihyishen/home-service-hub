@@ -1,7 +1,11 @@
 import os
-from sqlalchemy.orm import sessionmaker
 
-from shared_lib.database import Base, TimestampMixin, get_database_url, create_db_engine, get_db as _get_db
+# Base / TimestampMixin are re-exported for the models package.
+from shared_lib.database import Base as Base
+from shared_lib.database import TimestampMixin as TimestampMixin
+from shared_lib.database import create_db_engine, get_database_url
+from shared_lib.database import get_db as _get_db
+from sqlalchemy.orm import sessionmaker
 
 # 載入環境變數並建立連線
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))

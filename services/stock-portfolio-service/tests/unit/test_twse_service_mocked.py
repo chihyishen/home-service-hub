@@ -1,6 +1,5 @@
 """Mocked TWSE unit tests that stay in the default test run."""
 
-import pytest
 import unittest
 from decimal import Decimal
 from unittest.mock import patch

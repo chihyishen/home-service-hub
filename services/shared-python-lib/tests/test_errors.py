@@ -1,7 +1,6 @@
 import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
-
 from shared_lib.errors import register_error_handlers
 
 

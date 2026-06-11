@@ -1,6 +1,8 @@
+
 from pydantic import Field
-from typing import List, Optional
-from . import BaseSchema, AuditSchema
+
+from . import AuditSchema, BaseSchema
+
 
 class CardBase(BaseSchema):
     name: str = Field(..., description="卡片名稱", examples=["台新 FlyGo"])
@@ -13,11 +15,11 @@ class CreditCardCreate(CardBase):
     pass
 
 class CreditCardUpdate(BaseSchema): # 修正：改為繼承 BaseSchema
-    name: Optional[str] = None
-    billing_day: Optional[int] = None
-    reward_cycle_type: Optional[str] = None
-    alert_threshold: Optional[int] = None
-    default_payment_method: Optional[str] = None
+    name: str | None = None
+    billing_day: int | None = None
+    reward_cycle_type: str | None = None
+    alert_threshold: int | None = None
+    default_payment_method: str | None = None
 
 class CreditCard(CardBase, AuditSchema):
     id: int
@@ -25,6 +27,6 @@ class CreditCard(CardBase, AuditSchema):
 class CardStatus(BaseSchema):
     card_name: str
     current_cycle_total: int
-    remaining_for_max_reward: Optional[int] = None
+    remaining_for_max_reward: int | None = None
     next_billing_date: str
     status_message: str

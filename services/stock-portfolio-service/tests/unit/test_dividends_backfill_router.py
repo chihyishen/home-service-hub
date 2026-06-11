@@ -3,9 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
-import pytest
-
-from app.models.portfolio import Dividend, Transaction, TransactionType
+from app.models.portfolio import Transaction, TransactionType
 from app.services.dividend_history_service import HistoricalDividendEvent
 
 TW = timezone(timedelta(hours=8))

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import date
-from typing import Any, Iterator
+from typing import Any
 from unittest.mock import MagicMock
 
 from app.services import networth_backfill_service as nbs

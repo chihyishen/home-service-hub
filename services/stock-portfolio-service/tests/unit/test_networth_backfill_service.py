@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Any, Callable, List
+from typing import Any
 
 import pytest
-from sqlalchemy import event
-
 from app.models import portfolio as portfolio_models
 from app.models.portfolio_snapshot import PortfolioSnapshot
 from app.models.price_history import PriceHistory
 from app.services import networth_backfill_service as nbs
 from app.services.portfolio_service import _load_adjusted_transactions
 from app.services.realized_pnl_service import iter_realized_events
-
+from sqlalchemy import event
 
 # ---------- Fixtures ----------
 
@@ -73,7 +71,7 @@ def _seed_tx(
             trade_date.month,
             trade_date.day,
             hour,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
         fee=Decimal(fee),
         tax=Decimal(tax),
@@ -88,7 +86,7 @@ def _seed_dividend(db, *, symbol: str, amount: str, ex_date: date):
     div = portfolio_models.Dividend(
         symbol=symbol,
         amount=Decimal(amount),
-        ex_dividend_date=datetime.combine(ex_date, datetime.min.time(), tzinfo=timezone.utc),
+        ex_dividend_date=datetime.combine(ex_date, datetime.min.time(), tzinfo=UTC),
         fee=Decimal("0"),
         tax=Decimal("0"),
         stock_dividend_shares=0,
@@ -135,7 +133,7 @@ def test_iter_trading_days_skips_weekend():
 
 def test_fetch_with_retry_returns_first_success():
     calls = []
-    sleeps: List[float] = []
+    sleeps: list[float] = []
 
     def fetcher(d):
         calls.append(d)
@@ -149,7 +147,7 @@ def test_fetch_with_retry_returns_first_success():
 
 def test_fetch_with_retry_retries_then_succeeds():
     state = {"n": 0}
-    sleeps: List[float] = []
+    sleeps: list[float] = []
 
     def fetcher(d):
         state["n"] += 1
@@ -166,7 +164,7 @@ def test_fetch_with_retry_retries_then_succeeds():
 
 
 def test_fetch_with_retry_holiday_returns_empty():
-    sleeps: List[float] = []
+    sleeps: list[float] = []
     out = nbs._fetch_with_retry(
         lambda d: [], date(2026, 5, 14), delays=(0.1, 0.1), sleep=sleeps.append
     )
@@ -178,7 +176,7 @@ def test_fetch_with_retry_holiday_returns_empty():
 
 
 def test_backfill_prices_range_throttles_between_dates(db_session):
-    sleeps: List[float] = []
+    sleeps: list[float] = []
     def twse(d):
         return [_row("2330", d, "600")]
 
@@ -199,7 +197,7 @@ def test_backfill_prices_range_throttles_between_dates(db_session):
 
 
 def test_backfill_prices_range_holiday_skip_no_rows(db_session):
-    sleeps: List[float] = []
+    sleeps: list[float] = []
     result = nbs.backfill_prices_range(
         db_session,
         date(2026, 5, 14),
@@ -239,8 +237,8 @@ def test_backfill_prices_range_skips_already_fetched_dates(db_session):
     _seed_price(db_session, symbol="2330", d=date(2026, 5, 14), close="600", source="TWSE")
     _seed_price(db_session, symbol="6488", d=date(2026, 5, 14), close="100", source="TPEx")
     db_session.commit()
-    twse_calls: List[date] = []
-    tpex_calls: List[date] = []
+    twse_calls: list[date] = []
+    tpex_calls: list[date] = []
 
     def twse(d):
         twse_calls.append(d)
@@ -266,7 +264,7 @@ def test_backfill_prices_range_skips_already_fetched_dates(db_session):
 
 
 def test_backfill_prices_range_skips_weekend(db_session):
-    fetched: List[date] = []
+    fetched: list[date] = []
 
     def twse(d):
         fetched.append(d)
@@ -481,7 +479,7 @@ def test_replay_handles_day_trade_with_sell_id_lower_than_buy(db_session):
         type=portfolio_models.TransactionType.SELL,
         quantity=100,
         price=Decimal("510"),
-        trade_date=datetime.combine(d, datetime.min.time(), tzinfo=timezone.utc),
+        trade_date=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
         fee=Decimal("0"),
         tax=Decimal("0"),
     )
@@ -492,7 +490,7 @@ def test_replay_handles_day_trade_with_sell_id_lower_than_buy(db_session):
         type=portfolio_models.TransactionType.BUY,
         quantity=100,
         price=Decimal("500"),
-        trade_date=datetime.combine(d, datetime.min.time(), tzinfo=timezone.utc),
+        trade_date=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
         fee=Decimal("0"),
         tax=Decimal("0"),
     )

@@ -1,11 +1,11 @@
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import joinedload
-from sqlalchemy import extract
 from datetime import date
+
+from sqlalchemy import extract
+from sqlalchemy.orm import Session, joinedload
+
 from .. import models, schemas
 from . import billing_service
 from .refund_utils import get_refunded_amounts
-from typing import List
 
 
 def _category_name(transaction: models.Transaction) -> str:
@@ -45,7 +45,7 @@ def _get_visible_annual_month_indices(year: int) -> list[int]:
         return list(range(today.month))
     return list(range(12))
 
-def get_card_usage_summary(db: Session) -> List[schemas.analytics.CardUsageSummary]:
+def get_card_usage_summary(db: Session) -> list[schemas.analytics.CardUsageSummary]:
     today = date.today()
     
     # 取得所有信用卡

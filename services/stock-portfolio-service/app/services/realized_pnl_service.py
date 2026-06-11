@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import date as date_type
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Iterable, Iterator, Mapping, Optional
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,7 @@ from .portfolio_service import _load_adjusted_transactions, sanitize_symbol
 class RealizedPnlEvent:
     trade_date: date_type
     symbol: str
-    name: Optional[str]
+    name: str | None
     quantity: int
     sell_price: Decimal
     avg_cost_at_sale: Decimal
@@ -27,7 +27,7 @@ class RealizedPnlEvent:
     realized_pnl: Decimal
     is_day_trade: bool
     position_side: models.PositionSide
-    note: Optional[str] = None
+    note: str | None = None
 
 
 _MONEY_QUANT = Decimal("0.01")
@@ -231,10 +231,10 @@ def iter_realized_events(transactions: Iterable[models.Transaction]) -> Iterator
 def _filtered_events(
     events: list[RealizedPnlEvent],
     *,
-    symbol: Optional[str] = None,
-    date_from: Optional[date_type] = None,
-    date_to: Optional[date_type] = None,
-    year: Optional[int] = None,
+    symbol: str | None = None,
+    date_from: date_type | None = None,
+    date_to: date_type | None = None,
+    year: int | None = None,
     day_trade_only: bool = False,
 ) -> list[RealizedPnlEvent]:
     effective_from = date_from
@@ -285,10 +285,10 @@ def _sort_events(events: list[RealizedPnlEvent], sort: str) -> list[RealizedPnlE
 def compute_events(
     session: Session,
     *,
-    symbol: Optional[str] = None,
-    date_from: Optional[date_type] = None,
-    date_to: Optional[date_type] = None,
-    year: Optional[int] = None,
+    symbol: str | None = None,
+    date_from: date_type | None = None,
+    date_to: date_type | None = None,
+    year: int | None = None,
     day_trade_only: bool = False,
     sort: str = "trade_date:desc",
 ) -> list[RealizedPnlEvent]:

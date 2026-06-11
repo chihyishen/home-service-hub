@@ -18,7 +18,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 from sqlalchemy import update
 from sqlalchemy.orm import Session
@@ -28,7 +27,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.database import SessionLocal
 from app.models import portfolio as P
-
 
 _MARKET_TO_INSTRUMENT_TYPE: dict[str, dict[str, str]] = {
     "上市": {"購": "上市認購(售)權證", "售": "上市認購(售)權證"},
@@ -52,7 +50,7 @@ def _load_stonk_overrides(path: Path) -> dict[str, tuple[str, str]]:
     return out
 
 
-def _infer_instrument_type(name: str, market: str) -> Optional[str]:
+def _infer_instrument_type(name: str, market: str) -> str | None:
     if not name or not market:
         return None
     side_token = "購" if "購" in name else ("售" if "售" in name else None)
@@ -128,12 +126,12 @@ def main() -> int:
         for d in diffs:
             print(
                 f"{d['symbol']:<10} {d['row_count']:>5}  "
-                f"{'name':<18} {str(d['current_name']):<30} {str(d['correct_name']):<30}"
+                f"{'name':<18} {d['current_name']!s:<30} {d['correct_name']!s:<30}"
             )
             print(
                 f"{'':<10} {'':>5}  "
-                f"{'instrument_type':<18} {str(d['current_instrument_type']):<30} "
-                f"{str(d['correct_instrument_type']):<30}"
+                f"{'instrument_type':<18} {d['current_instrument_type']!s:<30} "
+                f"{d['correct_instrument_type']!s:<30}"
             )
 
         total_name_updates = sum(d["changes"]["name_updates"] for d in diffs)

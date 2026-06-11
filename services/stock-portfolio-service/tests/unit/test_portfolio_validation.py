@@ -2,9 +2,8 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from sqlalchemy.exc import IntegrityError
-
 from app.models import portfolio as models
+from sqlalchemy.exc import IntegrityError
 
 
 def _valid_transaction_payload() -> dict:

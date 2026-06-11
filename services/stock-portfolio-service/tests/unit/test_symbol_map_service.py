@@ -1,12 +1,11 @@
 """Symbol-map cache + transaction backfill."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-
 from app.models import portfolio as models
 from app.models.symbol_map import SymbolMap
 from app.services import symbol_map_service as svc
@@ -92,7 +91,7 @@ def _make_tx(symbol, name="dummy", qty=1000, price="50.00", fp=None):
         price=Decimal(price),
         fee=Decimal("0"),
         tax=Decimal("0"),
-        trade_date=datetime(2026, 5, 1, 13, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 1, 13, 30, tzinfo=UTC),
         import_fingerprint=fp,
     )
 
@@ -190,7 +189,7 @@ def test_names_endpoint_prefers_meaningful_transaction_name_over_placeholder(
         price=Decimal("50"),
         fee=Decimal("0"),
         tax=Decimal("0"),
-        trade_date=datetime(2026, 5, 10, 13, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 10, 13, 30, tzinfo=UTC),
     )
     real = models.Transaction(
         symbol="00675L",
@@ -200,7 +199,7 @@ def test_names_endpoint_prefers_meaningful_transaction_name_over_placeholder(
         price=Decimal("50"),
         fee=Decimal("0"),
         tax=Decimal("0"),
-        trade_date=datetime(2026, 5, 1, 13, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 1, 13, 30, tzinfo=UTC),
     )
     db_session.add_all([placeholder, real])
     db_session.commit()
@@ -290,7 +289,7 @@ def test_names_endpoint_falls_back_to_symbol_map_when_only_placeholder_tx(
         price=Decimal("50"),
         fee=Decimal("0"),
         tax=Decimal("0"),
-        trade_date=datetime(2026, 5, 10, 13, 30, tzinfo=timezone.utc),
+        trade_date=datetime(2026, 5, 10, 13, 30, tzinfo=UTC),
     )
     db_session.add(placeholder)
     db_session.commit()

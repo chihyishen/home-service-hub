@@ -4,7 +4,7 @@ import csv
 import io
 import json
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -13,12 +13,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..models import portfolio as models
-from . import per_date_verify, portfolio_service as svc, symbol_map_service
+from . import per_date_verify, symbol_map_service
+from . import portfolio_service as svc
 from .import_service import (
     ImportResult,
+    ParsedRow,
     ParseError,
     ParseResult,
-    ParsedRow,
     UnresolvedName,
     _transaction_fingerprint,
 )
@@ -102,7 +103,7 @@ def _parse_trade_date(value: str, row_index: int) -> datetime:
         raise ValueError(
             f"row {row_index}: column '日期' is not YYYY/MM/DD: {value!r}"
         ) from exc
-    return parsed.replace(tzinfo=timezone.utc)
+    return parsed.replace(tzinfo=UTC)
 
 
 def parse_cathay_rows(

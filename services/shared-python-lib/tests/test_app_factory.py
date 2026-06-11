@@ -1,8 +1,8 @@
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock
-
 from shared_lib.app_factory import create_app
 
 

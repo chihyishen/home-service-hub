@@ -4,7 +4,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
-
 from app.services import dividend_history_service as svc
 
 

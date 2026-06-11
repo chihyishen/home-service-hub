@@ -3,8 +3,6 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
-import pytest
-
 from app.models.corporate_action import CorporateAction
 from app.models.portfolio import Transaction, TransactionType
 from app.services.dividend_sources import DividendEventRow

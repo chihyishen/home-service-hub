@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
+
 
 # 基礎 Schema：實作與 Java 對標的 CamelCase 輸出
 class BaseSchema(BaseModel):
@@ -13,29 +15,33 @@ class BaseSchema(BaseModel):
 
 # 審計欄位 Mixin
 class AuditSchema(BaseModel):
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
-from .card import CreditCard, CreditCardCreate, CreditCardUpdate, CardStatus
-from .transaction import Transaction, TransactionCreate, TransactionUpdate
-from .recurring import (
-    Subscription, SubscriptionCreate, SubscriptionUpdate,
-    Installment, InstallmentCreate, InstallmentUpdate
-)
 from .analytics import (
+    AnnualReport,
+    AnnualSummary,
+    CategoryTrend,
+    MonthlyCompareReport,
     MonthlyReport,
     MonthlyTrendPoint,
-    CategoryTrend,
-    AnnualSummary,
-    AnnualReport,
-    MonthlyCompareReport,
 )
+from .card import CardStatus, CreditCard, CreditCardCreate, CreditCardUpdate
 from .category import (
     Category,
     CategoryCreate,
-    CategoryUpdate,
-    CategoryMergeRequest,
     CategoryMergePreview,
+    CategoryMergeRequest,
     CategoryMergeResult,
+    CategoryUpdate,
 )
 from .payment_method import PaymentMethod, PaymentMethodCreate, PaymentMethodUpdate
+from .recurring import (
+    Installment,
+    InstallmentCreate,
+    InstallmentUpdate,
+    Subscription,
+    SubscriptionCreate,
+    SubscriptionUpdate,
+)
+from .transaction import Transaction, TransactionCreate, TransactionUpdate

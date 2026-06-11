@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date as dt_date
 from decimal import Decimal, InvalidOperation
-from typing import Any, Iterable
+from typing import Any
 
 import requests
 from sqlalchemy.orm import Session

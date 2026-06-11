@@ -1,8 +1,9 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from datetime import datetime, date
-from typing import List, Literal, Optional
-from enum import Enum
+from datetime import date, datetime
 from decimal import Decimal
+from enum import Enum
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def _normalize_symbol(value: str) -> str:
@@ -37,12 +38,12 @@ class TransactionBase(BaseModel):
     """
 
     symbol: str
-    name: Optional[str] = None
+    name: str | None = None
     type: TransactionType
     position_side: PositionSide = PositionSide.LONG
     quantity: int
     price: Decimal
-    trade_date: Optional[datetime] = None
+    trade_date: datetime | None = None
     fee: Decimal = Decimal("0.0")
     tax: Decimal = Decimal("0.0")
 
@@ -74,13 +75,13 @@ class DividendBase(BaseModel):
     symbol: str
     amount: Decimal
     ex_dividend_date: datetime
-    received_date: Optional[datetime] = None
+    received_date: datetime | None = None
     fee: Decimal = Decimal("0")
     tax: Decimal = Decimal("0")
-    cash_dividend_per_share: Optional[Decimal] = None
+    cash_dividend_per_share: Decimal | None = None
     stock_dividend_shares: int = 0
-    source: Optional[str] = None
-    quantity_at_record_date: Optional[Decimal] = None
+    source: str | None = None
+    quantity_at_record_date: Decimal | None = None
 
     @field_validator("symbol")
     @classmethod
@@ -104,7 +105,7 @@ class Dividend(DividendBase):
 
 class StockHolding(BaseModel):
     symbol: str
-    name: Optional[str] = None
+    name: str | None = None
     total_quantity: int
     avg_cost: Decimal
     current_price: Decimal
@@ -116,7 +117,7 @@ class StockHolding(BaseModel):
     day_pnl: Decimal = Decimal("0.0")                # 單日損益
     total_dividends: Decimal = Decimal("0.0")
     total_pnl_with_dividend: Decimal # 含息損益
-    xirr: Optional[Decimal] = None   # 年化報酬率，如 0.1523 = 15.23%
+    xirr: Decimal | None = None   # 年化報酬率，如 0.1523 = 15.23%
 
 class PortfolioSummary(BaseModel):
     total_market_value: Decimal
@@ -126,18 +127,18 @@ class PortfolioSummary(BaseModel):
     total_day_pnl: Decimal = Decimal("0.0")          # 投資組合今日總損益
     total_dividends: Decimal
     total_realized_pnl: Decimal = Decimal("0.0")     # 累積已實現損益（含當沖）
-    holdings: List[StockHolding]
-    portfolio_xirr: Optional[Decimal] = None          # 整體投資組合年化報酬率
+    holdings: list[StockHolding]
+    portfolio_xirr: Decimal | None = None          # 整體投資組合年化報酬率
     quotes_status: Literal["ok", "partial", "unavailable"] = "ok"
 
 
 class ExDividendRecord(BaseModel):
     symbol: str
     name: str
-    ex_dividend_date: Optional[date] = None     # 除息日
-    ex_rights_date: Optional[date] = None       # 除權日
-    cash_dividend: Optional[str] = None         # 現金股利（字串保留原始精度）
-    stock_dividend: Optional[str] = None        # 股票股利
+    ex_dividend_date: date | None = None     # 除息日
+    ex_rights_date: date | None = None       # 除權日
+    cash_dividend: str | None = None         # 現金股利（字串保留原始精度）
+    stock_dividend: str | None = None        # 股票股利
 
 
 # Sort field allowlists for paginated list endpoints. Server validates the
@@ -147,10 +148,10 @@ DividendSortField = Literal["ex_dividend_date", "symbol", "amount", "source"]
 
 
 class PagedTransactions(BaseModel):
-    items: List[Transaction]
+    items: list[Transaction]
     total: int
 
 
 class PagedDividends(BaseModel):
-    items: List[Dividend]
+    items: list[Dividend]
     total: int

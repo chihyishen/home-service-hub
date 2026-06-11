@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
-
 from app.models import portfolio as models
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service
@@ -46,7 +45,7 @@ class TestPortfolioService:
         assert portfolio_service.sanitize_symbol(" 2330 ") == "2330"
 
     def test_resolve_sort_trade_date_normalizes_aware_datetimes_to_utc_naive(self):
-        aware_trade_date = datetime(2026, 5, 1, 9, 0, tzinfo=timezone.utc)
+        aware_trade_date = datetime(2026, 5, 1, 9, 0, tzinfo=UTC)
         naive_trade_date = datetime(2026, 5, 1, 9, 0)
 
         resolved_aware = portfolio_service._resolve_sort_trade_date(aware_trade_date)
@@ -271,7 +270,7 @@ class TestPortfolioService:
         assert updated_tx.trade_date == original_trade_date
 
     def test_create_transaction_persists_resolved_trade_date_when_omitted(self, db_session):
-        before_create = datetime.now(timezone.utc).replace(tzinfo=None)
+        before_create = datetime.now(UTC).replace(tzinfo=None)
 
         created_tx = portfolio_service.create_transaction(
             db_session,
@@ -286,7 +285,7 @@ class TestPortfolioService:
             ),
         )
 
-        after_create = datetime.now(timezone.utc).replace(tzinfo=None)
+        after_create = datetime.now(UTC).replace(tzinfo=None)
         assert created_tx.trade_date is not None
         assert before_create <= created_tx.trade_date.replace(tzinfo=None) <= after_create
 

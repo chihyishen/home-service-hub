@@ -1,13 +1,13 @@
 """TWSE face-value-change events keyed by symbol + effective date."""
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Column,
     Date,
     DateTime,
     Index,
     Integer,
-    JSON,
     Numeric,
     String,
     UniqueConstraint,

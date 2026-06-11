@@ -1,8 +1,8 @@
 from datetime import date
 
+import pytest
 from app import models, schemas
 from app.services import recurring_service
-import pytest
 from fastapi.testclient import TestClient
 
 

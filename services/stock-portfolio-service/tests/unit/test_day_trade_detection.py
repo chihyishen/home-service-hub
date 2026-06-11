@@ -5,10 +5,9 @@ a BUY and a SELL on the same calendar trade date. Every row in the bucket
 shares the flag, so adding the second side flips both, and removing one side
 flips the survivor back to False.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from app.models import portfolio as models
 from app.schemas import portfolio as schemas
 from app.services import portfolio_service as svc
 
@@ -26,7 +25,7 @@ def _make_payload(
         type=schemas.TransactionType(tx_type),
         quantity=quantity,
         price=Decimal(price),
-        trade_date=trade_date or datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc),
+        trade_date=trade_date or datetime(2026, 5, 15, 1, 30, tzinfo=UTC),
         fee=Decimal("0.00"),
         tax=Decimal("0.00"),
     )
@@ -38,7 +37,7 @@ def test_single_buy_is_not_day_trade(db_session):
 
 
 def test_buy_then_sell_same_day_flips_both_flags(db_session):
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(
         db_session,
         _make_payload(tx_type="BUY", trade_date=trade_day),
@@ -54,8 +53,8 @@ def test_buy_then_sell_same_day_flips_both_flags(db_session):
 
 
 def test_buy_and_sell_different_days_are_not_day_trade(db_session):
-    day1 = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
-    day2 = datetime(2026, 5, 16, 1, 30, tzinfo=timezone.utc)
+    day1 = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
+    day2 = datetime(2026, 5, 16, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(
         db_session, _make_payload(tx_type="BUY", trade_date=day1)
     )
@@ -69,7 +68,7 @@ def test_buy_and_sell_different_days_are_not_day_trade(db_session):
 
 
 def test_different_symbols_same_day_are_not_day_trade(db_session):
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(
         db_session,
         _make_payload(symbol="2330", tx_type="BUY", trade_date=trade_day),
@@ -80,7 +79,7 @@ def test_different_symbols_same_day_are_not_day_trade(db_session):
         _make_payload(
             symbol="0050",
             tx_type="BUY",
-            trade_date=datetime(2026, 5, 14, 1, 30, tzinfo=timezone.utc),
+            trade_date=datetime(2026, 5, 14, 1, 30, tzinfo=UTC),
         ),
     )
     sell = svc.create_transaction(
@@ -94,7 +93,7 @@ def test_different_symbols_same_day_are_not_day_trade(db_session):
 
 
 def test_delete_sell_clears_buy_flag(db_session):
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(
         db_session, _make_payload(tx_type="BUY", trade_date=trade_day)
     )
@@ -110,8 +109,8 @@ def test_delete_sell_clears_buy_flag(db_session):
 
 
 def test_update_moving_sell_to_different_day_clears_both_flags(db_session):
-    day1 = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
-    day2 = datetime(2026, 5, 16, 1, 30, tzinfo=timezone.utc)
+    day1 = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
+    day2 = datetime(2026, 5, 16, 1, 30, tzinfo=UTC)
     buy = svc.create_transaction(
         db_session, _make_payload(tx_type="BUY", trade_date=day1)
     )
@@ -133,8 +132,8 @@ def test_update_moving_sell_to_different_day_clears_both_flags(db_session):
 
 
 def test_update_moving_sell_into_existing_buy_day_flips_flags(db_session):
-    day1 = datetime(2026, 5, 14, 1, 30, tzinfo=timezone.utc)
-    day2 = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    day1 = datetime(2026, 5, 14, 1, 30, tzinfo=UTC)
+    day2 = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     buy_day1 = svc.create_transaction(
         db_session, _make_payload(tx_type="BUY", trade_date=day1)
     )
@@ -165,7 +164,7 @@ def test_update_moving_sell_into_existing_buy_day_flips_flags(db_session):
 
 
 def test_day_trade_exposed_in_get_transactions_response(client):
-    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=timezone.utc)
+    trade_day = datetime(2026, 5, 15, 1, 30, tzinfo=UTC)
     iso_day = trade_day.isoformat()
     client.post(
         "/api/portfolio/transactions",

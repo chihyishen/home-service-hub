@@ -1,6 +1,8 @@
+
 from pydantic import Field
-from typing import Optional
-from . import BaseSchema, AuditSchema
+
+from . import AuditSchema, BaseSchema
+
 
 class PaymentMethodBase(BaseSchema):
     name: str = Field(..., description="支付方式名稱 (例如: 現金, Line Pay, 銀行轉帳)")
@@ -10,8 +12,8 @@ class PaymentMethodCreate(PaymentMethodBase):
     pass
 
 class PaymentMethodUpdate(BaseSchema):
-    name: Optional[str] = Field(None, description="支付方式名稱")
-    is_active: Optional[bool] = Field(None, description="是否啟用")
+    name: str | None = Field(None, description="支付方式名稱")
+    is_active: bool | None = Field(None, description="是否啟用")
 
 class PaymentMethod(PaymentMethodBase, AuditSchema):
     id: int

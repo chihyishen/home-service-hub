@@ -1,12 +1,13 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-from .. import schemas, models
+
+from .. import models, schemas
 from ..database import get_db
 
 router = APIRouter(prefix="/payment-methods", tags=["Payment Methods"])
 
-@router.get("/", response_model=List[schemas.payment_method.PaymentMethod])
+@router.get("/", response_model=list[schemas.payment_method.PaymentMethod])
 def list_payment_methods(db: Session = Depends(get_db)):
     return db.query(models.payment_method.PaymentMethod).all()
 
@@ -17,9 +18,9 @@ def create_payment_method(pm: schemas.payment_method.PaymentMethodCreate, db: Se
     try:
         db.commit()
         db.refresh(db_pm)
-    except Exception:
+    except Exception as exc:
         db.rollback()
-        raise HTTPException(status_code=400, detail="支付方式名稱已存在")
+        raise HTTPException(status_code=400, detail="支付方式名稱已存在") from exc
     return db_pm
 
 @router.put("/{pm_id}", response_model=schemas.payment_method.PaymentMethod)
@@ -37,9 +38,9 @@ def update_payment_method(pm_id: int, pm: schemas.payment_method.PaymentMethodUp
     try:
         db.commit()
         db.refresh(db_pm)
-    except Exception:
+    except Exception as exc:
         db.rollback()
-        raise HTTPException(status_code=400, detail="更新失敗，名稱可能已存在")
+        raise HTTPException(status_code=400, detail="更新失敗，名稱可能已存在") from exc
     return db_pm
 
 @router.delete("/{pm_id}", summary="刪除支付方式")

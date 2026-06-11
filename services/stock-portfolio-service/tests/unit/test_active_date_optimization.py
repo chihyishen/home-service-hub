@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -27,7 +27,7 @@ def _seed_tx(
             quantity=qty,
             price=Decimal("10"),
             trade_date=datetime.combine(
-                trade_date, datetime.min.time(), tzinfo=timezone.utc
+                trade_date, datetime.min.time(), tzinfo=UTC
             ),
             fee=Decimal("0"),
             tax=Decimal("0"),
@@ -48,7 +48,7 @@ def _seed_dividend(
             symbol=symbol,
             amount=Decimal("1"),
             ex_dividend_date=datetime.combine(
-                ex_date, datetime.min.time(), tzinfo=timezone.utc
+                ex_date, datetime.min.time(), tzinfo=UTC
             ),
             fee=Decimal("0"),
             tax=Decimal("0"),

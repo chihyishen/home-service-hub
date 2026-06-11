@@ -1,17 +1,15 @@
 """Market-data parsers, upsert idempotency, and history endpoint."""
 
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
-
 from app.models.price_history import PriceHistory
 from app.schemas import portfolio as schemas
 from app.services import market_data_service as svc
 from app.services import portfolio_service
-
 
 TRADING_DAY = date(2026, 5, 14)
 
@@ -30,7 +28,7 @@ def _seed_ever_held(db, *symbols):
                 type=schemas.TransactionType("BUY"),
                 quantity=1,
                 price=Decimal("1.00"),
-                trade_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                trade_date=datetime(2026, 1, 1, tzinfo=UTC),
                 fee=Decimal("0.00"),
                 tax=Decimal("0.00"),
             ),

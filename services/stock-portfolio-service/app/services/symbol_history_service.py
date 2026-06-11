@@ -20,7 +20,7 @@ import json
 import logging
 from datetime import date as dt_date
 from decimal import Decimal, InvalidOperation
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -33,7 +33,7 @@ STOCK_DAY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 SOURCE = "TWSE"
 
 
-def _roc_to_date(value: object) -> Optional[dt_date]:
+def _roc_to_date(value: object) -> dt_date | None:
     parts = str(value).strip().split("/")
     if len(parts) != 3:
         return None
@@ -43,7 +43,7 @@ def _roc_to_date(value: object) -> Optional[dt_date]:
         return None
 
 
-def _decimal_or_none(value: Any) -> Optional[Decimal]:
+def _decimal_or_none(value: Any) -> Decimal | None:
     text = str(value).strip().replace(",", "")
     if not text or text in {"--", "-", "X0.00"}:
         return None
@@ -53,7 +53,7 @@ def _decimal_or_none(value: Any) -> Optional[Decimal]:
         return None
 
 
-def _int_or_none(value: Any) -> Optional[int]:
+def _int_or_none(value: Any) -> int | None:
     text = str(value).strip().replace(",", "")
     return int(text) if text.isdigit() else None
 

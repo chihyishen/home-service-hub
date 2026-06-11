@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 class RealizedPnlEventOut(BaseModel):
     trade_date: date
     symbol: str
-    name: Optional[str] = None
+    name: str | None = None
     quantity: int
     sell_price: Decimal
     avg_cost_at_sale: Decimal
@@ -20,7 +20,7 @@ class RealizedPnlEventOut(BaseModel):
     realized_pnl: Decimal
     is_day_trade: bool
     position_side: Literal["LONG", "SHORT"] = "LONG"
-    note: Optional[str] = None
+    note: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -33,6 +33,6 @@ class RealizedPnlSummaryOut(BaseModel):
 
 
 class RealizedPnlPagedOut(BaseModel):
-    items: List[RealizedPnlEventOut]
+    items: list[RealizedPnlEventOut]
     total: int
     summary: RealizedPnlSummaryOut

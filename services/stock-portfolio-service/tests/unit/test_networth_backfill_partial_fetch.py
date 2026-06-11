@@ -7,7 +7,6 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-
 from app.models.price_history import PriceHistory
 from app.services import networth_backfill_service as nbs
 

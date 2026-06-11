@@ -4,7 +4,6 @@ from datetime import date
 from typing import Any
 
 import pytest
-
 from app.services import per_date_verify
 
 

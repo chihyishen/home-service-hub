@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -13,12 +13,11 @@ from app.services.networth_backfill_service import replay_snapshots_range
 from app.services.portfolio_service import _load_adjusted_transactions
 from app.services.realized_pnl_service import iter_realized_events
 
-
 _TOLERANCE = Decimal("0.01")
 
 
 def _at(d: date) -> datetime:
-    return datetime.combine(d, datetime.min.time(), tzinfo=timezone.utc)
+    return datetime.combine(d, datetime.min.time(), tzinfo=UTC)
 
 
 def _seed_tx(

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
+
 from .. import schemas
 from ..database import get_db
 from ..services import recurring_service
@@ -14,7 +15,7 @@ def trigger_recurring_generation(db: Session = Depends(get_db)):
 
 # --- Subscriptions API ---
 
-@router.get("/subscriptions", response_model=List[schemas.Subscription], summary="獲取所有訂閱項目")
+@router.get("/subscriptions", response_model=list[schemas.Subscription], summary="獲取所有訂閱項目")
 def list_subscriptions(db: Session = Depends(get_db)):
     return recurring_service.get_subscriptions(db)
 
@@ -36,7 +37,7 @@ def delete_subscription(sub_id: int, db: Session = Depends(get_db)):
 
 # --- Installments API ---
 
-@router.get("/installments", response_model=List[schemas.Installment], summary="獲取所有分期項目")
+@router.get("/installments", response_model=list[schemas.Installment], summary="獲取所有分期項目")
 def list_installments(db: Session = Depends(get_db)):
     return recurring_service.get_installments(db)
 

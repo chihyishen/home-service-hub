@@ -20,7 +20,6 @@ Exit code 0 = all good; 1 = at least one service has a problem.
 
 from __future__ import annotations
 
-import glob
 import os
 import re
 import sys

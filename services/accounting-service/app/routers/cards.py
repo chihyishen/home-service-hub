@@ -1,18 +1,19 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+
 from .. import schemas
 from ..database import get_db
-from ..services import card_service, billing_service
+from ..services import billing_service, card_service
 
 router = APIRouter(prefix="/cards", tags=["Cards"])
 
-@router.get("/usage", response_model=List[schemas.analytics.CardUsageSummary], summary="獲取所有信用卡本期使用狀況")
+@router.get("/usage", response_model=list[schemas.analytics.CardUsageSummary], summary="獲取所有信用卡本期使用狀況")
 def get_cards_usage(db: Session = Depends(get_db)):
     from ..services import analytics_service
     return analytics_service.get_card_usage_summary(db)
 
-@router.get("/", response_model=List[schemas.CreditCard], summary="獲取所有信用卡")
+@router.get("/", response_model=list[schemas.CreditCard], summary="獲取所有信用卡")
 def list_cards(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return card_service.get_cards(db, skip=skip, limit=limit)
 

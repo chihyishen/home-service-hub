@@ -6,8 +6,8 @@ the same calendar day via ``Session.merge``.
 
 from __future__ import annotations
 
-from datetime import date as dt_date, datetime, timedelta, timezone
-from typing import Optional
+from datetime import date as dt_date
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -22,7 +22,7 @@ def _today_tw() -> dt_date:
 
 
 def write_today_snapshot(
-    db: Session, *, today: Optional[dt_date] = None
+    db: Session, *, today: dt_date | None = None
 ) -> PortfolioSnapshot:
     """Build the live summary and upsert a row for ``today`` (TW calendar)."""
     target = today or _today_tw()
@@ -45,8 +45,8 @@ def write_today_snapshot(
 def list_snapshots(
     db: Session,
     *,
-    from_date: Optional[dt_date] = None,
-    to_date: Optional[dt_date] = None,
+    from_date: dt_date | None = None,
+    to_date: dt_date | None = None,
     interval: str = "day",
 ) -> list[PortfolioSnapshot]:
     """Return snapshot rows; optionally downsampled.

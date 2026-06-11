@@ -1,11 +1,13 @@
-import pytest
 from datetime import date
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
+
+import pytest
 from app.database import Base
 from app.models.category import Category
 from app.models.transaction import Transaction
 from app.services import analytics_service
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+
 
 @pytest.fixture
 def db_session():
