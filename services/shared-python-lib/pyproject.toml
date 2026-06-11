@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "home-service-shared"
 version = "0.1.0"
 dependencies = [
+    "fastapi",
     "sqlalchemy",
     "psycopg2-binary",
     "python-dotenv",
@@ -17,4 +18,10 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy",
     "opentelemetry-instrumentation-logging",
     "opentelemetry-instrumentation-requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "httpx",
 ]
