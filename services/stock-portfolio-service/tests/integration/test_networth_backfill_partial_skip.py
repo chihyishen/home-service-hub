@@ -63,6 +63,15 @@ def test_backfill_prices_range_skips_only_partial_source(
 
     monkeypatch.setattr(nbs.market_data_service, "fetch_twse_date", _twse)
     monkeypatch.setattr(nbs.market_data_service, "fetch_tpex_date", _tpex)
+    # The held-only price-history filter is orthogonal to partial-skip detection
+    # (covered by test_price_history_held_filter); make it a no-op here so the
+    # full fetched rows reach the DB and the heuristic is what's under test.
+    held = {f"TWSE-today-{idx:04d}" for idx in range(400)} | {
+        f"TPEx-today-{idx:04d}" for idx in range(5300)
+    }
+    monkeypatch.setattr(
+        nbs.portfolio_service, "get_ever_held_symbols", lambda _db: held
+    )
     caplog.set_level(logging.WARNING, logger=nbs.__name__)
 
     result = nbs.backfill_prices_range(

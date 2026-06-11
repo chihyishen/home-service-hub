@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Iterator
+from typing import Any
 
 from app.models import portfolio as portfolio_models
 from app.models.portfolio_snapshot import PortfolioSnapshot
@@ -42,7 +43,7 @@ def _seed_tx(
             quantity=qty,
             price=Decimal("10"),
             trade_date=datetime.combine(
-                trade_date, datetime.min.time(), tzinfo=timezone.utc
+                trade_date, datetime.min.time(), tzinfo=UTC
             ),
             fee=Decimal("0"),
             tax=Decimal("0"),
@@ -322,7 +323,9 @@ def test_quotes_refresh_chain_writes_today_price_snapshot_and_single_step_status
                 "dates_processed": 1,
                 "dates_skipped": 0,
                 "dates_inactive": 0,
-                "rows_written": 2,
+                # 6488 (TPEx) is not ever-held, so the held-only filter drops it
+                # and only 2330's row is persisted.
+                "rows_written": 1,
                 "snapshots_written": 1,
                 "stale_rows_deleted": 0,
                 "errors": [],
