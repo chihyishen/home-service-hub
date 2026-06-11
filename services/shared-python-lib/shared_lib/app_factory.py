@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
+from contextlib import AbstractAsyncContextManager
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,12 +24,13 @@ def create_app(
     otel_service_name_env: str | None = None,
     otel_strict: bool = False,
     settings: SharedSettings | None = None,
+    lifespan: Callable[[FastAPI], AbstractAsyncContextManager[None]] | None = None,
 ) -> FastAPI:
     """Bootstrap a FastAPI app with CORS, error handling, tracing, and health routes."""
     if settings is None:
         settings = SharedSettings()
 
-    app = FastAPI(title=title, description=description, version=version)
+    app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
 
     # CORS
     app.add_middleware(
