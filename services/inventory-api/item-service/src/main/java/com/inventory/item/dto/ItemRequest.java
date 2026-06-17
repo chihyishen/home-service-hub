@@ -21,13 +21,6 @@ public record ItemRequest(
         @Min(value = 0)
         @Schema(description = "低庫存門檻", example = "2")
         Integer minQuantity,
-        @Min(value = 0)
-        @Schema(description = "理想庫存量", example = "8")
-        Integer targetQuantity,
-        @Schema(description = "是否為可消耗品", example = "true")
-        Boolean isConsumable,
-        @Schema(description = "狀態", example = "ACTIVE")
-        String status,
         @Schema(description = "備註說明", example = "十字頭，帶磁性")
         String note,
         @Schema(description = "品項圖片 URL", example = "http://example.com/image.jpg")

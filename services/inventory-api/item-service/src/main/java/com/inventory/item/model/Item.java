@@ -35,17 +35,6 @@ public class Item {
 
     private Integer minQuantity;    // 低庫存門檻
 
-    private Integer targetQuantity; // 理想庫存量
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isConsumable = true;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private String status = "ACTIVE";
-
-    private LocalDateTime lastRestockedAt;
 
     @Version
     private Long version;

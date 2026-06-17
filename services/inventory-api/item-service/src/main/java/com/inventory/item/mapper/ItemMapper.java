@@ -15,7 +15,6 @@ public interface ItemMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "lastRestockedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
     Item toEntity(ItemRequest request);
 
@@ -23,7 +22,6 @@ public interface ItemMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "lastRestockedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
     void updateEntityFromRequest(ItemRequest request, @MappingTarget Item item);
 

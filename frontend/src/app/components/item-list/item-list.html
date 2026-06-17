@@ -48,10 +48,11 @@
         <div class="item-stock-info">
           <div class="qty-display">
             <span class="current">{{ item.quantity }}</span>
-            <span class="target">/ {{ item.targetQuantity || '-' }}</span>
+            <span class="qty-unit">件</span>
           </div>
-          <p-progressbar [value]="calculateStockPercentage(item)" [showValue]="false"
-                         [styleClass]="(item.stockStatus === 'LOW' || item.stockStatus === 'OUT') ? 'hub-mini-progress progress-alert' : 'hub-mini-progress progress-safe'"></p-progressbar>
+          @if (item.minQuantity != null) {
+            <span class="qty-threshold"><i class="pi pi-exclamation-triangle"></i> 低於 {{ item.minQuantity }} 提醒</span>
+          }
         </div>
       </div>
 
@@ -99,10 +100,6 @@
     <div class="col-6">
       <label class="d-block mb-1 small fw-bold">低庫存門檻</label>
       <p-inputNumber [(ngModel)]="newItem.minQuantity" [min]="0" [fluid]="true"></p-inputNumber>
-    </div>
-    <div class="col-6">
-      <label class="d-block mb-1 small fw-bold">理想庫存量</label>
-      <p-inputNumber [(ngModel)]="newItem.targetQuantity" [min]="0" [fluid]="true"></p-inputNumber>
     </div>
     <div class="col-6">
       <label class="d-block mb-1 small fw-bold">備註</label>

@@ -13,7 +13,6 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { ProgressBarModule } from 'primeng/progressbar';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
@@ -33,7 +32,6 @@ import { MessageService } from 'primeng/api';
     DialogModule,
     InputTextModule,
     InputNumberModule,
-    ProgressBarModule,
     TextareaModule,
     ToastModule,
     TagModule,
@@ -73,13 +71,6 @@ export class ItemListComponent implements OnInit {
   allLocations: string[] = [];
   filteredLocations: string[] = [];
 
-  calculateStockPercentage(item: ItemResponse): number {
-    if (!item.targetQuantity || item.targetQuantity <= 0) {
-      return item.quantity > 0 ? 100 : 0;
-    }
-    return Math.min(100, (item.quantity / item.targetQuantity) * 100);
-  }
-
   ngOnInit(): void {
     this.loadItems();
     this.loadMetadata();
@@ -114,9 +105,6 @@ export class ItemListComponent implements OnInit {
       location: '',
       quantity: 1,
       minQuantity: null,
-      targetQuantity: null,
-      isConsumable: true,
-      status: 'ACTIVE',
       note: ''
     };
   }
@@ -145,9 +133,6 @@ export class ItemListComponent implements OnInit {
       location: this.newItem.location || '',
       quantity: this.newItem.quantity,
       minQuantity: this.newItem.minQuantity ?? null,
-      targetQuantity: this.newItem.targetQuantity ?? null,
-      isConsumable: this.newItem.isConsumable ?? true,
-      status: this.newItem.status || 'ACTIVE',
       note: this.newItem.note || '',
       imageUrl: this.newItem.imageUrl || undefined
     };
@@ -268,14 +253,10 @@ export class ItemListComponent implements OnInit {
   canSaveItem(): boolean {
     const qty = this.newItem.quantity;
     const min = this.newItem.minQuantity;
-    const target = this.newItem.targetQuantity;
     if (!this.newItem.name || qty == null || qty < 0) {
       return false;
     }
     if (min != null && min < 0) {
-      return false;
-    }
-    if (target != null && target < 0) {
       return false;
     }
     return true;

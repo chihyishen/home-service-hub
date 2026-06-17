@@ -44,8 +44,8 @@ public class ShoppingListServiceImpl implements ShoppingListService {
             }
 
             int suggestedQuantity = 1;
-            if (item.getTargetQuantity() != null) {
-                suggestedQuantity = Math.max(item.getTargetQuantity() - item.getQuantity(), 1);
+            if (item.getMinQuantity() != null) {
+                suggestedQuantity = Math.max(item.getMinQuantity() - item.getQuantity(), 1);
             }
 
             ShoppingListItem entry = ShoppingListItem.builder()

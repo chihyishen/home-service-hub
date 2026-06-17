@@ -157,7 +157,6 @@ public class ItemServiceImpl implements ItemService {
                 validatePositive(request.deltaQuantity(), "deltaQuantity");
                 delta = request.deltaQuantity();
                 after = before + delta;
-                item.setLastRestockedAt(LocalDateTime.now());
             }
             case ADJUST -> {
                 if (request.actualQuantity() == null || request.actualQuantity() < 0) {
@@ -234,15 +233,6 @@ public class ItemServiceImpl implements ItemService {
         }
         if (item.getMinQuantity() != null && item.getMinQuantity() < 0) {
             throw new BadRequestException("minQuantity must be >= 0");
-        }
-        if (item.getTargetQuantity() != null && item.getTargetQuantity() < 0) {
-            throw new BadRequestException("targetQuantity must be >= 0");
-        }
-        if (item.getIsConsumable() == null) {
-            item.setIsConsumable(true);
-        }
-        if (item.getStatus() == null || item.getStatus().isBlank()) {
-            item.setStatus("ACTIVE");
         }
     }
 

@@ -25,7 +25,7 @@ class DtoValidationTest {
 
     @Test
     void testItemRequestInvalid() {
-        ItemRequest req = new ItemRequest("", "工具", "A層", -1, -2, -3, true, "ACTIVE", "note", "url");
+        ItemRequest req = new ItemRequest("", "工具", "A層", -1, -2, "note", "url");
         Set<ConstraintViolation<ItemRequest>> violations = validator.validate(req);
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("name")));

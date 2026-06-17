@@ -37,7 +37,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
     void shouldHandleConsumeRestockAdjustFlowAndRecordTransactions() {
         ItemResponse item = itemService.createItem(new ItemRequest(
                 "衛生紙", "浴室", "A櫃", 5,
-                2, 8, true, "ACTIVE", "測試", null
+                2, "測試", null
         ));
 
         ItemTransactionResultResponse consumeResult = itemService.createTransaction(
@@ -57,7 +57,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
         );
 
         assertThat(restockResult.item().quantity()).isEqualTo(6);
-        assertThat(restockResult.item().lastRestockedAt()).isNotNull();
+
         assertThat(restockResult.transaction().beforeQuantity()).isEqualTo(2);
         assertThat(restockResult.transaction().afterQuantity()).isEqualTo(6);
 
@@ -75,7 +75,7 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
     void shouldRejectConsumeThatMakesQuantityNegative() {
         ItemResponse item = itemService.createItem(new ItemRequest(
                 "洗髮精", "浴室", "A櫃", 1,
-                1, 4, true, "ACTIVE", null, null
+                1, null, null
         ));
 
         assertThatThrownBy(() -> itemService.createTransaction(
@@ -89,11 +89,11 @@ class ItemInventoryWorkflowIntegrationTest extends IntegrationTestBase {
     void shouldFilterLowStockByCategoryAndLocation() {
         itemService.createItem(new ItemRequest(
                 "牙膏", "浴室", "A櫃", 1,
-                2, 5, true, "ACTIVE", null, null
+                2, null, null
         ));
         itemService.createItem(new ItemRequest(
                 "洗碗精", "廚房", "B櫃", 5,
-                1, 5, true, "ACTIVE", null, null
+                1, null, null
         ));
 
         List<ItemResponse> filtered = itemService.getAllItems(null, true, "浴室", "A櫃");

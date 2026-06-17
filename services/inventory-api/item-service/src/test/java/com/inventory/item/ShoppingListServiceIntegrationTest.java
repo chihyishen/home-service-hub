@@ -47,18 +47,18 @@ class ShoppingListServiceIntegrationTest extends IntegrationTestBase {
     void shouldGenerateShoppingListFromLowStockWithoutDuplicates() {
         ItemResponse lowStockItem = itemService.createItem(new ItemRequest(
                 "廚房紙巾", "廚房", "抽屜", 1,
-                2, 6, true, "ACTIVE", null, null
+                2, null, null
         ));
 
         itemService.createItem(new ItemRequest(
                 "垃圾袋", "廚房", "抽屜", 5,
-                1, 6, true, "ACTIVE", null, null
+                1, null, null
         ));
 
         List<ShoppingListItemResponse> first = shoppingListService.generateFromLowStock();
         assertThat(first).hasSize(1);
         assertThat(first.getFirst().itemId()).isEqualTo(lowStockItem.id());
-        assertThat(first.getFirst().suggestedQuantity()).isEqualTo(5);
+        assertThat(first.getFirst().suggestedQuantity()).isEqualTo(1);
         assertThat(first.getFirst().source()).isEqualTo(ShoppingListItemSource.LOW_STOCK_RULE);
 
         List<ShoppingListItemResponse> second = shoppingListService.generateFromLowStock();

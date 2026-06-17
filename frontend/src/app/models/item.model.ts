@@ -4,9 +4,6 @@ export interface ItemRequest {
   location?: string;
   quantity: number;
   minQuantity?: number | null;
-  targetQuantity?: number | null;
-  isConsumable?: boolean;
-  status?: string;
   note?: string;
   imageUrl?: string;
 }
@@ -18,10 +15,6 @@ export interface ItemResponse {
   location?: string;
   quantity: number;
   minQuantity?: number | null;
-  targetQuantity?: number | null;
-  isConsumable?: boolean;
-  status?: string;
-  lastRestockedAt?: string | null;
   isLowStock?: boolean;
   stockStatus?: 'OUT' | 'LOW' | 'NORMAL' | 'UNKNOWN' | string;
   note?: string;

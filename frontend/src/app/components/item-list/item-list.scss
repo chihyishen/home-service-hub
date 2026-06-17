@@ -103,30 +103,26 @@
   }
 }
 
-/* Stock Info & Progress */
+/* Stock Info */
 .item-stock-info {
   margin-top: auto;
 
   .qty-display {
-    margin-bottom: 0.5rem;
     display: flex;
     align-items: baseline;
     gap: 0.25rem;
 
     .current { font-size: 1.5rem; font-weight: 800; color: var(--app-text); }
-    .target { font-size: 0.85rem; color: var(--app-text-muted); font-weight: 600; }
-  }
-}
-
-:host ::ng-deep .hub-mini-progress {
-  .p-progressbar {
-    height: 6px !important;
-    background: var(--app-border);
-    border-radius: 3px;
+    .qty-unit { font-size: 0.85rem; color: var(--app-text-muted); font-weight: 600; }
   }
 
-  .p-progressbar-value {
-    background: var(--hub-progress-fill) !important;
+  .qty-threshold {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--app-text-muted);
   }
 }
 
