@@ -182,3 +182,59 @@
     padding: 1rem;
   }
 }
+
+.location-group-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--app-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--app-border);
+  padding-bottom: 0.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
+
+  i {
+    color: var(--app-accent);
+  }
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background-color: var(--app-surface);
+  border-radius: 20px;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-card-shadow);
+  margin: 1.5rem 0;
+  text-align: center;
+
+  i {
+    color: var(--app-danger);
+    margin-bottom: 1rem;
+  }
+
+  h4 {
+    margin-bottom: 0.5rem;
+    color: var(--app-text);
+    font-weight: 700;
+  }
+
+  p {
+    margin-bottom: 1.5rem;
+    color: var(--app-text-muted);
+  }
+}
+
+.skeleton-card {
+  pointer-events: none;
+  
+  .item-visual {
+    margin-bottom: 1rem;
+  }
+}
+

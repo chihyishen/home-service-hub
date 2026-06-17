@@ -1,6 +1,9 @@
 <p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
 <div class="hub-page-header justify-content-end">
   <div class="header-actions">
+    <p-button label="一鍵加入購物清單" icon="pi pi-shopping-cart" (onClick)="addLowStockToShoppingList()" styleClass="p-button-outlined p-button-secondary"></p-button>
     <p-button label="新增物品" icon="pi pi-plus" (onClick)="showDialog()" styleClass="hub-btn-primary"></p-button>
   </div>
 </div>
@@ -8,7 +11,7 @@
 <div class="hub-filter-bar">
   <div class="search-wrap">
     <i class="pi pi-search"></i>
-    <input type="text" [(ngModel)]="searchKeyword" (ngModelChange)="loadItems()" placeholder="搜尋物品名稱、類別或位置..." />
+    <input type="text" [(ngModel)]="searchKeyword" (ngModelChange)="onSearchChange()" placeholder="搜尋物品名稱、類別或位置..." />
   </div>
   <div class="filter-controls">
     <div class="hub-toggle-pill">
@@ -20,66 +23,103 @@
   </div>
 </div>
 
-<div class="hub-inventory-grid">
-  @for (item of items(); track item.id) {
-    <div class="hub-inventory-card" [class.low-stock]="item.stockStatus === 'LOW' || item.stockStatus === 'OUT'">
-      <div class="item-visual">
-        @if (item.imageUrl) {
-          <p-image [src]="item.imageUrl" [preview]="true" width="64" height="64" styleClass="hub-item-image" loading="lazy"></p-image>
-        } @else {
-          <div class="item-icon-placeholder">
-            <i class="pi pi-box"></i>
+<div class="hub-inventory-container">
+  @if (isLoading()) {
+    <div class="hub-inventory-grid mb-4">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="hub-inventory-card skeleton-card">
+          <div class="item-visual">
+            <p-skeleton width="64px" height="64px" borderRadius="16px"></p-skeleton>
+            <p-skeleton width="60px" height="24px" borderRadius="999px"></p-skeleton>
           </div>
-        }
-        <div class="stock-badge" [class]="getStockStatusSeverity(item)">
-          {{ getStockStatusLabel(item) }}
-        </div>
-      </div>
-
-      <div class="item-body">
-        <div class="item-main">
-          <h3 class="item-name">{{ item.name }}</h3>
-          <div class="item-tags">
-            <span class="hub-tag secondary"><i class="pi pi-tag"></i> {{ item.category || '未分類' }}</span>
-            <span class="hub-tag secondary"><i class="pi pi-map-marker"></i> {{ item.location || '未知位置' }}</span>
+          <div class="item-body">
+            <p-skeleton width="60%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+            <div class="item-tags mb-3">
+              <p-skeleton width="80px" height="1.2rem"></p-skeleton>
+              <p-skeleton width="90px" height="1.2rem"></p-skeleton>
+            </div>
+            <p-skeleton width="40px" height="2rem"></p-skeleton>
           </div>
         </div>
+      }
+    </div>
+  } @else if (isError()) {
+    <div class="error-state">
+      <i class="pi pi-exclamation-triangle" style="font-size: 3rem;"></i>
+      <h4>載入失敗</h4>
+      <p>無法載入物品清單，請檢查網路連線或重試。</p>
+      <p-button label="重新載入" icon="pi pi-refresh" (onClick)="loadItems()" styleClass="hub-btn-primary"></p-button>
+    </div>
+  } @else {
+    @for (group of groupedItems(); track group.location) {
+      <div class="location-group-container mb-4">
+        <h3 class="location-group-title">
+          <i class="pi pi-map-marker text-primary"></i> {{ group.location }}
+        </h3>
+        <div class="hub-inventory-grid">
+          @for (item of group.items; track item.id) {
+            <div class="hub-inventory-card" [class.low-stock]="item.stockStatus === 'LOW' || item.stockStatus === 'OUT'">
+              <div class="item-visual">
+                @if (item.imageUrl) {
+                  <p-image [src]="item.imageUrl" [preview]="true" width="64" height="64" styleClass="hub-item-image" loading="lazy"></p-image>
+                } @else {
+                  <div class="item-icon-placeholder">
+                    <i class="pi pi-box"></i>
+                  </div>
+                }
+                <div class="stock-badge" [class]="getStockStatusSeverity(item)">
+                  {{ getStockStatusLabel(item) }}
+                </div>
+              </div>
 
-        <div class="item-stock-info">
-          <div class="qty-display">
-            <span class="current">{{ item.quantity }}</span>
-            <span class="qty-unit">件</span>
-          </div>
-          @if (item.minQuantity != null) {
-            <span class="qty-threshold"><i class="pi pi-exclamation-triangle"></i> 低於 {{ item.minQuantity }} 提醒</span>
+              <div class="item-body">
+                <div class="item-main">
+                  <h3 class="item-name">{{ item.name }}</h3>
+                  <div class="item-tags">
+                    <span class="hub-tag secondary"><i class="pi pi-tag"></i> {{ item.category || '未分類' }}</span>
+                    <span class="hub-tag secondary"><i class="pi pi-map-marker"></i> {{ item.location || '未知位置' }}</span>
+                  </div>
+                </div>
+
+                <div class="item-stock-info">
+                  <div class="qty-display">
+                    <span class="current">{{ item.quantity }}</span>
+                    <span class="qty-unit">件</span>
+                  </div>
+                  @if (item.minQuantity != null) {
+                    <span class="qty-threshold"><i class="pi pi-exclamation-triangle"></i> 低於 {{ item.minQuantity }} 提醒</span>
+                  }
+                </div>
+              </div>
+
+              <div class="item-actions">
+                <div class="action-group main-actions">
+                  <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="danger" (onClick)="consumeOne(item)" pTooltip="使用 -1"></p-button>
+                  <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="success" (onClick)="openQuickAction(item, 'RESTOCK')" pTooltip="快速補貨"></p-button>
+                </div>
+                <div class="action-group more-actions">
+                  <p-button icon="pi pi-history" [rounded]="true" [text]="true" severity="secondary" (onClick)="openHistory(item)" pTooltip="歷史紀錄"></p-button>
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="secondary" (onClick)="editItem(item)" pTooltip="編輯"></p-button>
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="secondary" (onClick)="deleteItem(item.id)" pTooltip="刪除"></p-button>
+                </div>
+              </div>
+            </div>
           }
         </div>
       </div>
-
-      <div class="item-actions">
-        <div class="action-group main-actions">
-          <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="danger" (onClick)="consumeOne(item)" pTooltip="使用 -1"></p-button>
-          <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="success" (onClick)="openQuickAction(item, 'RESTOCK')" pTooltip="快速補貨"></p-button>
-        </div>
-        <div class="action-group more-actions">
-          <p-button icon="pi pi-history" [rounded]="true" [text]="true" severity="secondary" (onClick)="openHistory(item)" pTooltip="歷史紀錄"></p-button>
-          <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="secondary" (onClick)="editItem(item)" pTooltip="編輯"></p-button>
-          <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="secondary" (onClick)="deleteItem(item.id)" pTooltip="刪除"></p-button>
-        </div>
+    } @empty {
+      <div class="empty-state full-width">
+        <i class="pi pi-box"></i>
+        <h4>空空如也</h4>
+        <p>目前沒有符合條件的庫存物品，點擊右上方按鈕新增一個吧！</p>
       </div>
-    </div>
-  } @empty {
-    <div class="empty-state full-width">
-      <i class="pi pi-box"></i>
-      <h4>空空如也</h4>
-      <p>目前沒有符合條件的庫存物品，點擊右上方按鈕新增一個吧！</p>
-    </div>
+    }
   }
 </div>
 
 <!-- Dialogs -->
 <p-dialog [header]="isEdit ? '編輯物品' : '新增物品'" [(visible)]="displayDialog" [modal]="true"
-          styleClass="hub-dialog-form" [dismissableMask]="true" appendTo="body">
+          styleClass="hub-dialog-form" [dismissableMask]="true" appendTo="body" (onHide)="cleanupImageSelection()">
   <div class="row g-2 mt-1 hub-form-grid">
     <div class="col-12">
       <label class="d-block mb-1 small fw-bold">名稱</label>
@@ -107,17 +147,17 @@
     </div>
   </div>
 
-  @if (isEdit) {
-    <div class="field mt-3">
-      <label class="d-block mb-2 fw-bold">圖片</label>
-      <div class="d-flex align-items-center gap-3">
-        @if (newItem.imageUrl) {
-          <p-image [src]="newItem.imageUrl" [preview]="true" width="100" styleClass="rounded shadow-sm"></p-image>
-        }
-        <p-fileUpload mode="basic" chooseLabel="上傳圖片" name="file" accept="image/*" [auto]="true" [customUpload]="true" (uploadHandler)="onUpload($event)"></p-fileUpload>
-      </div>
+  <div class="field mt-3">
+    <label class="d-block mb-2 fw-bold">圖片</label>
+    <div class="d-flex align-items-center gap-3">
+      @if (isEdit && newItem.imageUrl) {
+        <p-image [src]="newItem.imageUrl" [preview]="true" width="100" styleClass="rounded shadow-sm"></p-image>
+      } @else if (!isEdit && selectedFilePreview) {
+        <img [src]="selectedFilePreview" width="100" class="rounded shadow-sm" style="max-height: 100px; object-fit: cover;" />
+      }
+      <p-fileUpload mode="basic" [chooseLabel]="isEdit ? '上傳圖片' : '選擇圖片'" name="file" accept="image/*" [auto]="true" [customUpload]="true" (uploadHandler)="onUpload($event)"></p-fileUpload>
     </div>
-  }
+  </div>
 
   <ng-template pTemplate="footer">
     <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
@@ -176,3 +216,4 @@
     </ng-template>
   </p-table>
 </p-dialog>
+

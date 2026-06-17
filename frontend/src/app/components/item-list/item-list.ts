@@ -1,7 +1,11 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { ItemService } from '../../services/item.service';
+import { ShoppingListService } from '../../services/shopping-list.service';
 import {
   InventoryTransactionRequest,
   InventoryTransactionResponse,
@@ -20,7 +24,9 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import { FileUploadModule } from 'primeng/fileupload';
 import { ImageModule } from 'primeng/image';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { SkeletonModule } from 'primeng/skeleton';
+import { MessageService, ConfirmationService } from 'primeng/api';
 
 @Component({
   selector: 'app-item-list',
@@ -38,9 +44,11 @@ import { MessageService } from 'primeng/api';
     AutoCompleteModule,
     FileUploadModule,
     ImageModule,
-    TooltipModule
+    TooltipModule,
+    ConfirmDialogModule,
+    SkeletonModule
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './item-list.html',
   styleUrl: './item-list.scss'
@@ -48,9 +56,14 @@ import { MessageService } from 'primeng/api';
 export class ItemListComponent implements OnInit {
   private itemService = inject(ItemService);
   private messageService = inject(MessageService);
+  private confirmationService = inject(ConfirmationService);
+  private shoppingListService = inject(ShoppingListService);
+  private destroyRef = inject(DestroyRef);
 
   items = signal<ItemResponse[]>([]);
   history = signal<InventoryTransactionResponse[]>([]);
+  isLoading = signal<boolean>(false);
+  isError = signal<boolean>(false);
   displayDialog = false;
   displayActionDialog = false;
   displayHistoryDialog = false;
@@ -66,12 +79,54 @@ export class ItemListComponent implements OnInit {
 
   newItem: ItemRequest & Partial<ItemResponse> = this.resetNewItem();
   searchKeyword = '';
+  private searchSubject = new Subject<string>();
+
   allCategories: string[] = [];
   filteredCategories: string[] = [];
   allLocations: string[] = [];
   filteredLocations: string[] = [];
 
+  // Held image for create mode
+  selectedFile: File | null = null;
+  selectedFilePreview: string | null = null;
+
+  groupedItems = computed(() => {
+    const list = this.items();
+    if (list.length === 0) {
+      return [];
+    }
+
+    const groupsMap = new Map<string, ItemResponse[]>();
+    for (const item of list) {
+      const loc = item.location || '未知位置';
+      if (!groupsMap.has(loc)) {
+        groupsMap.set(loc, []);
+      }
+      groupsMap.get(loc)!.push(item);
+    }
+
+    const groups: { location: string; items: ItemResponse[] }[] = [];
+    groupsMap.forEach((items, location) => {
+      groups.push({ location, items });
+    });
+
+    groups.sort((a, b) => {
+      if (a.location === '未知位置') return 1;
+      if (b.location === '未知位置') return -1;
+      return a.location.localeCompare(b.location, 'zh-TW');
+    });
+
+    return groups;
+  });
+
   ngOnInit(): void {
+    this.searchSubject.pipe(
+      debounceTime(300),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
+      this.loadItems();
+    });
+
     this.loadItems();
     this.loadMetadata();
   }
@@ -82,10 +137,23 @@ export class ItemListComponent implements OnInit {
   }
 
   loadItems(): void {
+    this.isLoading.set(true);
+    this.isError.set(false);
     this.itemService.getAllFiltered(this.searchKeyword, this.lowStockOnly).subscribe({
-      next: data => this.items.set(data),
-      error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '無法載入物品清單' })
+      next: data => {
+        this.items.set(data);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.isError.set(true);
+        this.messageService.add({ severity: 'error', summary: '錯誤', detail: '無法載入物品清單' });
+      }
     });
+  }
+
+  onSearchChange(): void {
+    this.searchSubject.next(this.searchKeyword);
   }
 
   filterCategories(event: { query: string }) {
@@ -112,13 +180,23 @@ export class ItemListComponent implements OnInit {
   showDialog() {
     this.newItem = this.resetNewItem();
     this.isEdit = false;
+    this.cleanupImageSelection();
     this.displayDialog = true;
   }
 
   editItem(item: ItemResponse) {
     this.newItem = { ...item };
     this.isEdit = true;
+    this.cleanupImageSelection();
     this.displayDialog = true;
+  }
+
+  cleanupImageSelection() {
+    this.selectedFile = null;
+    if (this.selectedFilePreview) {
+      URL.revokeObjectURL(this.selectedFilePreview);
+      this.selectedFilePreview = null;
+    }
   }
 
   saveItem() {
@@ -150,10 +228,27 @@ export class ItemListComponent implements OnInit {
     }
 
     this.itemService.create(payload).subscribe({
-      next: () => {
+      next: (createdItem) => {
         this.messageService.add({ severity: 'success', summary: '成功', detail: '物品已建立' });
         this.displayDialog = false;
-        this.loadItems();
+        
+        if (this.selectedFile && createdItem?.id) {
+          this.itemService.uploadImage(createdItem.id, this.selectedFile).subscribe({
+            next: () => {
+              this.messageService.add({ severity: 'success', summary: '成功', detail: '圖片上傳成功' });
+              this.loadItems();
+              this.cleanupImageSelection();
+            },
+            error: () => {
+              this.messageService.add({ severity: 'error', summary: '錯誤', detail: '圖片上傳失敗' });
+              this.loadItems();
+              this.cleanupImageSelection();
+            }
+          });
+        } else {
+          this.loadItems();
+          this.cleanupImageSelection();
+        }
       },
       error: err => this.messageService.add({ severity: 'error', summary: '錯誤', detail: err?.error?.message || '建立失敗' })
     });
@@ -170,6 +265,12 @@ export class ItemListComponent implements OnInit {
         },
         error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '圖片上傳失敗' })
       });
+    } else {
+      this.selectedFile = file;
+      if (this.selectedFilePreview) {
+        URL.revokeObjectURL(this.selectedFilePreview);
+      }
+      this.selectedFilePreview = URL.createObjectURL(file);
     }
   }
 
@@ -227,15 +328,43 @@ export class ItemListComponent implements OnInit {
   }
 
   deleteItem(id: number): void {
-    if (confirm('確定要刪除此物品嗎？')) {
-      this.itemService.delete(id).subscribe({
-        next: () => {
-          this.messageService.add({ severity: 'success', summary: '成功', detail: '物品已刪除' });
-          this.loadItems();
-        },
-        error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '刪除失敗' })
-      });
-    }
+    this.confirmationService.confirm({
+      message: '確定要刪除此物品嗎？',
+      header: '確認刪除',
+      icon: 'pi pi-exclamation-triangle',
+      acceptIcon: 'none',
+      rejectIcon: 'none',
+      rejectButtonStyleClass: 'p-button-text',
+      accept: () => {
+        this.itemService.delete(id).subscribe({
+          next: () => {
+            this.messageService.add({ severity: 'success', summary: '成功', detail: '物品已刪除' });
+            this.loadItems();
+          },
+          error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '刪除失敗' })
+        });
+      }
+    });
+  }
+
+  addLowStockToShoppingList(): void {
+    this.shoppingListService.generateFromLowStock().subscribe({
+      next: (items) => {
+        const count = items.length;
+        this.messageService.add({
+          severity: 'success',
+          summary: '成功',
+          detail: `已將 ${count} 項低庫存物品加入購物清單`
+        });
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: '錯誤',
+          detail: '無法將低庫存物品加入購物清單'
+        });
+      }
+    });
   }
 
   getStockStatusLabel(item: ItemResponse): string {
@@ -278,3 +407,4 @@ export class ItemListComponent implements OnInit {
     });
   }
 }
+
