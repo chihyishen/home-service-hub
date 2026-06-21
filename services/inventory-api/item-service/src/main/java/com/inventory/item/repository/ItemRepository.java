@@ -28,7 +28,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
             SELECT i FROM Item i
             WHERE (:keyword IS NULL OR :keyword = '' OR
                    LOWER(i.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
-                   LOWER(COALESCE(i.note, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                   LOWER(COALESCE(i.note, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+                   LOWER(COALESCE(i.location, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+                   LOWER(COALESCE(i.category, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:category IS NULL OR :category = '' OR i.category = :category)
               AND (:location IS NULL OR :location = '' OR i.location = :location)
               AND (:lowStockOnly = false OR (i.minQuantity IS NOT NULL AND i.quantity <= i.minQuantity))
