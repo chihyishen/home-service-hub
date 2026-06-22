@@ -2,9 +2,6 @@ import os
 
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
 os.environ.setdefault("SYMBOL_HISTORY_AUTOBACKFILL", "false")
-# ponytail: tests never trace; drop the endpoint so setup_tracing no-ops and no
-# live OTLP daemon thread races a closed stderr at shutdown (SIGABRT/exit 134).
-os.environ.pop("OTEL_COLLECTOR_ENDPOINT_GRPC", None)
 
 import pytest
 from app.database import Base, get_db
