@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, defer } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { HttpParams } from '@angular/common/http';
 import { BaseApiService } from './base-api.service';
 import {
@@ -47,9 +48,50 @@ export class ItemService extends BaseApiService<ItemResponse> {
   }
 
   uploadImage(id: number, file: File): Observable<ItemResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<ItemResponse>(`${this.baseUrl}/${id}/image`, formData);
+    return defer(() => this.normalizeImage(file)).pipe(
+      switchMap(normalized => {
+        const formData = new FormData();
+        formData.append('file', normalized);
+        return this.http.post<ItemResponse>(`${this.baseUrl}/${id}/image`, formData);
+      })
+    );
+  }
+
+  // ponytail: fixed knobs (1600px longest edge, 0.8 JPEG quality) — good enough for phone
+  // photos, not worth making configurable. Falls back to the original file on any failure
+  // (unsupported browser, non-image, canvas errors) so uploads are never blocked.
+  private async normalizeImage(file: File): Promise<File> {
+    if (!file.type.startsWith('image/')) {
+      return file;
+    }
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const maxEdge = 1600;
+      const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+      const width = Math.round(bitmap.width * scale);
+      const height = Math.round(bitmap.height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return file;
+      }
+      ctx.drawImage(bitmap, 0, 0, width, height);
+
+      const blob: Blob | null = await new Promise(resolve =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.8)
+      );
+      if (!blob) {
+        return file;
+      }
+
+      const baseName = file.name.replace(/\.[^./\\]+$/, '') || 'photo';
+      return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+    } catch {
+      return file;
+    }
   }
 
   delete(id: number): Observable<void> {
