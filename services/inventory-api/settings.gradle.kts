@@ -10,5 +10,4 @@ plugins {
 }
 
 rootProject.name = "backend-java"
-include("common-library")
 include("item-service")
