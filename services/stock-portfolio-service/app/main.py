@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from shared_lib import create_app
 
 from .database import SessionLocal, engine, get_db
-from .logging_config import configure_logging
 from .models import (  # noqa: F401  (register tables with Base.metadata)
     corporate_action,
     portfolio_snapshot,
@@ -17,7 +16,6 @@ from .routers import symbol_map as symbol_map_router
 from .services import scheduler as scheduler_module
 from .services.twse_client import bootstrap_truststore
 
-configure_logging()
 bootstrap_truststore()
 
 logger = logging.getLogger(__name__)
