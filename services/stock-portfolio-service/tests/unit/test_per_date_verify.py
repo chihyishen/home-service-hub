@@ -4,13 +4,18 @@ from datetime import date
 from typing import Any
 
 import pytest
-from app.services import per_date_verify
+import requests as requests_lib
+from app.services import per_date_verify, twse_client
 
 
 class FakeResponse:
     def __init__(self, payload: Any, *, status_code: int = 200) -> None:
         self.payload = payload
         self.status_code = status_code
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise requests_lib.HTTPError(f"status={self.status_code}")
 
     def json(self) -> Any:
         if isinstance(self.payload, Exception):
@@ -26,6 +31,12 @@ def _clear_cache_and_tls(monkeypatch) -> None:
     # configure (the dev box runs with `insecure` to work around the OL-ARM
     # cert issue, which would make these tests assert `verify=False`).
     monkeypatch.setenv("TWSE_TLS_MODE", "fallback")
+    # Keep the shared client's retries instant and rebuild it so the pinned
+    # env takes effect for every test.
+    monkeypatch.setenv("TWSE_RETRY_BACKOFF_FACTOR", "0")
+    twse_client.reset_twse_client_state()
+    yield
+    twse_client.reset_twse_client_state()
 
 
 def test_fetch_twse_returns_name_for_4digit_code(monkeypatch) -> None:
@@ -43,7 +54,7 @@ def test_fetch_twse_returns_name_for_4digit_code(monkeypatch) -> None:
             }
         )
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     assert per_date_verify.fetch_name_for_date("2888", date(2021, 7, 30)) == (
         "新光金",
@@ -75,7 +86,7 @@ def test_fetch_tpex_returns_name_for_6char_warrant_code(monkeypatch) -> None:
             }
         )
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     assert per_date_verify.fetch_name_for_date("70490P", date(2022, 5, 3)) == (
         "元太元大18售19",
@@ -96,7 +107,7 @@ def test_fetch_cache_hits_no_second_call(monkeypatch) -> None:
             }
         )
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     assert per_date_verify.fetch_name_for_date("2888", date(2021, 7, 30)) == (
         "新光金",
@@ -113,7 +124,7 @@ def test_fetch_returns_none_on_http_error(monkeypatch) -> None:
     def fake_get(url: str, *, timeout: int, verify: bool) -> FakeResponse:
         return FakeResponse(ValueError("not json"), status_code=500)
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     assert per_date_verify.fetch_name_for_date("2888", date(2021, 7, 30)) == (
         None,
@@ -131,7 +142,7 @@ def test_verify_marks_matching_name_as_verified(monkeypatch) -> None:
             }
         )
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     validations = per_date_verify.verify_overrides(
         name_to_code={"新光金": "2888"},
@@ -160,7 +171,7 @@ def test_verify_marks_different_name_as_name_mismatch(monkeypatch) -> None:
             }
         )
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     validations = per_date_verify.verify_overrides(
         name_to_code={"新光金": "2887"},
@@ -201,7 +212,7 @@ def test_verify_marks_empty_response_as_not_traded_on_date(monkeypatch) -> None:
             }
         )
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fake_get)
+    monkeypatch.setattr(twse_client.requests, "get", fake_get)
 
     validations = per_date_verify.verify_overrides(
         name_to_code={"新光金": "2888"},
@@ -224,7 +235,7 @@ def test_verify_respects_confirmed_set_overrides_to_user_overridden(monkeypatch)
     def fail_get(url: str, *, timeout: int, verify: bool) -> FakeResponse:
         raise AssertionError("confirmed overrides should not fetch")
 
-    monkeypatch.setattr(per_date_verify.requests, "get", fail_get)
+    monkeypatch.setattr(twse_client.requests, "get", fail_get)
 
     validations = per_date_verify.verify_overrides(
         name_to_code={"新光金": "2887"},

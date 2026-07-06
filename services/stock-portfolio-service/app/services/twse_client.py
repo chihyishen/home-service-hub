@@ -190,6 +190,25 @@ class TWSEClient:
             cache_ttl_sec=self.policy.quote_cache_ttl_sec,
         )
 
+    def fetch_json_uncached(self, url: str, *, span_name: str = "twse_json_request") -> Any | None:
+        """Fetch a URL and parse it as JSON, without TTL caching.
+
+        Reuses the shared TLS-mode / retry / tracing machinery. Returns the
+        parsed payload, or ``None`` on any request or parse failure (callers
+        that need their own caching, e.g. per-date name verification, layer
+        it on top).
+        """
+        with tracer.start_as_current_span(span_name) as span:
+            span.set_attribute("http.url", url)
+            response = self._request(url, span)
+            if response is None:
+                return None
+            try:
+                return response.json()
+            except Exception as exc:
+                logger.error("TWSE response parsing failed: %s", exc)
+                return None
+
     def fetch_exdividend_json(self, url: str) -> list:
         result = self._fetch(
             url=url,

@@ -8,36 +8,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
-import requests
-from requests.exceptions import SSLError
-
-from .twse_client import TLSMode, bootstrap_truststore, get_tls_mode
+from .twse_client import get_twse_client
 
 logger = logging.getLogger(__name__)
-
-
-def _get_with_tls_fallback(url: str, *, timeout: int = 10) -> requests.Response:
-    """GET honouring `TWSE_TLS_MODE` exactly like `market_data_service._http_get`:
-
-    * ``insecure`` → single `verify=False` request, no probe.
-    * ``verify``   → single `verify=True` request; SSLError re-raised.
-    * ``fallback`` (default) → try `verify=True`; on SSLError log + retry with
-      `verify=False`. Mirrors the canonical TWSE-on-OL-ARM workaround so
-      observability matches the rest of the codebase instead of silently
-      downgrading.
-    """
-    mode = get_tls_mode()
-    if mode == TLSMode.INSECURE:
-        return requests.get(url, timeout=timeout, verify=False)
-    try:
-        return requests.get(url, timeout=timeout, verify=True)
-    except SSLError as exc:
-        if mode != TLSMode.FALLBACK:
-            raise
-        logger.warning(
-            "per_date_verify TLS verification failed; retrying insecurely: %s", exc
-        )
-        return requests.get(url, timeout=timeout, verify=False)
 
 ValidationStatus = Literal[
     "verified",
@@ -55,8 +28,6 @@ _TPEX_SUBTITLE_RE = re.compile(r"^(\S+)\s+(\S+)\s+\d+年\d+月")
 
 _NAME_CACHE: dict[tuple[str, str], str | None] = {}
 _ERROR_CACHE: set[tuple[str, str]] = set()
-
-bootstrap_truststore()
 
 
 @dataclass
@@ -97,12 +68,8 @@ def _fetch_twse_name(code: str, trade_date: date) -> tuple[str | None, StatusHin
         "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
         f"?response=json&date={yyyymmdd}&stockNo={code}"
     )
-    try:
-        response = _get_with_tls_fallback(url)
-        if not 200 <= response.status_code < 300:
-            return None, "error"
-        payload = response.json()
-    except (requests.RequestException, ValueError):
+    payload = get_twse_client().fetch_json_uncached(url, span_name="per_date_verify_twse")
+    if not isinstance(payload, dict):
         return None, "error"
     if payload.get("stat") != "OK":
         return None, "error"
@@ -120,12 +87,8 @@ def _fetch_tpex_name(code: str, trade_date: date) -> tuple[str | None, StatusHin
         "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
         f"?date={yyyy_mm_dd}&code={code}&response=json"
     )
-    try:
-        response = _get_with_tls_fallback(url)
-        if not 200 <= response.status_code < 300:
-            return None, "error"
-        payload = response.json()
-    except (requests.RequestException, ValueError):
+    payload = get_twse_client().fetch_json_uncached(url, span_name="per_date_verify_tpex")
+    if not isinstance(payload, dict):
         return None, "error"
     tables = payload.get("tables")
     if not tables:
