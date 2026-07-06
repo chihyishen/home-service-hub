@@ -47,17 +47,14 @@ def _policy(tls_mode: TLSMode, *, quote_ttl: float = 30.0, exdiv_ttl: float = 90
 
 def test_tls_mode_defaults_to_fallback(monkeypatch):
     monkeypatch.delenv("TWSE_TLS_MODE", raising=False)
-    monkeypatch.delenv("TWSE_SSL_VERIFY", raising=False)
 
     assert get_tls_mode() == TLSMode.FALLBACK
 
 
-def test_tls_mode_legacy_ssl_verify_true_maps_to_verify(monkeypatch, caplog):
-    monkeypatch.delenv("TWSE_TLS_MODE", raising=False)
-    monkeypatch.setenv("TWSE_SSL_VERIFY", "true")
+def test_tls_mode_verify(monkeypatch):
+    monkeypatch.setenv("TWSE_TLS_MODE", "verify")
 
     assert get_tls_mode() == TLSMode.VERIFY
-    assert "deprecated" in caplog.text
 
 
 @patch("app.services.twse_client.requests.get")

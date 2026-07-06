@@ -26,7 +26,6 @@ def _clear_cache_and_tls(monkeypatch) -> None:
     # configure (the dev box runs with `insecure` to work around the OL-ARM
     # cert issue, which would make these tests assert `verify=False`).
     monkeypatch.setenv("TWSE_TLS_MODE", "fallback")
-    monkeypatch.delenv("TWSE_SSL_VERIFY", raising=False)
 
 
 def test_fetch_twse_returns_name_for_4digit_code(monkeypatch) -> None:

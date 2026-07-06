@@ -148,17 +148,6 @@ def get_tls_mode() -> TLSMode:
             logger.warning("Unknown TWSE_TLS_MODE=%s; defaulting to fallback", raw_mode)
         return TLSMode.FALLBACK
 
-    legacy_verify = os.getenv("TWSE_SSL_VERIFY")
-    if legacy_verify is not None:
-        normalized = legacy_verify.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            logger.warning("TWSE_SSL_VERIFY is deprecated; use TWSE_TLS_MODE=verify")
-            return TLSMode.VERIFY
-        if normalized in {"0", "false", "no", "off"}:
-            logger.warning("TWSE_SSL_VERIFY is deprecated; use TWSE_TLS_MODE=fallback")
-            return TLSMode.FALLBACK
-        logger.warning("Unknown TWSE_SSL_VERIFY=%s; defaulting to fallback", legacy_verify)
-
     return TLSMode.FALLBACK
 
 
