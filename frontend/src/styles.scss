@@ -250,6 +250,12 @@ body {
   }
 }
 
+.d-flex { display: flex !important; }
+.d-block { display: block !important; }
+.d-none { display: none !important; }
+
+/* responsive display variants must come AFTER the base classes so
+   `d-none d-lg-flex` resolves like Bootstrap (source order wins) */
 @media (min-width: 992px) {
   .d-lg-none { display: none !important; }
   .d-lg-flex { display: flex !important; }
@@ -258,9 +264,6 @@ body {
   .pb-lg-4 { padding-bottom: 1.5rem !important; }
 }
 
-.d-flex { display: flex !important; }
-.d-block { display: block !important; }
-.d-none { display: none !important; }
 .flex-column { flex-direction: column !important; }
 .justify-content-end { justify-content: flex-end !important; }
 .justify-content-between { justify-content: space-between !important; }
