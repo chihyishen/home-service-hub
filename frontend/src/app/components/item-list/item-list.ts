@@ -277,6 +277,7 @@ export class ItemListComponent implements OnInit {
   consumeOne(item: ItemResponse) {
     const payload: InventoryTransactionRequest = {
       type: 'CONSUME',
+      source: 'MANUAL',
       deltaQuantity: 1,
       operatorName: 'web-ui',
       reason: '快速使用 -1'
@@ -301,6 +302,7 @@ export class ItemListComponent implements OnInit {
 
     const payload: InventoryTransactionRequest = {
       type: this.actionType,
+      source: 'MANUAL',
       operatorName: 'web-ui',
       reason: this.actionReason || undefined
     };

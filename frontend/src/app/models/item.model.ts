@@ -24,9 +24,11 @@ export interface ItemResponse {
 }
 
 export type InventoryTransactionType = 'CONSUME' | 'RESTOCK' | 'ADJUST';
+export type InventoryTransactionSource = 'MANUAL' | 'SYSTEM';
 
 export interface InventoryTransactionRequest {
   type: InventoryTransactionType;
+  source: InventoryTransactionSource;
   deltaQuantity?: number;
   actualQuantity?: number;
   reason?: string;
