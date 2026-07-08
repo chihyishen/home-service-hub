@@ -10,6 +10,7 @@ class CardBase(BaseSchema):
     reward_cycle_type: str = Field(default="BILLING_CYCLE", description="回饋計算週期")
     alert_threshold: int = Field(default=5000, description="消費提醒閾值")
     default_payment_method: str = Field(default="Apple Pay", description="預設支付工具")
+    alert_payment_method: str | None = Field(default=None, description="若設定，預警門檻僅計算此支付工具的消費")
 
 class CreditCardCreate(CardBase):
     pass
@@ -20,6 +21,7 @@ class CreditCardUpdate(BaseSchema): # 修正：改為繼承 BaseSchema
     reward_cycle_type: str | None = None
     alert_threshold: int | None = None
     default_payment_method: str | None = None
+    alert_payment_method: str | None = None
 
 class CreditCard(CardBase, AuditSchema):
     id: int
@@ -30,3 +32,5 @@ class CardStatus(BaseSchema):
     remaining_for_max_reward: int | None = None
     next_billing_date: str
     status_message: str
+    filtered_usage: int | None = None
+    alert_payment_method: str | None = None

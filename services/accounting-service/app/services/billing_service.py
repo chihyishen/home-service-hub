@@ -55,9 +55,13 @@ def get_card_cycle_usage(
     start_date: date,
     end_date: date,
     include_payment_method_alias: bool = True,
+    payment_method: str | None = None,
 ) -> int:
     card_filter = models.Transaction.card_id == card.id
-    if include_payment_method_alias:
+    if payment_method is not None:
+        # 指定支付工具時為排他性過濾，不再與卡片別名 OR 在一起
+        card_filter = models.Transaction.payment_method == payment_method
+    elif include_payment_method_alias:
         card_filter = or_(
             card_filter,
             models.Transaction.payment_method == card.name,
@@ -88,20 +92,33 @@ def get_card_status(db: Session, card_id: int):
     start_date, end_date = get_reward_cycle_range(card, today)
 
     current_usage = get_card_cycle_usage(db, card, start_date, end_date)
-    
+
+    filtered_usage = None
+    if card.alert_payment_method:
+        filtered_usage = get_card_cycle_usage(
+            db, card, start_date, end_date, payment_method=card.alert_payment_method
+        )
+
     remaining = None
     if current_usage < 0:
         status_msg = f"本期淨退款 ${abs(current_usage):,.0f}"
     else:
         status_msg = f"本期淨刷卡 ${current_usage:,.0f}"
-    
+
     if card.alert_threshold > 0:
-        effective_usage = max(current_usage, 0)
+        threshold_usage = filtered_usage if card.alert_payment_method else current_usage
+        effective_usage = max(threshold_usage, 0)
         remaining = max(0, card.alert_threshold - effective_usage)
-        if remaining > 0:
-            status_msg += f"，距離預警門檻還差 ${remaining:,.0f}"
+        if card.alert_payment_method:
+            if remaining > 0:
+                status_msg += f"，{card.alert_payment_method} 已刷 ${effective_usage:,.0f}，距離預警門檻還差 ${remaining:,.0f}"
+            else:
+                status_msg += f"，{card.alert_payment_method} 已達預警門檻 ⚠️"
         else:
-            status_msg += "，已達預警門檻 ⚠️"
+            if remaining > 0:
+                status_msg += f"，距離預警門檻還差 ${remaining:,.0f}"
+            else:
+                status_msg += "，已達預警門檻 ⚠️"
 
     # 確保回傳時日期轉為字串以匹配 Schema (如果必要)
     return schemas.CardStatus(
@@ -109,5 +126,7 @@ def get_card_status(db: Session, card_id: int):
         current_cycle_total=current_usage,
         remaining_for_max_reward=remaining,
         next_billing_date=end_date.strftime("%Y-%m-%d"),
-        status_message=status_msg
+        status_message=status_msg,
+        filtered_usage=filtered_usage,
+        alert_payment_method=card.alert_payment_method,
     )
