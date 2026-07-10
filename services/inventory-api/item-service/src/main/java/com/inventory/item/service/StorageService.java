@@ -25,12 +25,9 @@ public class StorageService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
-    @Value("${minio.endpoint}")
-    private String endpoint; // Default to internal endpoint. Ideally should be public.
-
-    // A hack for local dev to expose localhost if running in docker
-    @Value("${minio.public-endpoint:${minio.endpoint}}")
+    @Value("${minio.public-endpoint}")
     private String publicEndpoint;
+
     public String uploadFile(MultipartFile file) {
         try {
             // 1. Check if bucket exists
@@ -61,8 +58,7 @@ public class StorageService {
                                 .build());
             }
 
-            // 4. Return URL
-            // Ensure endpoint doesn't end with /
+            // 4. Return the browser-facing same-origin URL, not the SDK endpoint.
             String baseUrl = publicEndpoint.endsWith("/") ? publicEndpoint.substring(0, publicEndpoint.length() - 1) : publicEndpoint;
             return String.format("%s/%s/%s", baseUrl, bucketName, objectName);
 

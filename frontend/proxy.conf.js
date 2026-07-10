@@ -64,6 +64,13 @@ module.exports = {
     "changeOrigin": true,
     "logLevel": "debug"
   },
+  "/minio/inventory-items": {
+    "target": `http://${envConfig.INFRA_HOST || 'localhost'}:9000`,
+    "pathRewrite": { "^/minio": "" },
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/otlp": {
     // 固定的 Collector HTTP 端點
     "target": `http://${envConfig.INFRA_HOST || 'localhost'}:4318`,

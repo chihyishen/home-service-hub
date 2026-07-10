@@ -12,7 +12,7 @@ module.exports = {
       name: 'accounting-service',
       cwd: './services/accounting-service',
       script: './.venv/bin/uvicorn',
-      args: 'app.main:app --host 0.0.0.0 --port 8000',
+      args: 'app.main:app --host 127.0.0.1 --port 8000',
       interpreter: 'none',
       env_file: '../../.env',
       env: {
@@ -23,7 +23,7 @@ module.exports = {
       name: 'stock-portfolio-service',
       cwd: './services/stock-portfolio-service',
       script: './.venv/bin/uvicorn',
-      args: 'app.main:app --host 0.0.0.0 --port 8001',
+      args: 'app.main:app --host 127.0.0.1 --port 8001',
       interpreter: 'none',
       env_file: '../../.env',
       env: {

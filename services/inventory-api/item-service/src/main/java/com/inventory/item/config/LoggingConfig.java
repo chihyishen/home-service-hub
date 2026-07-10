@@ -5,6 +5,7 @@ import io.micrometer.observation.aop.ObservedAspect;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.CommonsRequestLoggingFilter;
@@ -30,11 +31,15 @@ public class LoggingConfig {
     }
 
     @Bean
-    public CommonsRequestLoggingFilter logFilter() {
+    public CommonsRequestLoggingFilter logFilter(
+            @Value("${INVENTORY_HTTP_QUERY_LOGGING_ENABLED:false}") boolean includeQueryString,
+            @Value("${INVENTORY_HTTP_PAYLOAD_LOGGING_ENABLED:false}") boolean includePayload) {
         CommonsRequestLoggingFilter filter = new CommonsRequestLoggingFilter();
-        filter.setIncludeQueryString(true);
-        filter.setIncludePayload(true);
-        filter.setMaxPayloadLength(10000);
+        filter.setIncludeQueryString(includeQueryString);
+        filter.setIncludePayload(includePayload);
+        if (includePayload) {
+            filter.setMaxPayloadLength(10000);
+        }
         filter.setIncludeHeaders(false);
         filter.setAfterMessagePrefix("API REQUEST: "); // 設定一個好搜的前綴
         return filter;

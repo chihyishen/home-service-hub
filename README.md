@@ -82,6 +82,7 @@ graph TD
 ### 1. 環境準備
 - **配置環境變數**: `cp .env.example .env`
 - **啟動基礎設施**: `docker compose up -d`
+- **選用 RabbitMQ**: RabbitMQ 預設不啟動；需要時執行 `docker compose --profile messaging up -d rabbitmq`
 
 ### 2. 啟動服務 (各服務目錄下執行)
 - **Inventory**: `./gradlew :item-service:bootRun`
@@ -94,6 +95,17 @@ graph TD
 - `LOG_FORMAT` (預設 `json`)：設 `console` 切換為人類可讀格式。
 
 服務細節（端點清單、Scheduler cron、Day-trade 推導規則等）見 [`services/stock-portfolio-service/README.md`](services/stock-portfolio-service/README.md)。
+
+### 4. 本機安全預設
+
+- Compose 發佈的基礎設施與後端服務預設只綁定 `127.0.0.1`。`INFRA_BIND_HOST` 控制 PostgreSQL、RabbitMQ、OTel、Tempo、Prometheus、Loki、Grafana 與 MinIO；`APP_BIND_HOST` 控制三個後端 API。除非已有明確的防火牆或 Gateway 規則，請勿改成 `0.0.0.0`。
+- PM2 啟動的 Accounting 與 Stock backends 也只綁定 `127.0.0.1`；Frontend 暫時維持 VPN/LAN 可達，作為唯一瀏覽器入口。
+- Inventory 在本機直接啟動時由 `INVENTORY_SERVER_ADDRESS` 控制監聽位址，預設 `127.0.0.1`。Compose 會在容器內覆寫為 `0.0.0.0`，但 host 端仍只發佈至 `APP_BIND_HOST`。
+- Inventory 的 OpenAPI 與 Swagger UI 預設關閉。僅在受信任的除錯環境設 `INVENTORY_API_DOCS_ENABLED=true` 開啟。
+- SQL query text、parameter values 與 query arguments 預設不進入觀測資料。除錯時可分別使用 `INVENTORY_SQL_QUERY_TEXT_ENABLED`、`INVENTORY_SQL_PARAMETER_VALUES_ENABLED`、`INVENTORY_SQL_QUERY_ARGUMENTS_ENABLED` 顯式開啟；Hibernate SQL logger 另由 `INVENTORY_HIBERNATE_SQL_LOG_LEVEL` 控制，預設 `OFF`。這些內容可能包含敏感資料。
+- HTTP query string、request payload 與 Logbook 完整 request/response logging 預設關閉。僅在受信任的短期除錯環境分別使用 `INVENTORY_HTTP_QUERY_LOGGING_ENABLED=true`、`INVENTORY_HTTP_PAYLOAD_LOGGING_ENABLED=true` 或調高 `INVENTORY_LOGBOOK_LOG_LEVEL`；完成後應立即恢復安全預設。
+- `MINIO_ENDPOINT=http://127.0.0.1:9000` 是 Inventory backend SDK 使用的內部端點；`MINIO_PUBLIC_ENDPOINT=/minio` 是瀏覽器使用的同源路徑，由 Frontend proxy 轉送至 loopback MinIO，因此不需要將 port 9000 開放至 LAN。
+- `.env.example` 只提供 placeholder。請在未納入版本控制的 `.env` 中自行設定實際密碼；修改 template 不會輪替現有 PostgreSQL、Grafana、MinIO 或 RabbitMQ 帳密。
 
 ## 🗺 發展路線 (Roadmap)
 

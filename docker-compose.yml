@@ -12,27 +12,28 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${INVENTORY_DB} # 這裡預設起庫存 DB
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - inventory-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   # --- 2. 訊息佇列 ---
   rabbitmq:
+    profiles: ["messaging"]
     image: rabbitmq@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
     container_name: inventory-rabbitmq
     hostname: rabbitmq
     environment:
       - RABBITMQ_NODENAME=rabbit@rabbitmq
     ports:
-      - "${RABBITMQ_PORT}:5672"
-      - "${RABBITMQ_UI_PORT}:15672"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:${RABBITMQ_PORT}:5672"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:${RABBITMQ_UI_PORT}:15672"
     volumes:
       - ./infra/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - rabbitmq_data:/var/lib/rabbitmq
@@ -48,8 +49,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${INVENTORY_DB}
+      - INVENTORY_SERVER_ADDRESS=0.0.0.0
     ports:
-      - "${INVENTORY_ITEM_SERVICE_PORT}:8080"
+      - "${APP_BIND_HOST:-127.0.0.1}:${INVENTORY_ITEM_SERVICE_PORT}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,7 +72,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ACCOUNTING_DB}
     ports:
-      - "${ACCOUNTING_SERVICE_PORT}:8000"
+      - "${APP_BIND_HOST:-127.0.0.1}:${ACCOUNTING_SERVICE_PORT}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,7 +93,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${STOCK_DB}
     ports:
-      - "${STOCK_SERVICE_PORT}:8001"
+      - "${APP_BIND_HOST:-127.0.0.1}:${STOCK_SERVICE_PORT}:8001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,9 +116,9 @@ services:
     volumes:
       - ./infra/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "8889:8889"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:4317:4317"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:4318:4318"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:8889:8889"
     depends_on:
       - tempo
       - prometheus
@@ -130,7 +132,7 @@ services:
     container_name: inventory-tempo
     command: [ "-config.file=/etc/tempo.yaml" ]
     ports:
-      - "3200:3200"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:3200:3200"
     volumes:
       - ./infra/config/tempo.yaml:/etc/tempo.yaml
       - ./infra/tempo-data:/var/tempo
@@ -143,7 +145,7 @@ services:
     environment:
       <<: *internal-no-proxy-env
     ports:
-      - "9090:9090"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:9090:9090"
     volumes:
       - ./infra/config/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
@@ -155,8 +157,8 @@ services:
     image: grafana/loki@sha256:be31579ac047e9f78b81e48f3b69d3af709e7299b431d5aa78bcda43382f9511
     container_name: inventory-loki
     ports:
-      - "3100:3100"
-      - "9096:9096"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:3100:3100"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:9096:9096"
     volumes:
       - ./infra/config/loki-config.yaml:/etc/loki/local-config.yaml
     command: -config.file=/etc/loki/local-config.yaml
@@ -167,7 +169,7 @@ services:
     image: grafana/grafana@sha256:2175aaa91c96733d86d31cf270d5310b278654b03f5718c59de12a865380a31f
     container_name: inventory-grafana
     ports:
-      - "3000:3000"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:3000:3000"
     environment:
       <<: *internal-no-proxy-env
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
@@ -186,8 +188,8 @@ services:
     image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     container_name: inventory-minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:9000:9000"
+      - "${INFRA_BIND_HOST:-127.0.0.1}:9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}

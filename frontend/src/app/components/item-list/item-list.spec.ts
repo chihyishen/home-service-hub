@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { provideRouter } from '@angular/router';
-import { ItemListComponent } from './item-list';
+import { ItemListComponent, normalizeItemImageUrl } from './item-list';
 import { ItemService } from '../../services/item.service';
 import { ShoppingListService } from '../../services/shopping-list.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -132,5 +132,24 @@ describe('ItemListComponent', () => {
       severity: 'success',
       detail: '已將 1 項低庫存物品加入購物清單'
     }));
+  });
+});
+
+describe('normalizeItemImageUrl', () => {
+  it('rewrites a legacy absolute MinIO URL to the same-origin proxy', () => {
+    expect(normalizeItemImageUrl('http://192.168.0.100:9000/inventory-items/photo.jpg'))
+      .toBe('/minio/inventory-items/photo.jpg');
+  });
+
+  it('rewrites a bucket-relative URL and keeps a new proxy URL unchanged', () => {
+    expect(normalizeItemImageUrl('/inventory-items/photo.jpg'))
+      .toBe('/minio/inventory-items/photo.jpg');
+    expect(normalizeItemImageUrl('/minio/inventory-items/photo.jpg'))
+      .toBe('/minio/inventory-items/photo.jpg');
+  });
+
+  it('keeps unrelated image URLs unchanged', () => {
+    const url = 'https://images.example.com/inventory-items/photo.jpg';
+    expect(normalizeItemImageUrl(url)).toBe(url);
   });
 });

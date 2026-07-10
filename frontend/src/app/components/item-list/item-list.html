@@ -61,7 +61,7 @@
             <div class="hub-inventory-card" [class.low-stock]="item.stockStatus === 'LOW' || item.stockStatus === 'OUT'">
               <div class="item-visual">
                 @if (item.imageUrl) {
-                  <p-image [src]="item.imageUrl" [preview]="true" width="64" height="64" styleClass="hub-item-image" loading="lazy"></p-image>
+                  <p-image [src]="normalizeImageUrl(item.imageUrl)" [preview]="true" width="64" height="64" styleClass="hub-item-image" loading="lazy"></p-image>
                 } @else {
                   <div class="item-icon-placeholder">
                     <i class="pi pi-box"></i>
@@ -151,7 +151,7 @@
     <label class="d-block mb-2 fw-bold">圖片</label>
     <div class="d-flex align-items-center gap-3">
       @if (isEdit && newItem.imageUrl) {
-        <p-image [src]="newItem.imageUrl" [preview]="true" width="100" styleClass="rounded shadow-sm"></p-image>
+        <p-image [src]="normalizeImageUrl(newItem.imageUrl)" [preview]="true" width="100" styleClass="rounded shadow-sm"></p-image>
       } @else if (!isEdit && selectedFilePreview) {
         <img [src]="selectedFilePreview" width="100" class="rounded shadow-sm" style="max-height: 100px; object-fit: cover;" />
       }
@@ -216,4 +216,3 @@
     </ng-template>
   </p-table>
 </p-dialog>
-
