@@ -2,6 +2,7 @@ import os
 
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
 os.environ.setdefault("SYMBOL_HISTORY_AUTOBACKFILL", "false")
+os.environ.setdefault("POST_IMPORT_RECALC_ENABLED", "false")
 
 import pytest
 from app.database import Base, get_db

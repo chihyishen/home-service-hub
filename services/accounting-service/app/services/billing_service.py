@@ -1,4 +1,5 @@
-from datetime import date
+import calendar
+from datetime import date, timedelta
 
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
@@ -10,43 +11,63 @@ def safe_date_replace(year, month, day):
     """
     安全地處理日期替換，若該月無此日則取該月最後一天
     """
-    import calendar
     _, last_day = calendar.monthrange(year, month)
     return date(year, month, min(day, last_day))
+
+
+def _effective_closing_date(billing_day: int, year: int, month: int) -> date:
+    return safe_date_replace(year, month, billing_day)
+
+
+def _previous_month(year: int, month: int) -> tuple[int, int]:
+    return (year - 1, 12) if month == 1 else (year, month - 1)
+
+
+def _next_month(year: int, month: int) -> tuple[int, int]:
+    return (year + 1, 1) if month == 12 else (year, month + 1)
+
 
 def get_billing_cycle_range(billing_day: int, target_date: date):
     """
     根據結帳日計算目標日期所屬的帳單週期範圍
     """
-    if target_date.day > billing_day:
-        # 在本月結帳日之後：週期是 [本月結帳+1, 下月結帳]
-        start_date = safe_date_replace(target_date.year, target_date.month, billing_day + 1)
-        if target_date.month == 12:
-            end_date = safe_date_replace(target_date.year + 1, 1, billing_day)
-        else:
-            end_date = safe_date_replace(target_date.year, target_date.month + 1, billing_day)
+    current_close = _effective_closing_date(billing_day, target_date.year, target_date.month)
+    if target_date <= current_close:
+        end_date = current_close
+        previous_year, previous_month = _previous_month(target_date.year, target_date.month)
+        previous_close = _effective_closing_date(billing_day, previous_year, previous_month)
+        start_date = previous_close + timedelta(days=1)
     else:
-        # 在本月結帳日之前(或當天)：週期是 [上月結帳+1, 本月結帳]
-        if target_date.month == 1:
-            start_date = safe_date_replace(target_date.year - 1, 12, billing_day + 1)
-        else:
-            start_date = safe_date_replace(target_date.year, target_date.month - 1, billing_day + 1)
-        end_date = safe_date_replace(target_date.year, target_date.month, billing_day)
-    
+        next_year, next_month = _next_month(target_date.year, target_date.month)
+        end_date = _effective_closing_date(billing_day, next_year, next_month)
+        start_date = current_close + timedelta(days=1)
+
     return start_date, end_date
+
+
+def get_calendar_month_range(target_date: date):
+    start_date = date(target_date.year, target_date.month, 1)
+    _, last_day = calendar.monthrange(target_date.year, target_date.month)
+    return start_date, date(target_date.year, target_date.month, last_day)
+
 
 def get_reward_cycle_range(card: models.CreditCard, target_date: date):
     """
     根據卡片的回饋週期類型計算日期範圍
     """
     if card.reward_cycle_type == "CALENDAR_MONTH":
-        import calendar
-        start_date = date(target_date.year, target_date.month, 1)
-        _, last_day = calendar.monthrange(target_date.year, target_date.month)
-        end_date = date(target_date.year, target_date.month, last_day)
-        return start_date, end_date
+        return get_calendar_month_range(target_date)
     
     return get_billing_cycle_range(card.billing_day, target_date)
+
+
+def get_alert_cycle_range(card: models.CreditCard, target_date: date):
+    """Return the configured alert range, falling back to the reward range."""
+    if card.alert_cycle_type == "CALENDAR_MONTH":
+        return get_calendar_month_range(target_date)
+    if card.alert_cycle_type == "BILLING_CYCLE":
+        return get_billing_cycle_range(card.billing_day, target_date)
+    return get_reward_cycle_range(card, target_date)
 
 
 def get_card_cycle_usage(
@@ -60,7 +81,9 @@ def get_card_cycle_usage(
     card_filter = models.Transaction.card_id == card.id
     if payment_method is not None:
         # 指定支付工具時為排他性過濾，不再與卡片別名 OR 在一起
-        card_filter = models.Transaction.payment_method == payment_method
+        card_filter = (models.Transaction.card_id == card.id) & (
+            models.Transaction.payment_method == payment_method
+        )
     elif include_payment_method_alias:
         card_filter = or_(
             card_filter,
@@ -81,23 +104,36 @@ def get_card_cycle_usage(
 
     return int(current_usage)
 
-def get_card_status(db: Session, card_id: int):
+
+def get_card_alert_usage(
+    db: Session,
+    card: models.CreditCard,
+    target_date: date,
+) -> tuple[int, date, date]:
+    start_date, end_date = get_alert_cycle_range(card, target_date)
+    usage = get_card_cycle_usage(
+        db,
+        card,
+        start_date,
+        end_date,
+        payment_method=card.alert_payment_method,
+    )
+    return usage, start_date, end_date
+
+
+def get_card_status(db: Session, card_id: int, target_date: date | None = None):
     card = db.query(models.CreditCard).filter(
         models.CreditCard.id == card_id
     ).first()
     if not card:
         return None
     
-    today = date.today()
+    today = target_date or date.today()
     start_date, end_date = get_reward_cycle_range(card, today)
 
     current_usage = get_card_cycle_usage(db, card, start_date, end_date)
-
-    filtered_usage = None
-    if card.alert_payment_method:
-        filtered_usage = get_card_cycle_usage(
-            db, card, start_date, end_date, payment_method=card.alert_payment_method
-        )
+    alert_usage, alert_start_date, alert_end_date = get_card_alert_usage(db, card, today)
+    filtered_usage = alert_usage if card.alert_payment_method else None
 
     remaining = None
     if current_usage < 0:
@@ -106,8 +142,7 @@ def get_card_status(db: Session, card_id: int):
         status_msg = f"本期淨刷卡 ${current_usage:,.0f}"
 
     if card.alert_threshold > 0:
-        threshold_usage = filtered_usage if card.alert_payment_method else current_usage
-        effective_usage = max(threshold_usage, 0)
+        effective_usage = max(alert_usage, 0)
         remaining = max(0, card.alert_threshold - effective_usage)
         if card.alert_payment_method:
             if remaining > 0:
@@ -129,4 +164,7 @@ def get_card_status(db: Session, card_id: int):
         status_message=status_msg,
         filtered_usage=filtered_usage,
         alert_payment_method=card.alert_payment_method,
+        alert_cycle_type=card.alert_cycle_type,
+        alert_period_start=alert_start_date.strftime("%Y-%m-%d"),
+        alert_period_end=alert_end_date.strftime("%Y-%m-%d"),
     )

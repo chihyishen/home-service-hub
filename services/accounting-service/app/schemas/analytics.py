@@ -24,6 +24,11 @@ class CardUsageSummary(BaseSchema):
     billing_cycle_start: dt_date
     billing_cycle_end: dt_date
     current_usage: int
+    alert_usage: int
+    alert_payment_method: str | None = None
+    alert_cycle_type: str
+    alert_cycle_start: dt_date
+    alert_cycle_end: dt_date
     alert_threshold: int
     usage_percentage: float
     remaining_to_threshold: int

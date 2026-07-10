@@ -53,9 +53,17 @@ export class CardListComponent implements OnInit {
     { label: '日曆月 (1-31日)', value: 'CALENDAR_MONTH' }
   ];
 
-  toolOptions = computed(() => 
-    this.paymentMethods().map(m => ({ label: m.name, value: m.name }))
-  );
+  alertCycleOptions = [
+    { label: '跟隨回饋週期', value: null },
+    ...this.cycleOptions
+  ];
+
+  toolOptions = computed(() => this.paymentMethods().map(m => ({ label: m.name, value: m.name })));
+
+  alertToolOptions = computed(() => [
+    { label: '整張卡（不限定支付工具）', value: null },
+    ...this.toolOptions()
+  ]);
 
   ngOnInit() {
     this.loadData();
@@ -77,9 +85,17 @@ export class CardListComponent implements OnInit {
           billingDay: 1,
           rewardCycleType: 'BILLING_CYCLE',
           alertThreshold: 20000,
-          defaultPaymentMethod: 'Apple Pay'
+          defaultPaymentMethod: 'Apple Pay',
+          alertPaymentMethod: null,
+          alertCycleType: null
           };
           }
+
+  alertScope(card: CreditCard): string {
+    const cycle = card.alertCycleType === 'CALENDAR_MONTH' ? '日曆月' :
+      card.alertCycleType === 'BILLING_CYCLE' ? '帳單週期' : '跟隨回饋';
+    return `${card.alertPaymentMethod || '整張卡'}／${cycle}`;
+  }
   showDialog() {
     this.newCard = this.resetNewCard();
     this.isEdit = false;

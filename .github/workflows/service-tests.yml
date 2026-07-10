@@ -45,6 +45,7 @@ jobs:
       OTEL_SERVICE_NAME_ACCOUNTING: accounting-service-ci
       OTEL_SERVICE_NAME_STOCK: stock-portfolio-service-ci
       OTEL_COLLECTOR_ENDPOINT_GRPC: http://localhost:4317
+      POST_IMPORT_RECALC_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

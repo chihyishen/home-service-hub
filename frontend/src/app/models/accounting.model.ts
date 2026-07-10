@@ -19,6 +19,8 @@ export interface CreditCard {
   rewardCycleType: string;
   alertThreshold: number;
   defaultPaymentMethod?: string;
+  alertPaymentMethod?: string | null;
+  alertCycleType?: 'BILLING_CYCLE' | 'CALENDAR_MONTH' | null;
 }
 
 export interface CreditCardCreate {
@@ -27,6 +29,8 @@ export interface CreditCardCreate {
   rewardCycleType: string;
   alertThreshold: number;
   defaultPaymentMethod?: string;
+  alertPaymentMethod?: string | null;
+  alertCycleType?: 'BILLING_CYCLE' | 'CALENDAR_MONTH' | null;
 }
 
 export interface Transaction {
@@ -82,6 +86,11 @@ export interface CardUsageSummary {
   billingCycleStart: string;
   billingCycleEnd: string;
   currentUsage: number;
+  alertUsage: number;
+  alertPaymentMethod?: string | null;
+  alertCycleType: 'BILLING_CYCLE' | 'CALENDAR_MONTH';
+  alertCycleStart: string;
+  alertCycleEnd: string;
   alertThreshold: number;
   usagePercentage: number;
   remainingToThreshold: number;

@@ -122,10 +122,13 @@
               <p-progressBar [value]="card.usagePercentage" [showValue]="false" 
                              [styleClass]="card.usagePercentage >= 100 ? 'hub-progress progress-alert' : (card.usagePercentage >= 80 ? 'hub-progress progress-caution' : 'hub-progress progress-safe')"></p-progressBar>
               <div class="widget-footer">
-                <span class="usage-amount" [class.refund]="card.currentUsage < 0">
+                <span class="usage-amount" [class.refund]="card.alertUsage < 0">
                   {{ getCardUsageLabel(card) }} {{ getAbsoluteCardUsage(card) | currency:'TWD':'symbol':'1.0-0' }}
                 </span>
-                <span class="cycle-range">週期 {{ formatCardCycle(card) }}</span>
+                <span class="cycle-range">預警週期 {{ formatCardCycle(card) }}</span>
+                @if (card.alertPaymentMethod) {
+                  <span>帳期總額 {{ card.currentUsage | currency:'TWD':'symbol':'1.0-0' }}</span>
+                }
                 <span>剩餘 {{ card.remainingToThreshold | currency:'TWD':'symbol':'1.0-0' }}</span>
               </div>
             </div>

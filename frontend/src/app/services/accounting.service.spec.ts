@@ -79,4 +79,23 @@ describe('AccountingService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockAnnualReport);
   });
+
+  it('應保留信用卡獨立預警設定的 camelCase payload', () => {
+    const card = {
+      name: '台新 Richart',
+      billingDay: 7,
+      rewardCycleType: 'BILLING_CYCLE',
+      alertThreshold: 33334,
+      defaultPaymentMethod: 'Apple Pay',
+      alertPaymentMethod: 'Line Pay',
+      alertCycleType: 'CALENDAR_MONTH' as const,
+    };
+
+    service.createCard(card).subscribe();
+
+    const req = httpMock.expectOne('/api/accounting/cards/');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(card);
+    req.flush({ id: 1, ...card });
+  });
 });

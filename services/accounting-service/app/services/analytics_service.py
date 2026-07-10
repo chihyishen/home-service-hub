@@ -45,8 +45,11 @@ def _get_visible_annual_month_indices(year: int) -> list[int]:
         return list(range(today.month))
     return list(range(12))
 
-def get_card_usage_summary(db: Session) -> list[schemas.analytics.CardUsageSummary]:
-    today = date.today()
+def get_card_usage_summary(
+    db: Session,
+    target_date: date | None = None,
+) -> list[schemas.analytics.CardUsageSummary]:
+    today = target_date or date.today()
     
     # 取得所有信用卡
     cards = db.query(models.CreditCard).all()
@@ -58,19 +61,27 @@ def get_card_usage_summary(db: Session) -> list[schemas.analytics.CardUsageSumma
         start_date, end_date = billing_service.get_reward_cycle_range(card, today)
 
         current_usage = billing_service.get_card_cycle_usage(db, card, start_date, end_date)
+        alert_usage, alert_start, alert_end = billing_service.get_card_alert_usage(
+            db, card, today
+        )
         
-        threshold = int(card.alert_threshold or 20000) # 預設 2萬
-        positive_usage = max(current_usage, 0)
+        threshold = int(card.alert_threshold if card.alert_threshold is not None else 20000)
+        positive_usage = max(alert_usage, 0)
         percentage = (positive_usage / threshold * 100) if threshold > 0 else 0.0
         remaining = max(0, threshold - positive_usage)
-        is_near_limit = current_usage > 0 and percentage >= 80 and percentage < 100
-        is_over_limit = current_usage > 0 and percentage >= 100
+        is_near_limit = alert_usage > 0 and percentage >= 80 and percentage < 100
+        is_over_limit = alert_usage > 0 and percentage >= 100
         
         summaries.append(schemas.analytics.CardUsageSummary(
             card_name=card.name,
             billing_cycle_start=start_date,
             billing_cycle_end=end_date,
             current_usage=int(current_usage),
+            alert_usage=int(alert_usage),
+            alert_payment_method=card.alert_payment_method,
+            alert_cycle_type=card.alert_cycle_type or card.reward_cycle_type,
+            alert_cycle_start=alert_start,
+            alert_cycle_end=alert_end,
             alert_threshold=threshold,
             usage_percentage=percentage,
             remaining_to_threshold=remaining,

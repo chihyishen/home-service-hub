@@ -14,6 +14,7 @@ class CreditCard(Base, TimestampMixin):
     alert_threshold = Column(Integer, default=5000)
     default_payment_method = Column(String, default="Apple Pay")
     alert_payment_method = Column(String, nullable=True)  # 若設定，預警門檻僅計算此支付工具的消費
+    alert_cycle_type = Column(String, nullable=True)  # BILLING_CYCLE or CALENDAR_MONTH; null follows reward cycle
 
     transactions = relationship("Transaction", back_populates="card")
     subscriptions = relationship("Subscription", back_populates="card")

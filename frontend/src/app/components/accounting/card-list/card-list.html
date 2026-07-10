@@ -11,7 +11,7 @@
       <app-list-item [clickable]="true" (itemClick)="showMenu($event, card)">
         <ng-container left>
           <div class="main-text">{{ card.name }}</div>
-          <div class="sub-text">預設：{{ card.defaultPaymentMethod || '無' }}</div>
+          <div class="sub-text">預設：{{ card.defaultPaymentMethod || '無' }} · 預警：{{ alertScope(card) }}</div>
         </ng-container>
         <ng-container right>
           <div class="amount-text">{{ card.alertThreshold | currency:'TWD':'symbol':'1.0-0' }}</div>
@@ -53,6 +53,20 @@
       <div class="field mb-1">
         <label for="threshold" class="d-block mb-1 fw-bold small">預警門檻</label>
         <p-inputNumber id="threshold" [(ngModel)]="newCard.alertThreshold" mode="currency" currency="TWD" locale="zh-TW" [minFractionDigits]="0" [maxFractionDigits]="0" class="w-100" styleClass="w-100"></p-inputNumber>
+      </div>
+      <div class="row g-2">
+        <div class="col-12 col-md-6">
+          <div class="field mb-1">
+            <label for="alertTool" class="d-block mb-1 fw-bold small">預警支付工具</label>
+            <p-select id="alertTool" [options]="alertToolOptions()" [(ngModel)]="newCard.alertPaymentMethod" optionLabel="label" optionValue="value" class="w-100" appendTo="body"></p-select>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="field mb-1">
+            <label for="alertCycle" class="d-block mb-1 fw-bold small">預警週期</label>
+            <p-select id="alertCycle" [options]="alertCycleOptions" [(ngModel)]="newCard.alertCycleType" optionLabel="label" optionValue="value" class="w-100" appendTo="body"></p-select>
+          </div>
+        </div>
       </div>
       <div class="field mb-1">
         <label for="defaultTool" class="d-block mb-1 fw-bold small">預設支付工具 (如 Apple Pay)</label>

@@ -202,22 +202,25 @@ export class AccountingDashboardComponent implements OnInit {
   }
 
   formatCardCycle(card: CardUsageSummary): string {
-    const startDate = new Date(card.billingCycleStart);
-    const endDate = new Date(card.billingCycleEnd);
+    const startDate = new Date(card.alertCycleStart);
+    const endDate = new Date(card.alertCycleEnd);
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      return `${card.billingCycleStart} - ${card.billingCycleEnd}`;
+      return `${card.alertCycleStart} - ${card.alertCycleEnd}`;
     }
 
     return `${startDate.getMonth() + 1}/${startDate.getDate()} - ${endDate.getMonth() + 1}/${endDate.getDate()}`;
   }
 
   getCardUsageLabel(card: CardUsageSummary): string {
-    return card.currentUsage < 0 ? '本期淨退款' : '本期已用';
+    if (card.alertPaymentMethod) {
+      return card.alertUsage < 0 ? `${card.alertPaymentMethod} 淨退款` : `${card.alertPaymentMethod} 已用`;
+    }
+    return card.alertUsage < 0 ? '本期淨退款' : '本期已用';
   }
 
   getAbsoluteCardUsage(card: CardUsageSummary): number {
-    return Math.abs(card.currentUsage);
+    return Math.abs(card.alertUsage);
   }
 
   getDeltaSign(delta: number): string {

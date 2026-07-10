@@ -1,9 +1,7 @@
-import json
 import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends
-from fastapi.encoders import jsonable_encoder
 from shared_lib import get_tracer
 from sqlalchemy.orm import Session
 
@@ -63,25 +61,18 @@ def list_transactions(
         # 記錄回傳清單的大小
         span.set_attribute("http.response.count", len(result))
         
-        if len(result) > 0:
-            # 使用 jsonable_encoder 安全地將 SQLAlchemy 對象轉換為 JSON 格式
-            sample = jsonable_encoder(result[:3])
-            span.set_attribute("http.response.body.sample", json.dumps(sample, ensure_ascii=False))
-        
         return result
 
 @router.post("/", response_model=schemas.Transaction, summary="新增交易紀錄")
 def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
     with tracer.start_as_current_span("router.create_transaction") as span:
-        logger.info(f"建立交易: {transaction.item}")
-        # 記錄 Request Body
-        span.set_attribute("http.request.body", transaction.model_dump_json())
+        span.set_attribute("transaction.type", transaction.transaction_type)
+        span.set_attribute("transaction.category_id", transaction.category_id)
+        if transaction.card_id is not None:
+            span.set_attribute("transaction.card_id", transaction.card_id)
         
         result = transaction_service.create_transaction(db, transaction)
-        
-        # 這裡也要修正，因為 result 此時是 SQLAlchemy 對象
-        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
-        span.set_attribute("http.response.body", res_json)
+        span.set_attribute("transaction.id", result.id)
         return result
 
 @router.get("/report/annual/{year}",
@@ -103,10 +94,8 @@ def get_annual_report(year: int, db: Session = Depends(get_db)):
             summary="獲取月度財務報表")
 def get_monthly_report(year: int, month: int, db: Session = Depends(get_db)):
     from ..services import analytics_service
-    with tracer.start_as_current_span("router.get_monthly_report") as span:
+    with tracer.start_as_current_span("router.get_monthly_report"):
         result = analytics_service.get_monthly_report(db, year, month)
-        # 報表是 Pydantic 模型，可以直接 dump
-        span.set_attribute("report.summary", result.summary.model_dump_json())
         return result
 
 
@@ -127,8 +116,7 @@ def get_monthly_compare_report(year: int, month: int, db: Session = Depends(get_
 def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
     with tracer.start_as_current_span("router.get_transaction") as span:
         result = transaction_service.get_transaction(db, transaction_id)
-        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
-        span.set_attribute("http.response.body", res_json)
+        span.set_attribute("transaction.id", transaction_id)
         return result
 
 
@@ -139,10 +127,14 @@ def update_transaction(
     db: Session = Depends(get_db)
 ):
     with tracer.start_as_current_span("router.update_transaction") as span:
-        span.set_attribute("http.request.body", transaction_update.model_dump_json(exclude_unset=True))
+        span.set_attribute("transaction.id", transaction_id)
+        if transaction_update.transaction_type is not None:
+            span.set_attribute("transaction.type", transaction_update.transaction_type)
+        if transaction_update.category_id is not None:
+            span.set_attribute("transaction.category_id", transaction_update.category_id)
+        if transaction_update.card_id is not None:
+            span.set_attribute("transaction.card_id", transaction_update.card_id)
         result = transaction_service.update_transaction(db, transaction_id, transaction_update)
-        res_json = json.dumps(jsonable_encoder(result), ensure_ascii=False)
-        span.set_attribute("http.response.body", res_json)
         return result
 
 

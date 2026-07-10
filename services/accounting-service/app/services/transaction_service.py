@@ -122,7 +122,7 @@ def get_transactions(
         if keyword:
             pattern = f"%{keyword.strip()}%"
             if pattern != "%%":
-                span.set_attribute("filter.keyword", keyword.strip())
+                span.set_attribute("filter.keyword_present", True)
                 query = query.filter(
                     or_(
                         models.Transaction.item.ilike(pattern),
@@ -146,9 +146,10 @@ def get_transaction(db: Session, transaction_id: int):
 
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     with tracer.start_as_current_span("service.create_transaction") as span:
-        span.set_attribute("transaction.item", transaction.item)
-        span.set_attribute("transaction.amount", transaction.transaction_amount)
         span.set_attribute("transaction.type", transaction.transaction_type)
+        span.set_attribute("transaction.category_id", transaction.category_id)
+        if transaction.card_id is not None:
+            span.set_attribute("transaction.card_id", transaction.card_id)
 
         # --- 資料校驗與自動同步 ---
         # 1. 校驗分類
