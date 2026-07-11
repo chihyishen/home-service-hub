@@ -2,6 +2,13 @@ server:
   address: ${INVENTORY_SERVER_ADDRESS:127.0.0.1}
   port: ${INVENTORY_ITEM_SERVICE_PORT}
 
+security:
+  oauth2:
+    enforcement-enabled: ${AUTH_ENFORCEMENT_ENABLED:false}
+    issuer-uri: ${OIDC_ISSUER_URI:}
+    jwk-set-uri: ${OIDC_JWKS_URI:}
+    audience: ${OIDC_AUDIENCE:home-service-api}
+
 spring:
   threads:
     virtual:
