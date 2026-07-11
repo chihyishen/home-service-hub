@@ -135,8 +135,8 @@ graph TD
 - [x] **身分驗證整合**: 已串接 Keycloak（密碼 + 長效 remember-me session）。FIDO2/passkey 曾實作後棄用——WebAuthn RP ID 強制網域，會引入區網 DNS 單點依賴，對內網自用不划算。
 - [ ] **後端強制驗證 cutover**: 逐服務開啟 `AUTH_ENFORCEMENT_ENABLED` 形成雙層防禦（gateway 目前為唯一強制點）。
 - [ ] **Python 觀測性優化**: 完善 Python 服務的 Trace 欄位與 Context 傳遞。
-- [ ] **後端精細化驗證**: 使用 `jakarta.validation` 確保 Java 端數據完整性。
-- [ ] **MinIO 完整整合**: 實作圖片上傳、預簽名 URL (Presigned URLs) 與縮圖處理。
+- [x] **後端精細化驗證**: `jakarta.validation` 已用於 Java 端 DTO 與 Controller 驗證。
+- [x] **MinIO 完整整合**: 圖片上傳已實作。原規劃的 Presigned URL 改為同源 `/minio` proxy（免開放 9000 port）、縮圖改由前端上傳前壓縮取代。
 
 ### 🟣 Phase 3: 異步架構與微服務解耦 (Planned)
 - [ ] **RabbitMQ 整合**: 實作 Domain Events 驅動跨服務協作。
