@@ -11,15 +11,6 @@
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 28800,
   "browserFlow": "browser",
-  "webAuthnPolicyPasswordlessRpEntityName": "Home Service Hub",
-  "webAuthnPolicyPasswordlessSignatureAlgorithms": [
-    "ES256",
-    "RS256"
-  ],
-  "webAuthnPolicyPasswordlessRequireResidentKey": "Yes",
-  "webAuthnPolicyPasswordlessUserVerificationRequirement": "required",
-  "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
-  "webAuthnPolicyPasswordlessAttestationConveyancePreference": "none",
   "roles": {
     "realm": [
       {
@@ -159,7 +150,7 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:4200/*##http://hub.home:4200/*##http://mac-mini.local:4200/*"
+        "post.logout.redirect.uris": "https://localhost:4200/*##https://192.168.0.100:4200/*##http://localhost:4200/*"
       },
       "defaultClientScopes": [
         "profile",
@@ -206,64 +197,8 @@
       ]
     }
   ],
-  "authenticationFlows": [
-    {
-      "alias": "household-passkey",
-      "description": "Passkey-first login with username/password fallback for enrollment",
-      "providerId": "basic-flow",
-      "topLevel": true,
-      "builtIn": false,
-      "authenticationExecutions": [
-        {
-          "authenticator": "auth-cookie",
-          "requirement": "ALTERNATIVE",
-          "priority": 10,
-          "authenticatorFlow": false,
-          "userSetupAllowed": false
-        },
-        {
-          "authenticator": "webauthn-authenticator-passwordless",
-          "requirement": "ALTERNATIVE",
-          "priority": 20,
-          "authenticatorFlow": false,
-          "userSetupAllowed": false
-        },
-        {
-          "flowAlias": "household-passkey-password-fallback",
-          "requirement": "ALTERNATIVE",
-          "priority": 30,
-          "authenticatorFlow": true,
-          "userSetupAllowed": false
-        }
-      ]
-    },
-    {
-      "alias": "household-passkey-password-fallback",
-      "description": "Username/password fallback used to bootstrap passkey enrollment",
-      "providerId": "basic-flow",
-      "topLevel": false,
-      "builtIn": false,
-      "authenticationExecutions": [
-        {
-          "authenticator": "auth-username-password-form",
-          "requirement": "REQUIRED",
-          "priority": 10,
-          "authenticatorFlow": false,
-          "userSetupAllowed": false
-        }
-      ]
-    }
-  ],
+  "authenticationFlows": [],
   "requiredActions": [
-    {
-      "alias": "webauthn-register-passwordless",
-      "name": "Webauthn Register Passwordless",
-      "providerId": "webauthn-register-passwordless",
-      "enabled": false,
-      "defaultAction": false,
-      "priority": 80,
-      "config": {}
-    },
     {
       "alias": "UPDATE_PASSWORD",
       "name": "Update Password",

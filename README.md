@@ -82,7 +82,7 @@ graph TD
 
 - **Keycloak（身分認證）**：唯一知道「你是誰」的元件。瀏覽器走 OIDC 授權碼流程（帳密 + 30/90 天 remember-me session）；機器（Hermes agent）走 client credentials（clientID + secret）。兩者拿到的都是 Keycloak 私鑰簽名的短效 JWT（300 秒），token 內含 scope（如 `accounting.read`）。
 - **API Gateway（存取控制）**：所有 API 請求的單一入口。用 Keycloak 的 JWKS 公鑰離線驗證 token 簽名、時效與 audience，並依路由檢查 scope（例如 Hermes 的 token 只有 `accounting.*`，打 `/api/items` 會被 403），再加上 bucket4j 限流。驗證不回查 Keycloak，兩者執行期解耦。
-- **後端服務**：內建 resource-server 驗證能力，由 `AUTH_ENFORCEMENT_ENABLED` 控制（目前為審計模式，gateway 是唯一強制點；可逐服務開啟形成雙層防禦）。
+- **後端服務**：各自內建 resource-server 驗證（`AUTH_ENFORCEMENT_ENABLED`，已全面開啟）——與 gateway 形成雙層防禦，無有效 token 時後端本身也會拒絕（fail-closed）。
 
 ## 🌟 亮點功能 (Features)
 
@@ -133,7 +133,7 @@ graph TD
 
 ### 🟡 Phase 1 & 2: 核心強化與認證 (Active)
 - [x] **身分驗證整合**: 已串接 Keycloak（密碼 + 長效 remember-me session）。FIDO2/passkey 曾實作後棄用——WebAuthn RP ID 強制網域，會引入區網 DNS 單點依賴，對內網自用不划算。
-- [ ] **後端強制驗證 cutover**: 逐服務開啟 `AUTH_ENFORCEMENT_ENABLED` 形成雙層防禦（gateway 目前為唯一強制點）。
+- [x] **後端強制驗證 cutover**: 三個後端已逐服務開啟 `AUTH_ENFORCEMENT_ENABLED`，與 gateway 形成雙層防禦。
 - [ ] **Python 觀測性優化**: 完善 Python 服務的 Trace 欄位與 Context 傳遞。
 - [x] **後端精細化驗證**: `jakarta.validation` 已用於 Java 端 DTO 與 Controller 驗證。
 - [x] **MinIO 完整整合**: 圖片上傳已實作。原規劃的 Presigned URL 改為同源 `/minio` proxy（免開放 9000 port）、縮圖改由前端上傳前壓縮取代。

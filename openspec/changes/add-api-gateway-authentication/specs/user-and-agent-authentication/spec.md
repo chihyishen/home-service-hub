@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Keycloak owns identity lifecycle
-The system SHALL use Keycloak as the OpenID Connect provider for credentials, login sessions, signing keys, WebAuthn/passkeys, clients, and identity claims, and SHALL NOT implement a separate password or token issuer in application services.
+The system SHALL use Keycloak as the OpenID Connect provider for credentials, login sessions, signing keys, clients, and identity claims, and SHALL NOT implement a separate password or token issuer in application services.
 
 #### Scenario: User authenticates
 - **WHEN** an enabled household user completes a configured Keycloak authentication flow

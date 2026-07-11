@@ -11,7 +11,7 @@
 - [x] 2.2 Create reviewable realm bootstrap configuration with self-registration disabled, exact frontend redirect URIs/web origins, short token lifetimes, and no committed credentials.
 - [x] 2.3 Define `household-user` and `household-admin` roles plus Inventory, Accounting, and Portfolio read/write client scopes and their role mappings.
 - [x] 2.4 Configure the Angular public client for Authorization Code with S256 PKCE and configure at least one separately revocable confidential smoke-test agent client using Client Credentials.
-- [x] 2.5 Configure WebAuthn/passkey as an available household-user authentication method and document first-user enrollment plus administrator recovery.
+- [x] 2.5 ~~Configure WebAuthn/passkey~~ **Superseded 2026-07-11**: passkeys implemented then removed (RP ID requires a domain → unwanted LAN DNS dependency). Replaced by password login with 30/90-day remember-me sessions.
 - [ ] 2.6 Add a repeatable identity smoke test covering discovery, user login, client-credentials token issuance, wrong redirect rejection, disabled client rejection, and scope/audience claims.
 
 ## 3. Gateway Service and Routing

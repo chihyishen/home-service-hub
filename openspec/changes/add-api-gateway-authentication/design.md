@@ -52,7 +52,7 @@ The gateway removes untrusted forwarding headers and emits its own `Forwarded`/`
 
 ### D3: Use Keycloak as the identity provider
 
-Keycloak owns credentials, login UI, WebAuthn/passkeys, sessions, signing keys, client registration, and role/scope claims. Realm configuration is exported as reviewable bootstrap configuration with secrets injected separately. Self-registration is disabled and the initial administrator is bootstrapped from secrets that must be rotated after first use.
+Keycloak owns credentials, login UI, sessions, signing keys, client registration, and role/scope claims. (WebAuthn/passkeys were dropped post-implementation — see tasks 2.5 — in favor of password + long remember-me sessions.) Realm configuration is exported as reviewable bootstrap configuration with secrets injected separately. Self-registration is disabled and the initial administrator is bootstrapped from secrets that must be rotated after first use.
 
 The Angular application is a public OpenID Connect client using Authorization Code flow with S256 PKCE, exact redirect URIs, and exact web origins. Access and refresh tokens remain in memory and are never written to localStorage, sessionStorage, URLs, logs, or telemetry. Reload may require a Keycloak session check or a fresh redirect.
 
