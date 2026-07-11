@@ -70,7 +70,10 @@
               "mac-mini.local",
               "192.168.0.100"
             ],
-            "proxyConfig": "proxy.conf.js"
+            "proxyConfig": "proxy.conf.js",
+            "ssl": true,
+            "sslCert": "../infra/keycloak/certs/keycloak.pem",
+            "sslKey": "../infra/keycloak/certs/keycloak-key.pem"
           },
           "configurations": {
             "production": {

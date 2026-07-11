@@ -46,7 +46,10 @@ const envConfigFile = `export const environment = {
   inventoryServicePort: '${envConfig.INVENTORY_ITEM_SERVICE_PORT}',
   accountingServiceHost: '${envConfig.ACCOUNTING_SERVICE_HOST}',
   accountingServicePort: '${envConfig.ACCOUNTING_SERVICE_PORT}',
-  otelEndpoint: '${envConfig.OTEL_COLLECTOR_ENDPOINT_HTTP}'
+  otelEndpoint: '${envConfig.OTEL_COLLECTOR_ENDPOINT_HTTP}',
+  oidcUrl: '${envConfig.KEYCLOAK_PUBLIC_URL || 'http://localhost:8180'}',
+  oidcRealm: 'home-service-hub',
+  oidcClientId: 'home-service-ui'
 };
 `;
 
