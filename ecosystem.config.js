@@ -6,7 +6,7 @@ module.exports = {
       script: './gradlew',
       args: ':item-service:bootRun',
       interpreter: 'sh',
-      env_file: '../../.env',
+      // .env 由 gateway 的 build.gradle.kts 載入（pm2 沒有 env_file 這種欄位）
     },
     {
       name: 'accounting-service',
@@ -29,6 +29,14 @@ module.exports = {
       env: {
         PYTHONUNBUFFERED: '1',
       },
+    },
+    {
+      name: 'gateway-service',
+      cwd: './services/gateway-service',
+      script: '../inventory-api/gradlew',
+      args: '--no-daemon -p . bootRun',
+      interpreter: 'sh',
+      // .env 由 gateway 的 build.gradle.kts 載入（pm2 沒有 env_file 這種欄位）
     },
     {
       name: 'frontend',
