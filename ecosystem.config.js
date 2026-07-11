@@ -6,7 +6,10 @@ module.exports = {
       script: './gradlew',
       args: ':item-service:bootRun',
       interpreter: 'sh',
-      // .env 由 gateway 的 build.gradle.kts 載入（pm2 沒有 env_file 這種欄位）
+      // .env 由 inventory-api 的 build.gradle.kts 載入（pm2 沒有 env_file 這種欄位）
+      env: {
+        AUTH_ENFORCEMENT_ENABLED: 'true',
+      },
     },
     {
       name: 'accounting-service',
@@ -14,9 +17,10 @@ module.exports = {
       script: './.venv/bin/uvicorn',
       args: 'app.main:app --host 127.0.0.1 --port 8000',
       interpreter: 'none',
-      env_file: '../../.env',
+      // .env 由 shared_lib database.py 的 load_dotenv 載入（pm2 沒有 env_file 這種欄位）
       env: {
         PYTHONUNBUFFERED: '1',
+        AUTH_ENFORCEMENT_ENABLED: 'true',
       },
     },
     {
@@ -25,9 +29,10 @@ module.exports = {
       script: './.venv/bin/uvicorn',
       args: 'app.main:app --host 127.0.0.1 --port 8001',
       interpreter: 'none',
-      env_file: '../../.env',
+      // .env 由 shared_lib database.py 的 load_dotenv 載入（pm2 沒有 env_file 這種欄位）
       env: {
         PYTHONUNBUFFERED: '1',
+        AUTH_ENFORCEMENT_ENABLED: 'true',
       },
     },
     {
