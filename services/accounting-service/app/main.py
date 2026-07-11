@@ -18,4 +18,5 @@ app = create_app(
     engine=engine,
     otel_service_name_env="OTEL_SERVICE_NAME_ACCOUNTING",
     otel_strict=True,
+    auth_service="accounting",
 )
