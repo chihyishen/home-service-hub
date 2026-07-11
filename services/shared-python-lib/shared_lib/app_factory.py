@@ -7,11 +7,11 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
+from .auth import install_resource_server
 from .config import SharedSettings
 from .errors import register_error_handlers
 from .health import create_health_router
 from .tracing import setup_tracing
-from .auth import install_resource_server
 
 
 def create_app(

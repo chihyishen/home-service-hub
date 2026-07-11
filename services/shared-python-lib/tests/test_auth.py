@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from shared_lib.auth import install_resource_server
 
 
