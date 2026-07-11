@@ -97,8 +97,9 @@ graph TD
 ## 🚀 快速開始 (Getting Started)
 
 ### 1. 環境準備
-- **配置環境變數**: `cp .env.example .env`
-- **啟動基礎設施**: `docker compose up -d`
+- **配置環境變數**: `cp .env.example .env`，再替換其中的密碼、Keycloak client secret、固定 LAN IP 與公開 URL；請勿直接使用範例 placeholder。
+- **準備 HTTPS 憑證**: 將本機信任的憑證與私鑰放在 `infra/keycloak/certs/keycloak.pem`、`infra/keycloak/certs/keycloak-key.pem`，並確認憑證涵蓋 `.env` 中的 `KEYCLOAK_PUBLIC_HOST`。
+- **啟動基礎設施與身分服務**: `docker compose up -d && docker compose --profile identity up -d keycloak`
 - **選用 RabbitMQ**: RabbitMQ 預設不啟動；需要時執行 `docker compose --profile messaging up -d rabbitmq`
 
 ### 2. 啟動服務 (各服務目錄下執行)
@@ -110,7 +111,7 @@ graph TD
 
 或一次啟動全部：`npx pm2 start ecosystem.config.js`
 
-> 認證相關：Keycloak 由 `docker compose up -d keycloak` 帶起（`https://<LAN-IP>:8443`，mkcert 憑證）。realm JSON 只在空 DB 時匯入，線上變更需透過 `kcadm`；詳見 [`docs/security/keycloak-operations.md`](docs/security/keycloak-operations.md)。
+> 認證相關：Keycloak 對外入口為 `https://<LAN-IP>:8443`。realm JSON 只在空 DB 時匯入；首次啟動後需建立 household administrator，既有 realm 的變更則透過 `kcadm` 套用。操作方式見 [`docs/security/keycloak-operations.md`](docs/security/keycloak-operations.md)。
 
 ### 3. Stock Portfolio 服務環境變數
 - `SCHEDULER_ENABLED` (預設 `true`)：設 `false` 停用內建 APScheduler（測試 / CI 必設）。
