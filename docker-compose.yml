@@ -3,6 +3,98 @@ x-internal-no-proxy-env: &internal-no-proxy-env
   no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,rabbitmq,tempo,loki,prometheus,grafana,minio,otel-collector,inventory-postgres,inventory-rabbitmq,inventory-tempo,inventory-loki,inventory-prometheus,inventory-grafana,inventory-minio,inventory-otel-collector"
 
 services:
+  keycloak-postgres:
+    image: postgres:17.5-alpine
+    profiles: ["apps", "identity"]
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      POSTGRES_DB: keycloak
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    profiles: ["apps", "identity"]
+    command: ["start-dev", "--import-realm", "--health-enabled=true"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_SMOKE_AGENT_SECRET: ${KEYCLOAK_SMOKE_AGENT_SECRET}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/certs/keycloak.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/certs/keycloak-key.pem
+      # With TLS configured the management interface (9000) turns HTTPS, which the
+      # plain /dev/tcp healthcheck cannot speak. Serve health on the main HTTP
+      # listener (8080) instead; deprecated flag but fine until KC offers http-management-scheme.
+      KC_LEGACY_OBSERVABILITY_INTERFACE: "true"
+    ports:
+      - "${IDENTITY_BIND_HOST:-127.0.0.1}:${KEYCLOAK_PORT:-8180}:8080"
+      - "${IDENTITY_BIND_HOST:-127.0.0.1}:${KEYCLOAK_HTTPS_PORT:-8443}:8443"
+    volumes:
+      - ./infra/keycloak/realm-home-service-hub.json:/opt/keycloak/data/import/realm-home-service-hub.json:ro
+      - ./infra/keycloak/certs:/opt/keycloak/certs:ro
+      - ./infra/keycloak/themes:/opt/keycloak/themes:ro
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  gateway-service:
+    profiles: ["apps"]
+    build:
+      context: ./services/gateway-service
+    environment:
+      GATEWAY_BIND_HOST: 0.0.0.0
+      GATEWAY_PORT: 8088
+      GATEWAY_INVENTORY_URI: http://inventory-item-service:8080
+      GATEWAY_ACCOUNTING_URI: http://accounting-service:8000
+      GATEWAY_PORTFOLIO_URI: http://stock-portfolio-service:8001
+      GATEWAY_MINIO_URI: http://minio:9000
+      GATEWAY_OTLP_URI: http://otel-collector:4318
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-home-service-api}
+      GATEWAY_JWKS_URI: http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
+    ports:
+      - "${GATEWAY_BIND_HOST:-127.0.0.1}:${GATEWAY_PORT:-8088}:8088"
+    depends_on:
+      inventory-item-service:
+        condition: service_healthy
+      accounting-service:
+        condition: service_healthy
+      stock-portfolio-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - inventory-net
+    extra_hosts:
+      - "${KEYCLOAK_PUBLIC_HOST:-host.docker.internal}:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8088/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
   # --- 1. 資料庫 ---
   postgres:
     image: postgres@sha256:b3968e348b48f1198cc6de6611d055dbad91cd561b7990c406c3fc28d7095b21
@@ -50,6 +142,10 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${INVENTORY_DB}
       - INVENTORY_SERVER_ADDRESS=0.0.0.0
+      - SECURITY_OAUTH2_ENFORCEMENT_ENABLED=true
+      - SECURITY_OAUTH2_ISSUER_URI=${OIDC_ISSUER_URI}
+      - SECURITY_OAUTH2_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
+      - SECURITY_OAUTH2_JWK_SET_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${INVENTORY_ITEM_SERVICE_PORT}:8080"
     depends_on:
@@ -71,6 +167,10 @@ services:
     container_name: accounting-service
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ACCOUNTING_DB}
+      - AUTH_ENFORCEMENT_ENABLED=true
+      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
+      - OIDC_JWKS_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${ACCOUNTING_SERVICE_PORT}:8000"
     depends_on:
@@ -92,6 +192,10 @@ services:
     container_name: stock-portfolio-service
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${STOCK_DB}
+      - AUTH_ENFORCEMENT_ENABLED=true
+      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
+      - OIDC_JWKS_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${STOCK_SERVICE_PORT}:8001"
     depends_on:
@@ -205,6 +309,7 @@ networks:
 
 volumes:
   postgres_data:
+  keycloak_postgres_data:
   rabbitmq_data:
     external: true
     name: home-service-hub_rabbitmq_data_clean

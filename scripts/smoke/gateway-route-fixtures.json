@@ -1,0 +1,9 @@
+[
+  {"route":"inventory","method":"GET","external":"/api/items/42","upstream":"/api/items/42"},
+  {"route":"inventory-upload","method":"POST","external":"/api/items","upstream":"/api/items"},
+  {"route":"shopping-list","method":"PATCH","external":"/api/shopping-list/42","upstream":"/api/shopping-list/42"},
+  {"route":"accounting","method":"GET","external":"/api/accounting/transactions","upstream":"/transactions"},
+  {"route":"portfolio","method":"GET","external":"/api/portfolio/positions","upstream":"/api/portfolio/positions"},
+  {"route":"image","method":"HEAD","external":"/minio/inventory-items/example.webp","upstream":"/inventory-items/example.webp"},
+  {"route":"otlp","method":"POST","external":"/otlp/v1/traces","upstream":"/v1/traces"}
+]

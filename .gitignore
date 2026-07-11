@@ -18,6 +18,9 @@ Thumbs.db
 # Build and Temp
 dist/
 build/
+.gradle/
+services/gateway-service/.gradle/
+services/gateway-service/build/
 out/
 tmp/
 *.log
@@ -25,6 +28,13 @@ tmp/
 # Project specific
 
 .env
+.env.*.local
+secrets/
+*.secret
+*.secrets
+keycloak/export/
+infra/keycloak/certs/
+*.pem
 **/.venv/
 **/__pycache__/
 *.py[cod]

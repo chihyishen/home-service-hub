@@ -1,0 +1,264 @@
+{
+  "realm": "home-service-hub",
+  "displayName": "Home Hub",
+  "displayNameHtml": "Home Hub",
+  "loginTheme": "home-hub",
+  "enabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "browserFlow": "browser",
+  "webAuthnPolicyPasswordlessRpEntityName": "Home Service Hub",
+  "webAuthnPolicyPasswordlessSignatureAlgorithms": [
+    "ES256",
+    "RS256"
+  ],
+  "webAuthnPolicyPasswordlessRequireResidentKey": "Yes",
+  "webAuthnPolicyPasswordlessUserVerificationRequirement": "required",
+  "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
+  "webAuthnPolicyPasswordlessAttestationConveyancePreference": "none",
+  "roles": {
+    "realm": [
+      {
+        "name": "household-user"
+      },
+      {
+        "name": "household-admin",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "household-user"
+          ]
+        }
+      }
+    ]
+  },
+  "clientScopes": [
+    {
+      "name": "home-service-api-audience",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "home-service-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "home-service-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "inventory.read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "scopeMappings": {
+        "realm": [
+          "household-user"
+        ]
+      }
+    },
+    {
+      "name": "inventory.write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "scopeMappings": {
+        "realm": [
+          "household-user"
+        ]
+      }
+    },
+    {
+      "name": "accounting.read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "scopeMappings": {
+        "realm": [
+          "household-user"
+        ]
+      }
+    },
+    {
+      "name": "accounting.write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "scopeMappings": {
+        "realm": [
+          "household-user"
+        ]
+      }
+    },
+    {
+      "name": "portfolio.read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "scopeMappings": {
+        "realm": [
+          "household-user"
+        ]
+      }
+    },
+    {
+      "name": "portfolio.write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "scopeMappings": {
+        "realm": [
+          "household-user"
+        ]
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "home-service-ui",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://localhost:4200/*",
+        "https://192.168.0.100:4200/*",
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "https://localhost:4200",
+        "https://192.168.0.100:4200",
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*##http://hub.home:4200/*##http://mac-mini.local:4200/*"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles",
+        "home-service-api-audience",
+        "inventory.read",
+        "inventory.write",
+        "accounting.read",
+        "accounting.write",
+        "portfolio.read",
+        "portfolio.write"
+      ]
+    },
+    {
+      "clientId": "home-service-smoke-agent",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${KEYCLOAK_SMOKE_AGENT_SECRET}",
+      "defaultClientScopes": [
+        "home-service-api-audience",
+        "inventory.read",
+        "accounting.read",
+        "portfolio.read"
+      ]
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "household-passkey",
+      "description": "Passkey-first login with username/password fallback for enrollment",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "webauthn-authenticator-passwordless",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "household-passkey-password-fallback",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "authenticatorFlow": true,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "household-passkey-password-fallback",
+      "description": "Username/password fallback used to bootstrap passkey enrollment",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "requiredActions": [
+    {
+      "alias": "webauthn-register-passwordless",
+      "name": "Webauthn Register Passwordless",
+      "providerId": "webauthn-register-passwordless",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 80,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30,
+      "config": {}
+    }
+  ],
+  "ssoSessionIdleTimeoutRememberMe": 2592000,
+  "ssoSessionMaxLifespanRememberMe": 7776000
+}
