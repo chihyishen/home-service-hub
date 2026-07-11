@@ -1,0 +1,135 @@
+/*
+ * Home Hub login theme — iOS-like restyle on top of keycloak.v2 (PatternFly v5).
+ * Accent: #007AFF, background: #F2F2F7, white card with 16px radius.
+ */
+
+:root {
+    /* Rebind PatternFly globals to the app accent color. */
+    --pf-v5-global--primary-color--100: #007AFF;
+    --pf-v5-global--primary-color--200: #0062cc;
+    --pf-v5-global--primary-color--dark-100: #007AFF;
+    --pf-v5-global--link--Color: #007AFF;
+    --pf-v5-global--link--Color--hover: #0062cc;
+    --pf-v5-global--active-color--100: #007AFF;
+    --pf-v5-global--BorderColor--100: #d1d1d6;
+    --pf-v5-global--FontFamily--text: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --pf-v5-global--FontFamily--heading: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    /* Neutralize keycloak.v2 branding assets. */
+    --keycloak-bg-logo-url: none;
+    --keycloak-logo-url: none;
+    --keycloak-card-top-color: transparent;
+}
+
+/* Page background: flat iOS system gray instead of the Keycloak artwork. */
+.login-pf body {
+    background: #F2F2F7;
+}
+
+/* Center the single column and keep it phone-friendly. */
+.pf-v5-c-login__container {
+    grid-template-columns: minmax(0, 26.5rem);
+    justify-content: center;
+    padding-inline: 1rem;
+}
+
+/* "Home Hub" brand above the card. */
+#kc-header-wrapper {
+    color: #1c1c1e !important;
+    font-family: var(--pf-v5-global--FontFamily--heading);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: none;
+}
+
+/* The card. */
+.pf-v5-c-login__main {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.pf-v5-c-login__main-header {
+    border-top: none;
+}
+
+#kc-page-title {
+    color: #1c1c1e;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+/* Inputs: rounded, subtle border, soft blue focus ring. */
+.pf-v5-c-form-control,
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after {
+    border-radius: 12px;
+}
+
+.pf-v5-c-form-control {
+    background-color: #ffffff;
+    --pf-v5-c-form-control--BorderColor: #d1d1d6;
+}
+
+/* Drop PatternFly's bottom "accent underline" in favor of a full focus ring. */
+.pf-v5-c-form-control::after {
+    display: none;
+}
+
+.pf-v5-c-form-control:focus-within {
+    --pf-v5-c-form-control--BorderColor: #007AFF;
+    box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.22);
+}
+
+.pf-v5-c-form-control > :is(input, select, textarea) {
+    padding-block: 0.55rem;
+}
+
+/* Buttons. */
+.pf-v5-c-button {
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.pf-v5-c-button.pf-m-primary {
+    padding-block: 0.6rem;
+}
+
+.pf-v5-c-button.pf-m-control {
+    border-radius: 0 12px 12px 0;
+}
+
+/* Checkbox ("remember me") accent. */
+.pf-v5-c-check__input {
+    accent-color: #007AFF;
+}
+
+/* Links (forgot password, register). */
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Phone tweaks. */
+@media (max-width: 480px) {
+    .pf-v5-c-login__container {
+        grid-template-columns: minmax(0, 100%);
+    }
+
+    #kc-header-wrapper {
+        font-size: 1.5rem;
+    }
+
+    .pf-v5-c-login__main-body,
+    .pf-v5-c-login__main-header {
+        padding-inline: 1.25rem;
+    }
+}
