@@ -1,14 +1,6 @@
 apiVersion: 1
 
 datasources:
-  - name: Prometheus
-    type: prometheus
-    uid: prometheus
-    url: http://prometheus:9090
-    access: proxy
-    isDefault: true
-    editable: true
-
   - name: Tempo
     type: tempo
     uid: tempo
@@ -34,6 +26,7 @@ datasources:
     url: http://loki:3100
     access: proxy
     editable: true
+    isDefault: true
     jsonData:
       derivedFields:
         # 1. 針對日誌文字內容 (Log Line) 中的 traceId=xxxx

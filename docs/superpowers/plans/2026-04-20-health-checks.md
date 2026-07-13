@@ -1,5 +1,7 @@
 # Health Checks + Docker Compose Healthcheck Implementation Plan
 
+> Historical plan (2026-04-20): these health endpoints and Compose checks have been implemented. Current configuration files are authoritative; metrics exposure and dashboard work mentioned below have been superseded by the log-and-trace observability design.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `/health` liveness endpoints to all three backend services and wire `healthcheck` blocks into `docker-compose.yml` so orchestration can gate startup order on readiness instead of plain `depends_on`.
@@ -205,7 +207,7 @@ git commit -m "feat(stock): add /health and /health/ready endpoints"
 Edit `services/inventory-api/item-service/build.gradle.kts`. Find the `// 4.2 Validation` block (line 32-33). **After** that block, add:
 
 ```kotlin
-    // 4.3 Actuator (health + metrics)
+    // 4.3 Actuator (health endpoints)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 ```
 
@@ -219,7 +221,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info
   endpoint:
     health:
       show-details: when-authorized
@@ -378,11 +380,11 @@ git commit -m "chore(infra): add healthcheck blocks for postgres + backend servi
 - [ ] Accounting + stock tests cover both `/health` (no DB) and `/health/ready` (with DB probe)
 - [ ] Every `depends_on` for a service that uses Postgres gates on `condition: service_healthy`
 - [ ] No hardcoded passwords or secrets introduced
-- [ ] Java actuator only exposes `health,info,metrics` (not `env`, `beans`, etc. — security)
+- [ ] Java actuator only exposes `health,info` (not `env`, `beans`, etc. — security)
 - [ ] All 4 commits are self-contained and pass tests individually
 
 ## Out of Scope (do not do in this plan)
 
-- Metrics scraping dashboards
+- Metrics scraping and dashboards (superseded by the current log-and-trace observability design)
 - Auth on actuator endpoints (fine for internal network for now)
-- RabbitMQ / MinIO healthchecks (not currently consumed by services)
+- MinIO healthchecks (not currently consumed by services)

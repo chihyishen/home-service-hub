@@ -1,6 +1,6 @@
 x-internal-no-proxy-env: &internal-no-proxy-env
-  NO_PROXY: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,rabbitmq,tempo,loki,prometheus,grafana,minio,otel-collector,inventory-postgres,inventory-rabbitmq,inventory-tempo,inventory-loki,inventory-prometheus,inventory-grafana,inventory-minio,inventory-otel-collector"
-  no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,rabbitmq,tempo,loki,prometheus,grafana,minio,otel-collector,inventory-postgres,inventory-rabbitmq,inventory-tempo,inventory-loki,inventory-prometheus,inventory-grafana,inventory-minio,inventory-otel-collector"
+  NO_PROXY: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,minio,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-minio,inventory-otel-collector"
+  no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,minio,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-minio,inventory-otel-collector"
 
 services:
   keycloak-postgres:
@@ -116,24 +116,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # --- 2. 訊息佇列 ---
-  rabbitmq:
-    profiles: ["messaging"]
-    image: rabbitmq@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
-    container_name: inventory-rabbitmq
-    hostname: rabbitmq
-    environment:
-      - RABBITMQ_NODENAME=rabbit@rabbitmq
-    ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:${RABBITMQ_PORT}:5672"
-      - "${INFRA_BIND_HOST:-127.0.0.1}:${RABBITMQ_UI_PORT}:15672"
-    volumes:
-      - ./infra/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - inventory-net
-
-  # --- 3. 微服務 ---
+  # --- 2. 微服務 ---
   inventory-item-service:
     profiles: ["apps"]
     build:
@@ -220,18 +203,17 @@ services:
       <<: *internal-no-proxy-env
     volumes:
       - ./infra/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - "${STREAMER_DVR_LOG_DIR:-../streamer-dvr/logs}:/var/log/streamer-dvr:ro"
     ports:
       - "${INFRA_BIND_HOST:-127.0.0.1}:4317:4317"
       - "${INFRA_BIND_HOST:-127.0.0.1}:4318:4318"
-      - "${INFRA_BIND_HOST:-127.0.0.1}:8889:8889"
     depends_on:
       - tempo
-      - prometheus
       - loki
     networks:
       - inventory-net
 
-  # --- 5. 監控 (Tempo, Prometheus, Loki, Grafana) ---
+  # --- 5. 監控 (Tempo, Loki, Grafana) ---
   tempo:
     image: grafana/tempo@sha256:feb779230ff7ba69900b17e157360c3e056e8a58123f9fb5ea29ac40ebf5531b
     container_name: inventory-tempo
@@ -244,20 +226,6 @@ services:
     networks:
       - inventory-net
 
-  prometheus:
-    image: prom/prometheus@sha256:1f0f50f06acaceb0f5670d2c8a658a599affe7b0d8e78b898c1035653849a702
-    container_name: inventory-prometheus
-    environment:
-      <<: *internal-no-proxy-env
-    ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:9090:9090"
-    volumes:
-      - ./infra/config/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-    networks:
-      - inventory-net
-
   loki:
     image: grafana/loki@sha256:be31579ac047e9f78b81e48f3b69d3af709e7299b431d5aa78bcda43382f9511
     container_name: inventory-loki
@@ -265,7 +233,8 @@ services:
       - "${INFRA_BIND_HOST:-127.0.0.1}:3100:3100"
       - "${INFRA_BIND_HOST:-127.0.0.1}:9096:9096"
     volumes:
-      - ./infra/config/loki-config.yaml:/etc/loki/local-config.yaml
+      - ./infra/config/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - inventory-net
@@ -274,17 +243,19 @@ services:
     image: grafana/grafana@sha256:2175aaa91c96733d86d31cf270d5310b278654b03f5718c59de12a865380a31f
     container_name: inventory-grafana
     ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:3000:3000"
+      - "127.0.0.1:3000:3000"
+      - "${GRAFANA_VPN_BIND_HOST:-127.0.0.2}:3000:3000"
     environment:
       <<: *internal-no-proxy-env
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
     depends_on:
-      - prometheus
       - loki
       - tempo
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infra/config/grafana-config.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./infra/config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./infra/config/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - inventory-net
 
@@ -311,7 +282,5 @@ networks:
 volumes:
   postgres_data:
   keycloak_postgres_data:
-  rabbitmq_data:
-    external: true
-    name: home-service-hub_rabbitmq_data_clean
+  loki_data:
   grafana_data:

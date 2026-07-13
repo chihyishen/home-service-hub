@@ -17,6 +17,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 _logging_instrumented = False
 _requests_instrumented = False
+_FASTAPI_EXCLUDED_URLS = r".*/health$"
+_FASTAPI_EXCLUDED_SPANS = ["send", "receive"]
 
 
 def _normalize_endpoint(endpoint: str) -> str:
@@ -94,7 +96,11 @@ def setup_tracing(service_name_env: str, default_service_name: str | None = None
         _requests_instrumented = True
 
     if app is not None:
-        FastAPIInstrumentor.instrument_app(app)
+        FastAPIInstrumentor.instrument_app(
+            app,
+            excluded_urls=_FASTAPI_EXCLUDED_URLS,
+            exclude_spans=_FASTAPI_EXCLUDED_SPANS,
+        )
     if engine is not None:
         SQLAlchemyInstrumentor().instrument(engine=engine)
 

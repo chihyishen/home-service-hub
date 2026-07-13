@@ -36,19 +36,13 @@ Env toggle: `SCHEDULER_ENABLED=false` skips boot entirely (used in tests + CI).
 
 ## Structured logging
 
-`structlog` emits one JSON object per record by default:
+The service uses the standard-library `logging` API. OpenTelemetry's logging handler exports each record to Loki, including the active trace/span IDs and values supplied through `extra`:
 
-```
-{"event": "scheduler.started", "level": "info", "logger": "app.services.scheduler", ...}
-```
-
-Switch the renderer for local dev:
-
-```bash
-LOG_FORMAT=console uvicorn app.main:app --port 8001
+```python
+logger.info("scheduler.started", extra={"jobs": job_ids})
 ```
 
-`LOG_FORMAT=json` (default) ships structured records to Loki via the OTel Collector; `LOG_FORMAT=console` prints human-readable lines. Stdlib `logging.getLogger(__name__)` callers are bridged automatically — no migration required.
+The message remains readable in the log line, while `jobs`, code location, severity and trace correlation are available as record details in Grafana. FastAPI tracing omits `/health` and low-level ASGI `send` / `receive` spans so request traces focus on application, database and outbound HTTP work.
 
 ## Day-trade detection
 

@@ -1,46 +1,32 @@
-# 🗺️ Project Roadmap - Home Inventory System
+# 🗺️ Home Service Hub Roadmap
 
-這個文件記錄了系統從基礎建設到企業級架構的演進路徑。我們目前的進度已完成 **Phase 0**。
+這份 roadmap 以家用、單機部署的實際需求為準。架構會保留清楚的服務邊界，但不為尚未出現的高併發、可靠事件投遞或多實例一致性需求預先增加基礎設施。
 
----
+## ✅ 已完成：可用的家庭服務中樞
 
-## 🟢 Phase 0: 基礎建設與可觀測性 (Completed)
-*打好地基，確保開發流暢且系統透明。*
-- [x] **Docker 化基礎設施**: PostgreSQL, MinIO, RabbitMQ, Grafana (LGTM Stack)。
-- [x] **環境變數同步機制**: 實作 `.env` 單一來源，跨 Java 與 Angular 自動同步。
-- [x] **全鏈路分散式追蹤 (E2E Tracing)**: 實作 Browser -> Dev Proxy -> Spring Boot -> DB 的追蹤。
-- [x] **開發無痕化**: 透過 Proxy 解決遠端開發連線問題，不暴露敏感 IP。
+- [x] **核心服務**：庫存、記帳與台股投資組合各自提供 API 與資料模型。
+- [x] **統一入口**：Angular frontend 與 Spring Cloud Gateway 提供瀏覽器及 AI Agent 的單一入口。
+- [x] **認證與授權**：Keycloak、OIDC/JWT、PKCE、service account、scope 路由及後端雙層驗證。
+- [x] **資料與物件儲存**：PostgreSQL 儲存業務資料；MinIO 儲存庫存圖片，瀏覽器經同源 `/minio` 路徑存取。
+- [x] **排程與短期快取**：台股服務以 APScheduler 執行行情、股利與快照工作，並以 in-process cache 降低外部 API 請求。
+- [x] **診斷基礎**：OpenTelemetry Collector 將 logs 送至 Loki、traces 送至 Tempo，並由 Grafana 統一查閱。
 
----
+## 🟡 近期：操作性與可靠性
 
-## 🟡 Phase 1: 核心業務與系統強健性 (Active)
-*讓現有的 CRUD 具備生產等級的穩定度。*
-- [ ] **後端精細化驗證 (Validation)**: 使用 `jakarta.validation` 確保數據完整性。
-- [ ] **全域錯誤處理 (Global Exception Handling)**: 實作標準化錯誤響應格式。
-- [ ] **前端響應式表單 (Reactive Forms)**: 優化 `item-form`，整合後端驗證錯誤顯示。
-- [ ] **單元測試與集成測試**: 補齊核心 Service 的 JUnit 5 測試。
+- [x] **Grafana Operations dashboard**：已驗證服務篩選、錯誤／警告、即時日誌查詢，以及 Loki 重啟後的資料持久性。
+- [ ] **備份與還原演練**：記錄並驗證 PostgreSQL、MinIO、Keycloak 與必要設定的家庭環境復原流程。
+- [ ] **排程結果可見性**：讓每日行情、股利與資產快照工作的開始、完成、筆數、耗時及失敗原因能從結構化日誌快速查找。
 
----
+## 🟣 下一階段：跨服務業務整合
 
-## 🔵 Phase 2: 非文字數據與物件儲存
-*引入圖片管理，增加庫存系統的實用性。*
-- [ ] **MinIO 整合**: 實作圖片/文件上傳介面與 API。
-- [ ] **Presigned URLs**: 實作安全的私有圖片存取機制。
-- [ ] **檔案處理服務**: 實作縮圖生成或格式轉換。
+- [ ] **投資與記帳串接**：將股票買賣、股利及相關現金流連動至記帳服務。第一版採同步 API，讓使用者能立即知道成功或失敗。
+- [ ] **重複執行保護**：為跨服務寫入定義 idempotency key、重試邊界與人工修復方式，避免重複記帳。
+- [ ] **可追查的業務鏈**：實作上述流程時，補齊 Browser／Agent → Gateway → backend 的 trace propagation，並建立對應 Grafana 操作視圖。
 
----
+## 🔵 需求出現後再評估
 
-## 🟣 Phase 3: 異步架構與微服務解耦
-*邁向事件驅動架構 (Event-Driven Architecture)。*
-- [ ] **RabbitMQ 整合**: 實作核心業務的 Domain Events。
-- [ ] **Audit Service**: 建立獨立的審計微服務，非同步記錄系統變動。
-- [ ] **跨服務追蹤挑戰**: 實作 Trace Context 透過 Message Queue 傳遞。
+- **背景工作佇列**：只有在工作不能遺失、必須可靠重試、或同步等待已不可接受時才導入。
+- **共享快取／共享限流狀態**：只有在多實例部署或量測確認瓶頸後才導入。
+- **完整 metrics 與告警系統**：只有在需要長期趨勢、SLO、容量規劃或主動告警時才導入。
 
----
-
-## 🔴 Phase 4: 效能優化與邊界安全
-*處理高併發情境與系統防禦。*
-- [ ] **Redis Caching**: 為熱門查詢實作快取機制。
-- [ ] **API Gateway**: 使用 Spring Cloud Gateway 統一入口。
-- [ ] **Rate Limiting**: 實作 API 限流防止暴力攻擊。
-- [ ] **性能監控儀表板**: 在 Grafana 實作前端 RUM (Real User Monitoring) 面板。
+每一項新基礎設施都必須對應一個已確認的使用情境、失敗模式與驗收方式；學習性實驗可獨立保存，不必成為核心服務的常駐依賴。

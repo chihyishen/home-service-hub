@@ -8,7 +8,7 @@ distributor:
   otlp_config: {}
 
 common:
-  path_prefix: /tmp/loki
+  path_prefix: /loki
   replication_factor: 1
   ring:
     instance_addr: 127.0.0.1
@@ -16,8 +16,8 @@ common:
       store: inmemory
   storage:
     filesystem:
-      chunks_directory: /tmp/loki/chunks
-      rules_directory: /tmp/loki/rules
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
 
 schema_config:
   configs:
@@ -31,8 +31,15 @@ schema_config:
 
 storage_config:
   tsdb_shipper:
-    active_index_directory: /tmp/loki/tsdb-index
-    cache_location: /tmp/loki/tsdb-cache
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
 
 limits_config:
   allow_structured_metadata: true
+  retention_period: 168h
+
+compactor:
+  working_directory: /loki/retention
+  compaction_interval: 10m
+  retention_enabled: true
+  delete_request_store: filesystem

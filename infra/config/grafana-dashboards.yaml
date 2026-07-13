@@ -1,0 +1,19 @@
+apiVersion: 1
+
+providers:
+  - name: Home Service Hub
+    orgId: 1
+    folder: Operations
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards/home-service-hub
+  - name: Streamer DVR
+    orgId: 1
+    folder: Streamer DVR
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards/streamer-dvr

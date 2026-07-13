@@ -1,5 +1,7 @@
 import os
 
+from fastapi import FastAPI
+from shared_lib import tracing
 from shared_lib.tracing import setup_tracing
 
 
@@ -14,3 +16,21 @@ def test_setup_tracing_no_live_exporter_under_pytest():
     # ponytail: peek the internal processor list -- the point is that nothing is
     # exporting, and OTel exposes no public getter for that.
     assert provider._active_span_processor._span_processors == ()
+
+
+def test_fastapi_tracing_excludes_health_and_asgi_transport_spans(monkeypatch):
+    os.environ["OTEL_COLLECTOR_ENDPOINT_GRPC"] = "http://localhost:4317"
+    captured = {}
+
+    def capture_instrumentation(app, **kwargs):
+        captured["app"] = app
+        captured.update(kwargs)
+
+    monkeypatch.setattr(tracing.FastAPIInstrumentor, "instrument_app", capture_instrumentation)
+
+    app = FastAPI()
+    setup_tracing("OTEL_SERVICE_NAME_X", "svc", strict=True, app=app)
+
+    assert captured["app"] is app
+    assert captured["excluded_urls"] == r".*/health$"
+    assert captured["exclude_spans"] == ["send", "receive"]

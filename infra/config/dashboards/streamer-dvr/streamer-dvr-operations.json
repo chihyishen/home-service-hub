@@ -1,0 +1,140 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "text",
+      "id": 1,
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "options": {
+        "mode": "markdown",
+        "content": "# Streamer DVR\n錄影作業診斷台：先確認成功與失敗，再依頻道或事件類型定位，最後下鑽單筆事件。SQLite 仍是原始紀錄；此處為 best-effort telemetry。"
+      },
+      "title": "",
+      "transparent": true
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "錯誤事件",
+      "description": "所選時間範圍內的所有 ERROR 業務事件。",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 4},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}, "decimals": 0}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
+      "targets": [{"refId": "A", "queryType": "instant", "editorMode": "code", "expr": "sum(count_over_time({service_name=\"streamer-dvr\"} | json | level=\"ERROR\" | channel_id=~\"$channel_id\" | event_type=~\"$event_type\" [$__range])) or vector(0)"}]
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "成功錄影",
+      "description": "所選時間範圍內完成的錄影 session。",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 4},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "green"}, "decimals": 0}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
+      "targets": [{"refId": "A", "queryType": "instant", "editorMode": "code", "expr": "sum(count_over_time({service_name=\"streamer-dvr\"} | json | event_type=\"recording_session_completed\" | channel_id=~\"$channel_id\" [$__range])) or vector(0)"}]
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "錄影失敗",
+      "description": "錄影 session 流程產生的 ERROR 事件。",
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 4},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}, "decimals": 0}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
+      "targets": [{"refId": "A", "queryType": "instant", "editorMode": "code", "expr": "sum(count_over_time({service_name=\"streamer-dvr\"} | json | level=\"ERROR\" | event_type=~\"recording_session_.*\" | channel_id=~\"$channel_id\" | event_type=~\"$event_type\" [$__range])) or vector(0)"}]
+    },
+    {
+      "type": "timeseries",
+      "id": 5,
+      "title": "事件活動趨勢",
+      "description": "依 severity 區分事件量，辨識異常尖峰或長時間靜默。",
+      "gridPos": {"h": 8, "w": 14, "x": 0, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never"}}, "overrides": []},
+      "targets": [
+        {"refId": "A", "queryType": "range", "editorMode": "code", "expr": "sum(count_over_time({service_name=\"streamer-dvr\"} | json | level=\"INFO\" | channel_id=~\"$channel_id\" | event_type=~\"$event_type\" [$__auto]))", "legendFormat": "info"},
+        {"refId": "B", "queryType": "range", "editorMode": "code", "expr": "sum(count_over_time({service_name=\"streamer-dvr\"} | json | level=~\"ERROR|WARN\" | channel_id=~\"$channel_id\" | event_type=~\"$event_type\" [$__auto]))", "legendFormat": "attention"}
+      ]
+    },
+    {
+      "type": "barchart",
+      "id": 6,
+      "title": "失敗事件類型",
+      "description": "先辨識最常出現的失敗類型，再查看個別事件。",
+      "gridPos": {"h": 8, "w": 10, "x": 14, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}}, "overrides": []},
+      "options": {"orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showValue": "auto"},
+      "targets": [{"refId": "A", "queryType": "instant", "editorMode": "code", "expr": "sum by (event_type) (count_over_time({service_name=\"streamer-dvr\"} | json | level=\"ERROR\" | channel_id=~\"$channel_id\" | event_type=~\"$event_type\" [$__range]))", "legendFormat": "{{event_type}}"}]
+    },
+    {
+      "type": "logs",
+      "id": 7,
+      "title": "最近需要處理",
+      "description": "最新 ERROR 事件；展開 details 可查看頻道、事件類型與 metadata。",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "options": {"deduplication": true, "enableLogDetails": true, "prettifyLogMessage": true, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLines": true},
+      "targets": [{"refId": "A", "queryType": "range", "editorMode": "code", "expr": "{service_name=\"streamer-dvr\"} | json | level=\"ERROR\" | channel_id=~\"$channel_id\" | event_type=~\"$event_type\""}]
+    },
+    {
+      "type": "logs",
+      "id": 8,
+      "title": "完整事件串流",
+      "description": "依頻道與事件類型篩選所有結構化事件。",
+      "gridPos": {"h": 14, "w": 24, "x": 0, "y": 26},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "options": {"deduplication": true, "enableLogDetails": true, "prettifyLogMessage": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLines": false},
+      "targets": [{"refId": "A", "queryType": "range", "editorMode": "code", "expr": "{service_name=\"streamer-dvr\"} | json | channel_id=~\"$channel_id\" | event_type=~\"$event_type\""}]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["streamer-dvr", "operations", "recording"],
+  "templating": {
+    "list": [
+      {
+        "name": "channel_id",
+        "label": "頻道",
+        "type": "query",
+        "datasource": {"type": "loki", "uid": "loki"},
+        "query": "query_result(sum by (channel_id) (count_over_time({service_name=\"streamer-dvr\"} | json | channel_id != \"\" [$__range])))",
+        "definition": "query_result(sum by (channel_id) (count_over_time({service_name=\"streamer-dvr\"} | json | channel_id != \"\" [$__range])))",
+        "regex": "/channel_id=\\\"([^\\\"]+)\\\"/",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "current": {"text": "全部頻道", "value": ["$__all"]},
+        "options": []
+      },
+      {
+        "name": "event_type",
+        "label": "事件類型",
+        "type": "query",
+        "datasource": {"type": "loki", "uid": "loki"},
+        "query": "query_result(sum by (event_type) (count_over_time({service_name=\"streamer-dvr\"} | json | event_type != \"\" [$__range])))",
+        "definition": "query_result(sum by (event_type) (count_over_time({service_name=\"streamer-dvr\"} | json | event_type != \"\" [$__range])))",
+        "regex": "/event_type=\\\"([^\\\"]+)\\\"/",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "current": {"text": "全部事件", "value": ["$__all"]},
+        "options": []
+      }
+    ]
+  },
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {"refresh_intervals": ["30s", "1m", "5m", "15m"], "time_options": ["1h", "6h", "12h", "24h", "2d", "7d"]},
+  "timezone": "browser",
+  "title": "Streamer DVR · Operations",
+  "uid": "streamer-dvr-ops",
+  "version": 1,
+  "weekStart": "monday"
+}

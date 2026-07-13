@@ -25,7 +25,6 @@ dependencies {
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("com.bucket4j:bucket4j_jdk17-core:8.15.0")
     implementation("com.github.ben-manes.caffeine:caffeine")
-    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
 }

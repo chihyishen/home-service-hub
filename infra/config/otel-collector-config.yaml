@@ -5,6 +5,23 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  filelog/streamer_dvr:
+    include:
+      - /var/log/streamer-dvr/*.out.log
+    start_at: end
+    include_file_path: true
+    operators:
+      - type: json_parser
+        id: parse_streamer_dvr_event
+        parse_from: body
+        parse_to: attributes
+        on_error: drop
+      - type: severity_parser
+        id: parse_streamer_dvr_level
+        parse_from: attributes.level
+      - type: add
+        field: resource["service.name"]
+        value: streamer-dvr
 
 exporters:
   debug:
@@ -15,10 +32,6 @@ exporters:
     tls:
       insecure: true
   
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    namespace: "spring_boot_4"
-
   otlp_http/loki:
     endpoint: "http://loki:3100/otlp"
     tls:
@@ -40,11 +53,7 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp_grpc]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus]
     logs:
-      receivers: [otlp]
+      receivers: [otlp, filelog/streamer_dvr]
       processors: [transform, batch]
       exporters: [otlp_http/loki] # 移除 debug，僅發送到 Loki

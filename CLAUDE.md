@@ -22,14 +22,14 @@ The Angular dev server proxies API calls via `frontend/proxy.conf.js`:
 - `/api/accounting` → accounting-service (path rewritten, strips `/api/accounting` prefix)
 - `/api/portfolio` → stock-portfolio-service
 
-All services connect to a shared PostgreSQL instance (separate databases per service). Observability is via OpenTelemetry → OTel Collector → Tempo/Loki/Prometheus/Grafana.
+All services connect to a shared PostgreSQL instance (separate databases per service). Observability is via OpenTelemetry → OTel Collector → Tempo/Loki/Grafana.
 
 ## Common Commands
 
 ### Infrastructure
 ```bash
 cp .env.example .env          # first-time setup
-docker compose up -d           # start Postgres, RabbitMQ, MinIO, LGTM stack
+docker compose up -d           # start Postgres, MinIO, and the always-on logs/traces stack
 ```
 
 ### Inventory API (Java/Spring Boot)

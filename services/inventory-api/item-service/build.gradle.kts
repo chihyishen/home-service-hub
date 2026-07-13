@@ -42,7 +42,7 @@ dependencies {
     // 4.2 Validation
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
-    // 4.3 Actuator (health + metrics)
+    // 4.3 Actuator (health)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
