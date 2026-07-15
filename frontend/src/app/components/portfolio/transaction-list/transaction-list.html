@@ -82,7 +82,7 @@
           <div class="amount-text" [class]="{'txn-type-buy': t.type === 'BUY', 'txn-type-sell': t.type === 'SELL'}">
             {{ allInTotal(t) | currency:'TWD':'symbol':'1.0-0' }}
           </div>
-          <div class="sub-text">{{ t.quantity | number }} 股 @ {{ allInUnitPrice(t) | number:'1.2-2' }}</div>
+          <div class="sub-text">{{ t.quantity | number }} 股 @ {{ t.price | number:'1.2-2' }}</div>
         </div>
       </ng-container>
     </app-list-item>
