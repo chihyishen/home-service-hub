@@ -45,7 +45,17 @@ export class PortfolioDashboardComponent implements OnInit {
   expandedSymbols = signal<Set<string>>(new Set());
 
   ngOnInit() {
-    this.loadSummary();
+    this.loading.set(true);
+    this.portfolioService.getSummary().subscribe({
+      next: (data) => {
+        this.summary.set(data);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load portfolio summary', err);
+        this.loading.set(false);
+      },
+    });
     this.loadExDividends();
   }
 
@@ -90,7 +100,7 @@ export class PortfolioDashboardComponent implements OnInit {
   }
 
   private pollRecalcStatus(): void {
-    interval(1000)
+    interval(2000)
       .pipe(
         switchMap(() => this.portfolioService.getRecalcStatus()),
         takeWhile(

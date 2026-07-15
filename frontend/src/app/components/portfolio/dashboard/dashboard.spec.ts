@@ -57,7 +57,6 @@ describe('PortfolioDashboardComponent', () => {
     const fixture = TestBed.createComponent(PortfolioDashboardComponent);
     const component = fixture.componentInstance;
     const chartReload = vi.fn();
-    portfolioService.refreshQuotes.mockReturnValueOnce(of(null));
     fixture.detectChanges();
     component.chart = { reload: chartReload } as unknown as NetworthChartComponent;
     portfolioService.refreshQuotes.mockClear();
@@ -65,13 +64,23 @@ describe('PortfolioDashboardComponent', () => {
     portfolioService.getSummary.mockClear();
     chartReload.mockClear();
 
-    return { fixture, chartReload };
+    return { fixture, component, chartReload };
   }
 
   function clickRefresh(fixture: ReturnType<typeof TestBed.createComponent<PortfolioDashboardComponent>>) {
     const button = fixture.nativeElement.querySelector('.refresh-trigger') as HTMLButtonElement;
     button.click();
   }
+
+  it('loads the summary on initial mount without refreshing quotes or polling status', () => {
+    const fixture = TestBed.createComponent(PortfolioDashboardComponent);
+
+    fixture.detectChanges();
+
+    expect(portfolioService.getSummary).toHaveBeenCalledTimes(1);
+    expect(portfolioService.refreshQuotes).not.toHaveBeenCalled();
+    expect(portfolioService.getRecalcStatus).not.toHaveBeenCalled();
+  });
 
   it('refreshes quotes, polls until completed, then reloads summary and chart', () => {
     portfolioService.refreshQuotes.mockReturnValue(
@@ -82,14 +91,16 @@ describe('PortfolioDashboardComponent', () => {
       }),
     );
     portfolioService.getRecalcStatus.mockReturnValue(of({ state: 'completed' }));
-    const { fixture, chartReload } = createFixture();
+    const { fixture, component, chartReload } = createFixture();
 
     clickRefresh(fixture);
 
     expect(portfolioService.refreshQuotes).toHaveBeenCalledTimes(1);
     expect(portfolioService.getSummary).not.toHaveBeenCalled();
+    expect(component.summary()).toBe(summary);
+    expect(component.loading()).toBe(true);
 
-    vi.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(2000);
 
     expect(portfolioService.getRecalcStatus).toHaveBeenCalledTimes(1);
     expect(portfolioService.getSummary).toHaveBeenCalledTimes(1);

@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  @if (loading()) {
+  @if (loading() && !summary()) {
     <div class="hub-bento-grid">
       @for (i of [1,2,3,4]; track i) {
         <div class="bento-item">
