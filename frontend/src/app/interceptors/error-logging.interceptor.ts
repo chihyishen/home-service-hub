@@ -6,8 +6,12 @@ import { MessageService } from 'primeng/api';
 
 export const errorLoggingInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(MessageService);
-  return next(req).pipe(
-    retry(1),
+  const request$ = next(req);
+  const retryableRequest$ = req.method === 'GET' || req.method === 'HEAD'
+    ? request$.pipe(retry(1))
+    : request$;
+
+  return retryableRequest$.pipe(
     catchError((error: HttpErrorResponse) => {
       // 獲取當前 OpenTelemetry 的 Context 與 Span
       const activeSpan = trace.getSpan(context.active());
@@ -39,4 +43,3 @@ export const errorLoggingInterceptor: HttpInterceptorFn = (req, next) => {
     })
   );
 };
-

@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig {
 
-    @Value("${ALLOWED_ORIGINS:http://localhost:4200,http://192.168.0.100:4200}")
+    @Value("${ALLOWED_ORIGINS:http://localhost:4200,http://192.168.0.100:4200,https://localhost:4200,https://192.168.0.100:4200}")
     private String allowedOrigins;
 
     @Bean
