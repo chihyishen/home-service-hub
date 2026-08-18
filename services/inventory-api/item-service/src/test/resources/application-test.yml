@@ -4,3 +4,7 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+
+storage:
+  images:
+    directory: ${java.io.tmpdir}/inventory-images-test

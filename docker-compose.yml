@@ -1,6 +1,6 @@
 x-internal-no-proxy-env: &internal-no-proxy-env
-  NO_PROXY: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,minio,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-minio,inventory-otel-collector"
-  no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,minio,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-minio,inventory-otel-collector"
+  NO_PROXY: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-otel-collector"
+  no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-otel-collector"
 
 services:
   keycloak-postgres:
@@ -70,7 +70,6 @@ services:
       GATEWAY_INVENTORY_URI: http://inventory-item-service:8080
       GATEWAY_ACCOUNTING_URI: http://accounting-service:8000
       GATEWAY_PORTFOLIO_URI: http://stock-portfolio-service:8001
-      GATEWAY_MINIO_URI: http://minio:9000
       GATEWAY_OTLP_URI: http://otel-collector:4318
       OIDC_ISSUER_URI: ${OIDC_ISSUER_URI}
       OIDC_AUDIENCE: ${OIDC_AUDIENCE:-home-service-api}
@@ -130,8 +129,11 @@ services:
       - SECURITY_OAUTH2_ISSUER_URI=${OIDC_ISSUER_URI}
       - SECURITY_OAUTH2_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
       - SECURITY_OAUTH2_JWK_SET_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
+      - INVENTORY_IMAGE_STORAGE_DIR=/data/inventory-images
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${INVENTORY_ITEM_SERVICE_PORT}:8080"
+    volumes:
+      - ./infra/inventory-images:/data/inventory-images
     depends_on:
       postgres:
         condition: service_healthy
@@ -256,22 +258,6 @@ services:
       - ./infra/config/grafana-config.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./infra/config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
       - ./infra/config/dashboards:/var/lib/grafana/dashboards:ro
-    networks:
-      - inventory-net
-
-  # --- 6. 物件儲存 (MinIO) ---
-  minio:
-    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-    container_name: inventory-minio
-    ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:9000:9000"
-      - "${INFRA_BIND_HOST:-127.0.0.1}:9001:9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    volumes:
-      - ./infra/minio-data:/data
     networks:
       - inventory-net
 

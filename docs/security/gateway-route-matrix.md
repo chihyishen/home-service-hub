@@ -13,7 +13,7 @@ Unknown routes and methods are denied by default. Backend actuator and API docum
 | `/api/portfolio/**` | GET, HEAD | Portfolio, path preserved | `portfolio.read` |
 | `/api/portfolio/**` | POST, PUT, PATCH | Portfolio, path preserved | `portfolio.write` |
 | `/api/portfolio/**` | DELETE | Portfolio, path preserved | `household-admin` and `portfolio.write` |
-| `/minio/inventory-items/**` | GET, HEAD | MinIO, `/minio` stripped | Public compatibility route |
+| `/minio/inventory-items/**` | GET, HEAD | Inventory, `/minio` stripped | Public compatibility route |
 | `/otlp/v1/traces` | POST | Collector, `/otlp` stripped | Public compatibility route |
 | `/actuator/health/liveness` | GET | Gateway local endpoint | Operator loopback only |
 | `/actuator/health/readiness` | GET | Gateway local endpoint | Operator loopback only |

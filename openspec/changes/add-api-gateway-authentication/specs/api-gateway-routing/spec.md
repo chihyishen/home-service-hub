@@ -35,7 +35,7 @@ The gateway SHALL define separate constrained policies for browser telemetry and
 
 #### Scenario: Inventory image mutation attempt
 - **WHEN** a client sends a mutating method to `/minio/inventory-items/**`
-- **THEN** the gateway SHALL reject the request without forwarding it to MinIO
+- **THEN** the gateway SHALL reject the request without forwarding it to inventory image storage
 
 #### Scenario: Browser telemetry submission
 - **WHEN** the frontend submits telemetry to `/otlp/**` within configured method, content-type, and body-size limits

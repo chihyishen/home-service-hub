@@ -41,7 +41,7 @@ graph TD
     %% 5. 資料層
     subgraph Data_Layer [持久化與儲存層]
         Postgres[(PostgreSQL)]
-        MinIO[MinIO Object Storage]
+        Images[Local image directory]
     end
 
     %% 6. 可觀測性層
@@ -68,7 +68,7 @@ graph TD
     Inventory --> Postgres
     Accounting --> Postgres
     Stock --> Postgres
-    Inventory -.-> MinIO
+    Inventory -.-> Images
 
     %% 可觀測性流
     Inventory -.->|OTLP| Collector
@@ -92,7 +92,7 @@ graph TD
 - **Python Logs 與 Traces**: Python 服務以標準 `logging` 搭配 OpenTelemetry 輸出日誌；FastAPI trace 只保留 request root span，省略 ASGI `send` / `receive` 細節與 `/health`，讓 Grafana 的結構更接近應用流程。
 - **Streamer DVR operations**: `STREAMER_DVR_LOG_DIR` 預設指向相鄰的 `../streamer-dvr/logs/`；Compose 只會以 read-only 方式將它掛載給 OTel Collector。Collector 解析其中的 JSONL 業務事件後送入 Loki；Grafana 的 `Streamer DVR · Operations` 位於獨立 folder，SQLite 與 Streamer DVR Vue Logs 頁面不受影響。
 - **AI 驅動記帳系統**: 支援自然語言解析，自動將口語化描述轉化為精確的財務交易。
-- **智慧庫存與投資**: 整合物件儲存 (MinIO) 管理實體物資，並自動抓取即時台股數據；台股組合支援 CSV 匯入、每日 OHLC 回填、除權息事件抓取、減資/分割自動調整成本基礎，以及當沖標記推導。
+- **智慧庫存與投資**: 整合物件儲存（本機圖片目錄）管理實體物資，並自動抓取即時台股數據；台股組合支援 CSV 匯入、每日 OHLC 回填、除權息事件抓取、減資/分割自動調整成本基礎，以及當沖標記推導。
 - **In-process Scheduler**: 台股組合服務內建 APScheduler，每日 17:00 回補 TWSE/TPEx 收盤、盤中每 15 分鐘刷新報價、15:30 寫入淨值快照。可透過 `SCHEDULER_ENABLED=false` 關閉。
 
 ## 🚀 快速開始 (Getting Started)
@@ -120,15 +120,15 @@ graph TD
 
 ### 4. 本機安全預設
 
-- Compose 發佈的基礎設施與後端服務預設只綁定 loopback。`INFRA_BIND_HOST` 控制 PostgreSQL、OTel、Tempo、Loki 與 MinIO；`APP_BIND_HOST` 控制三個後端 API。除非已有明確的防火牆或 Gateway 規則，請勿改成 `0.0.0.0`。
+- Compose 發佈的基礎設施與後端服務預設只綁定 loopback。`INFRA_BIND_HOST` 控制 PostgreSQL、OTel、Tempo 與 Loki；`APP_BIND_HOST` 控制三個後端 API。除非已有明確的防火牆或 Gateway 規則，請勿改成 `0.0.0.0`。
 - Grafana 固定保留 `127.0.0.1:3000`，並可透過 `GRAFANA_VPN_BIND_HOST` 增加第二個受信任入口。當 WireGuard Server 位於家用路由器時，將它設成主機的 LAN IP；本機目前使用 `192.168.0.100`，VPN client 即可開啟 `http://192.168.0.100:3000`。這個入口不經過 Gateway，且不會連帶開放其他基礎設施服務。
 - PM2 啟動的 Accounting、Stock backends 與 Gateway 都只綁定 `127.0.0.1`；Frontend（HTTPS）維持 VPN/LAN 可達，作為唯一瀏覽器入口，API 流量經其 proxy 進入 Gateway。Keycloak 綁定 LAN（`IDENTITY_BIND_HOST`），供瀏覽器登入跳轉使用。
 - Inventory 在本機直接啟動時由 `INVENTORY_SERVER_ADDRESS` 控制監聽位址，預設 `127.0.0.1`。Compose 會在容器內覆寫為 `0.0.0.0`，但 host 端仍只發佈至 `APP_BIND_HOST`。
 - Inventory 的 OpenAPI 與 Swagger UI 預設關閉。僅在受信任的除錯環境設 `INVENTORY_API_DOCS_ENABLED=true` 開啟。
 - SQL query text、parameter values 與 query arguments 預設不進入觀測資料。除錯時可分別使用 `INVENTORY_SQL_QUERY_TEXT_ENABLED`、`INVENTORY_SQL_PARAMETER_VALUES_ENABLED`、`INVENTORY_SQL_QUERY_ARGUMENTS_ENABLED` 顯式開啟；Hibernate SQL logger 另由 `INVENTORY_HIBERNATE_SQL_LOG_LEVEL` 控制，預設 `OFF`。這些內容可能包含敏感資料。
 - HTTP query string、request payload 與 Logbook 完整 request/response logging 預設關閉。僅在受信任的短期除錯環境分別使用 `INVENTORY_HTTP_QUERY_LOGGING_ENABLED=true`、`INVENTORY_HTTP_PAYLOAD_LOGGING_ENABLED=true` 或調高 `INVENTORY_LOGBOOK_LOG_LEVEL`；完成後應立即恢復安全預設。
-- `MINIO_ENDPOINT=http://127.0.0.1:9000` 是 Inventory backend SDK 使用的內部端點；`MINIO_PUBLIC_ENDPOINT=/minio` 是瀏覽器使用的同源路徑，由 Frontend proxy 轉送至 loopback MinIO，因此不需要將 port 9000 開放至 LAN。
-- `.env.example` 只提供 placeholder。請在未納入版本控制的 `.env` 中自行設定實際密碼；修改 template 不會輪替現有 PostgreSQL、Grafana 或 MinIO 帳密。
+- `INVENTORY_IMAGE_STORAGE_DIR` 是 Inventory 寫入圖片的本機目錄。`INVENTORY_IMAGE_PUBLIC_ENDPOINT=/minio` 是瀏覽器同源路徑（保留舊 URL），由 Frontend proxy 轉到 Gateway，再轉到 inventory-api 的 `/inventory-items/**`。
+- `.env.example` 只提供 placeholder。請在未納入版本控制的 `.env` 中自行設定實際密碼；修改 template 不會輪替現有 PostgreSQL 或 Grafana 帳密。
 
 ## 🗺 發展路線 (Roadmap)
 
@@ -137,7 +137,7 @@ graph TD
 - [x] **後端強制驗證 cutover**: 三個後端已逐服務開啟 `AUTH_ENFORCEMENT_ENABLED`，與 gateway 形成雙層防禦。
 - [ ] **Python 觀測性優化**: 完善 Python 服務的 Trace 欄位與 Context 傳遞。
 - [x] **後端精細化驗證**: `jakarta.validation` 已用於 Java 端 DTO 與 Controller 驗證。
-- [x] **MinIO 完整整合**: 圖片上傳已實作。原規劃的 Presigned URL 改為同源 `/minio` proxy（免開放 9000 port）、縮圖改由前端上傳前壓縮取代。
+- [x] **庫存圖片儲存**: 圖片上傳已實作。物件存本機目錄，瀏覽器走同源 `/minio` proxy；縮圖由前端上傳前壓縮。
 
 ### 🟣 Phase 3: 跨服務業務整合 (Planned)
 - [ ] **投資與記帳串接**: 將投資交易產生的現金流與既有記帳規則串接；第一版採同步 API，讓使用者能立即看見成功或失敗。

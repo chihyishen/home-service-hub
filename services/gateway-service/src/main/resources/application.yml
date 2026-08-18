@@ -41,7 +41,7 @@ spring:
               uri: ${GATEWAY_PORTFOLIO_URI:http://127.0.0.1:8001}
               predicates: [Path=/api/portfolio/**]
             - id: inventory-images
-              uri: ${GATEWAY_MINIO_URI:http://127.0.0.1:9000}
+              uri: ${GATEWAY_INVENTORY_URI:http://127.0.0.1:8080}
               predicates: [Path=/minio/inventory-items/**, "Method=GET,HEAD"]
               filters: [StripPrefix=1]
             - id: browser-otlp

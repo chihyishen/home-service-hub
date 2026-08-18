@@ -29,7 +29,7 @@ All services connect to a shared PostgreSQL instance (separate databases per ser
 ### Infrastructure
 ```bash
 cp .env.example .env          # first-time setup
-docker compose up -d           # start Postgres, MinIO, and the always-on logs/traces stack
+docker compose up -d           # start Postgres and the always-on logs/traces stack
 ```
 
 ### Inventory API (Java/Spring Boot)

@@ -40,6 +40,7 @@ public class ResourceServerSecurityConfig {
     SecurityFilterChain inventorySecurity(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**").permitAll()
+                .requestMatchers("/inventory-items/**").permitAll()
                 .requestMatchers("/api/items/**", "/api/shopping-list/**").access((authentication, context) -> {
                     String suffix = switch (context.getRequest().getMethod()) { case "GET", "HEAD" -> "read"; default -> "write"; };
                     boolean allowed = authentication.get().getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("SCOPE_inventory." + suffix));

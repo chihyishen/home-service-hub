@@ -14,7 +14,8 @@ import org.springframework.test.context.ActiveProfiles;
         "spring.flyway.enabled=false",
         "spring.jpa.show-sql=false",
         "management.tracing.enabled=false",
-        "management.otlp.tracing.endpoint=http://localhost:4318/v1/traces"
+        "management.otlp.tracing.endpoint=http://localhost:4318/v1/traces",
+        "storage.images.directory=${java.io.tmpdir}/inventory-images-test"
 })
 @ActiveProfiles("test")
 public abstract class IntegrationTestBase {

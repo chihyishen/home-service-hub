@@ -1,92 +1,121 @@
 package com.inventory.item.service;
 
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
-import io.minio.SetBucketPolicyArgs;
-import lombok.RequiredArgsConstructor;
+import com.inventory.item.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class StorageService {
 
-    private final MinioClient minioClient;
+    private final Path storageDirectory;
+    private final String publicEndpoint;
+    private final String publicPrefix;
 
-    @Value("${minio.bucket-name}")
-    private String bucketName;
-
-    @Value("${minio.public-endpoint}")
-    private String publicEndpoint;
-
-    public String uploadFile(MultipartFile file) {
+    public StorageService(
+            @Value("${storage.images.directory}") String storageDirectory,
+            @Value("${storage.images.public-endpoint:/minio}") String publicEndpoint,
+            @Value("${storage.images.public-prefix:inventory-items}") String publicPrefix) {
+        this.storageDirectory = Path.of(storageDirectory).toAbsolutePath().normalize();
+        this.publicEndpoint = publicEndpoint.endsWith("/")
+                ? publicEndpoint.substring(0, publicEndpoint.length() - 1)
+                : publicEndpoint;
+        this.publicPrefix = publicPrefix;
         try {
-            // 1. Check if bucket exists
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-            if (!found) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-                // Set policy to public read
-                String policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::" + bucketName + "/*\"]}]}";
-                minioClient.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(bucketName).config(policy).build());
-            }
-
-            // 2. Generate unique filename
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String objectName = UUID.randomUUID().toString() + extension;
-
-            // 3. Upload
-            try (InputStream inputStream = file.getInputStream()) {
-                minioClient.putObject(
-                        PutObjectArgs.builder()
-                                .bucket(bucketName)
-                                .object(objectName)
-                                .stream(inputStream, file.getSize(), -1)
-                                .contentType(file.getContentType())
-                                .build());
-            }
-
-            // 4. Return the browser-facing same-origin URL, not the SDK endpoint.
-            String baseUrl = publicEndpoint.endsWith("/") ? publicEndpoint.substring(0, publicEndpoint.length() - 1) : publicEndpoint;
-            return String.format("%s/%s/%s", baseUrl, bucketName, objectName);
-
-        } catch (Exception e) {
-            log.error("Error uploading file to MinIO", e);
-            throw new RuntimeException("Failed to upload file to MinIO", e);
+            Files.createDirectories(this.storageDirectory);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to create image storage directory: " + this.storageDirectory, e);
         }
     }
+
+    public String uploadFile(MultipartFile file) {
+        String extension = extensionOf(file.getOriginalFilename());
+        String objectName = UUID.randomUUID() + extension;
+        Path destination = resolveSafe(objectName);
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, destination);
+        } catch (Exception e) {
+            log.error("Error writing uploaded image", e);
+            throw new RuntimeException("Failed to store uploaded image", e);
+        }
+        return String.format("%s/%s/%s", publicEndpoint, publicPrefix, objectName);
+    }
+
     public void deleteFile(String fileUrl) {
         if (fileUrl == null || fileUrl.isEmpty()) {
             return;
         }
         try {
-            // Extract object name from URL
-            // URL: http://host:port/bucket/objectName
-            // We need to be careful if URL structure changes.
-            // Assuming standard MinIO URL structure.
             String[] parts = fileUrl.split("/");
-            String objectName = parts[parts.length - 1];
-
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectName)
-                            .build());
+            Path target = resolveSafe(parts[parts.length - 1]);
+            Files.deleteIfExists(target);
         } catch (Exception e) {
-            log.error("Error deleting file from MinIO: {}", fileUrl, e);
-            // We log but don't throw, as deletion failure shouldn't block main logic
+            log.error("Error deleting stored image: {}", fileUrl, e);
         }
     }
+
+    public StoredImage loadFile(String filename) {
+        Path path = resolveSafe(filename);
+        if (!Files.isRegularFile(path)) {
+            throw new ResourceNotFoundException("Image not found");
+        }
+        try {
+            return new StoredImage(new FileSystemResource(path), contentType(path), Files.size(path));
+        } catch (IOException e) {
+            throw new ResourceNotFoundException("Image not found");
+        }
+    }
+
+    private Path resolveSafe(String filename) {
+        if (filename == null || filename.isBlank() || filename.contains("/") || filename.contains("\\")
+                || filename.contains("..")) {
+            throw new ResourceNotFoundException("Image not found");
+        }
+        Path resolved = storageDirectory.resolve(filename).normalize();
+        if (!resolved.startsWith(storageDirectory)) {
+            throw new ResourceNotFoundException("Image not found");
+        }
+        return resolved;
+    }
+
+    private static String extensionOf(String originalFilename) {
+        if (originalFilename != null && originalFilename.contains(".")) {
+            return originalFilename.substring(originalFilename.lastIndexOf('.'));
+        }
+        return "";
+    }
+
+    private static String contentType(Path file) throws IOException {
+        String probed = Files.probeContentType(file);
+        if (probed != null) {
+            return probed;
+        }
+        String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        if (name.endsWith(".png")) {
+            return "image/png";
+        }
+        if (name.endsWith(".webp")) {
+            return "image/webp";
+        }
+        if (name.endsWith(".gif")) {
+            return "image/gif";
+        }
+        return "application/octet-stream";
+    }
+
+    public record StoredImage(Resource resource, String contentType, long size) {}
 }
