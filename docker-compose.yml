@@ -205,7 +205,7 @@ services:
       <<: *internal-no-proxy-env
     volumes:
       - ./infra/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-      - "${STREAMER_DVR_LOG_DIR:-../streamer-dvr/logs}:/var/log/streamer-dvr:ro"
+      - "${STREAMER_DVR_LOG_DIR:-../streamer-rec/streamer-dvr/logs}:/var/log/streamer-dvr:ro"
     ports:
       - "${INFRA_BIND_HOST:-127.0.0.1}:4317:4317"
       - "${INFRA_BIND_HOST:-127.0.0.1}:4318:4318"
