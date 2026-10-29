@@ -72,6 +72,10 @@ management:
   tracing:
     sampling:
       probability: 0.3
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 logging:
   level:
