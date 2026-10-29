@@ -45,7 +45,7 @@ def get_database_url(
     host = os.getenv("DB_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
     db_name = os.getenv(db_env_var)
-    return f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db_name}"
 
 
 def create_db_engine(database_url: str, pool_config: dict | None = None) -> Engine:

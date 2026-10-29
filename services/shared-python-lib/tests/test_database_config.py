@@ -1,4 +1,4 @@
-from shared_lib.database import get_database_url
+from shared_lib.database import create_db_engine, get_database_url
 
 
 def test_process_environment_overrides_dotenv(tmp_path, monkeypatch):
@@ -12,7 +12,7 @@ def test_process_environment_overrides_dotenv(tmp_path, monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
     assert get_database_url("ACCOUNTING_DB", env_path=str(env_file)) == (
-        "postgresql://file-user:file-password@file-host:5432/file-db"
+        "postgresql+psycopg2://file-user:file-password@file-host:5432/file-db"
     )
 
     monkeypatch.setenv("POSTGRES_USER", "process-user")
@@ -22,5 +22,9 @@ def test_process_environment_overrides_dotenv(tmp_path, monkeypatch):
     monkeypatch.setenv("ACCOUNTING_DB", "process-db")
 
     assert get_database_url("ACCOUNTING_DB", env_path=str(env_file)) == (
-        "postgresql://process-user:process-password@process-host:6543/process-db"
+        "postgresql+psycopg2://process-user:process-password@process-host:6543/process-db"
     )
+
+    engine = create_db_engine(get_database_url("ACCOUNTING_DB", env_path=str(env_file)))
+    assert engine.dialect.driver == "psycopg2"
+    engine.dispose()
