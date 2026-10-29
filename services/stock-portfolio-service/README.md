@@ -12,8 +12,7 @@ All routes are prefixed `/api/portfolio` (Angular dev proxies `/api/portfolio` h
 | `POST` | `/imports/transactions`, `/imports/dividends` | CSV upload (multipart, `dry_run=true` previews) |
 | `POST` | `/imports/recalc`, `/imports/refresh-quotes`, `/imports/verify-symbol` | post-import reconciliation |
 | `GET`  | `/imports/recalc/status` | recalc progress |
-| `GET`  | `/ex-dividends/upcoming` | TWT48U upcoming cash dividend feed |
-| `GET`  | `/dividend-events?year=YYYY` | merged TWSE TWT48U + TWT49U + TPEx OTC dividend rows |
+| `GET`  | `/dividend-events?year=YYYY` | merged TWSE TWT48U_ALL + TPEx OTC dividend rows |
 | `GET`  | `/price-history?symbol=&from=&to=` | per-symbol daily OHLC |
 | `POST` | `/price-history/backfill?date=YYYY-MM-DD&market=TWSE\|TPEX\|BOTH` | one-day market backfill |
 | `GET`  | `/history?from=&to=&interval=day\|week\|month` | networth time series |
@@ -65,13 +64,7 @@ Dry-run prints per-date realized-PnL diffs and does not write rows.
 
 ## Name-map refresh
 
-Regenerate the bundled broker name map (used by CSV import to resolve Chinese names → tickers):
-
-```bash
-python scripts/refresh_name_to_symbol.py
-```
-
-Rewrites `app/data/name_to_symbol.json` by enumerating `twstock.codes` (TWSE listed + TPEx OTC + ETFs + ETNs + active warrants). Only prerequisite is an up-to-date `twstock` dependency.
+國泰 CSV imports resolve Chinese names through the `symbol_map` table. Refresh it with `POST /api/portfolio/symbol-map/refresh`; the scheduler also refreshes it weekly.
 
 ## Post-import recalc optimization
 

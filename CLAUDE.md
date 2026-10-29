@@ -10,17 +10,22 @@ Home Service Hub is a polyglot microservices platform for personal life manageme
 
 ```
 services/
-  inventory-api/       # Java 21 / Spring Boot 4.0 — Gradle multi-module (item-service + common-library)
+  inventory-api/       # Java 21 / Spring Boot 4.0 — Gradle project (item-service)
+  gateway-service/     # Java 21 / Spring Cloud Gateway
   accounting-service/  # Python 3.13 / FastAPI — financial transaction tracking
   stock-portfolio-service/  # Python 3.13 / FastAPI — Taiwan stock portfolio
-frontend/              # Angular 21 + PrimeNG + Bootstrap 5
+frontend/              # Angular 21 + PrimeNG (utility CSS layer in styles.scss; Bootstrap removed)
 infra/                 # Docker Compose configs for observability stack
 ```
 
-The Angular dev server proxies API calls via `frontend/proxy.conf.js`:
+Request path: browser → `frontend/proxy.conf.js` (plain forward, no rewrite) → `gateway-service`
+(Spring Cloud Gateway, :8088) → the target service. The gateway routes by prefix:
 - `/api/items`, `/api/shopping-list` → inventory-api
-- `/api/accounting` → accounting-service (path rewritten, strips `/api/accounting` prefix)
+- `/api/accounting` → accounting-service
 - `/api/portfolio` → stock-portfolio-service
+
+Every service declares its own full `/api/<domain>` prefix and the gateway strips nothing, so the
+path the browser calls is the path the service serves. Keep it that way when adding endpoints.
 
 All services connect to a shared PostgreSQL instance (separate databases per service). Observability is via OpenTelemetry → OTel Collector → Tempo/Loki/Grafana.
 
@@ -75,7 +80,7 @@ npx pm2 start ecosystem.config.js   # start all services at once
 
 ## Key Conventions
 
-- **Environment**: All services read from the root `.env` file. The Gradle build auto-loads `.env` into `bootRun` and test tasks. The frontend's `proxy.conf.js` and `set-env.js` also read from root `.env`.
+- **Environment**: Python database settings load the root `.env` without overriding process environment variables, so process environment takes precedence. The Gradle build auto-loads root `.env` into Java `bootRun` and test tasks. The frontend's `proxy.conf.js` and `set-env.js` also read from root `.env`.
 - **Python service structure**: Both Python services follow identical layout — `app/{main,database,tracing,models/,routers/,schemas/,services/}`.
 - **Java structure**: Standard Spring layered architecture under `com.inventory.item` — controller → service → repository, with DTOs via MapStruct, Lombok for boilerplate.
 - **Testing**: Java tests use H2 in-memory DB. Python tests are split into `unit/` and `integration/` directories.

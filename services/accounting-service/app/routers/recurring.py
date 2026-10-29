@@ -6,7 +6,7 @@ from .. import schemas
 from ..database import get_db
 from ..services import recurring_service
 
-router = APIRouter(prefix="/recurring", tags=["Recurring"])
+router = APIRouter(prefix="/api/accounting/recurring", tags=["Recurring"])
 
 @router.post("/generate", summary="手動觸發定期項目生成")
 def trigger_recurring_generation(db: Session = Depends(get_db)):
@@ -30,6 +30,14 @@ def update_subscription(sub_id: int, sub_update: schemas.SubscriptionUpdate, db:
 @router.patch("/subscriptions/{sub_id}/toggle", response_model=schemas.Subscription, summary="切換訂閱啟用狀態")
 def toggle_subscription(sub_id: int, db: Session = Depends(get_db)):
     return recurring_service.toggle_subscription_active(db, sub_id)
+
+@router.post("/subscriptions/{sub_id}/skip-current-month", response_model=schemas.Subscription, summary="略過本月訂閱帳目生成")
+def skip_subscription_current_month(sub_id: int, db: Session = Depends(get_db)):
+    return recurring_service.skip_subscription_current_month(db, sub_id)
+
+@router.delete("/subscriptions/{sub_id}/skip-current-month", response_model=schemas.Subscription, summary="恢復本月訂閱帳目生成")
+def undo_skip_subscription_current_month(sub_id: int, db: Session = Depends(get_db)):
+    return recurring_service.undo_skip_subscription_current_month(db, sub_id)
 
 @router.delete("/subscriptions/{sub_id}", summary="刪除訂閱項目")
 def delete_subscription(sub_id: int, db: Session = Depends(get_db)):

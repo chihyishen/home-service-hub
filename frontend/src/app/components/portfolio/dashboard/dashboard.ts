@@ -11,10 +11,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { finalize, interval, switchMap, takeUntil, takeWhile, timer } from 'rxjs';
 import { PortfolioService } from '../../../services/portfolio.service';
-import { PortfolioSummary, ExDividendRecord } from '../../../models/portfolio.model';
+import { PortfolioSummary } from '../../../models/portfolio.model';
 import { CardModule } from 'primeng/card';
-import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { AccordionModule } from 'primeng/accordion';
@@ -25,7 +23,7 @@ import { CorporateActionsPanelComponent } from '../corporate-actions-panel/corpo
 
 @Component({
   selector: 'app-portfolio-dashboard',
-  imports: [CommonModule, CardModule, TableModule, TagModule, ButtonModule, TooltipModule, AccordionModule, SkeletonModule, NetworthChartComponent, CorporateActionsPanelComponent],
+  imports: [CommonModule, CardModule, ButtonModule, TooltipModule, AccordionModule, SkeletonModule, NetworthChartComponent, CorporateActionsPanelComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -39,7 +37,6 @@ export class PortfolioDashboardComponent implements OnInit {
   @ViewChild(NetworthChartComponent) chart?: NetworthChartComponent;
 
   summary = signal<PortfolioSummary | null>(null);
-  upcomingExDividends = signal<ExDividendRecord[]>([]);
   loading = signal<boolean>(false);
   showWithDividend = signal<boolean>(false);
   expandedSymbols = signal<Set<string>>(new Set());
@@ -56,7 +53,6 @@ export class PortfolioDashboardComponent implements OnInit {
         this.loading.set(false);
       },
     });
-    this.loadExDividends();
   }
 
   toggleDividend() {
@@ -159,10 +155,4 @@ export class PortfolioDashboardComponent implements OnInit {
     return (value * 100).toFixed(2) + '%';
   }
 
-  loadExDividends() {
-    this.portfolioService.getUpcomingExDividends().subscribe({
-      next: (data) => this.upcomingExDividends.set(data),
-      error: () => this.upcomingExDividends.set([])
-    });
-  }
 }

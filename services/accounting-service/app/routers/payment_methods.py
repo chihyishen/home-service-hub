@@ -5,13 +5,13 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 
-router = APIRouter(prefix="/payment-methods", tags=["Payment Methods"])
+router = APIRouter(prefix="/api/accounting/payment-methods", tags=["Payment Methods"])
 
-@router.get("/", response_model=list[schemas.payment_method.PaymentMethod])
+@router.get("", response_model=list[schemas.payment_method.PaymentMethod])
 def list_payment_methods(db: Session = Depends(get_db)):
     return db.query(models.payment_method.PaymentMethod).all()
 
-@router.post("/", response_model=schemas.payment_method.PaymentMethod)
+@router.post("", response_model=schemas.payment_method.PaymentMethod)
 def create_payment_method(pm: schemas.payment_method.PaymentMethodCreate, db: Session = Depends(get_db)):
     db_pm = models.payment_method.PaymentMethod(**pm.model_dump())
     db.add(db_pm)

@@ -6,7 +6,7 @@ from .. import models, schemas
 from ..database import get_db
 from ..schemas.category import CategoryMergePreview, CategoryMergeRequest, CategoryMergeResult
 
-router = APIRouter(prefix="/categories", tags=["Categories"])
+router = APIRouter(prefix="/api/accounting/categories", tags=["Categories"])
 
 
 def _get_category_or_404(db: Session, category_id: int, *, detail: str) -> models.Category:
@@ -55,11 +55,11 @@ def _build_category_merge_preview(
         affected_subscriptions=affected_subscriptions,
     )
 
-@router.get("/", response_model=list[schemas.Category], summary="獲獲取所有分類")
+@router.get("", response_model=list[schemas.Category], summary="獲獲取所有分類")
 def list_categories(db: Session = Depends(get_db)):
     return db.query(models.Category).all()
 
-@router.post("/", response_model=schemas.Category, summary="新增分類")
+@router.post("", response_model=schemas.Category, summary="新增分類")
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
     db_cat = models.Category(**category.model_dump())
     db.add(db_cat)

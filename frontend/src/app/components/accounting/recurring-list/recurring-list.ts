@@ -173,11 +173,37 @@ export class RecurringListComponent implements OnInit {
 
   showSubMenu(event: MouseEvent, sub: Subscription) {
       this.menuItems = [
+          {
+              label: this.isSkippedThisMonth(sub) ? '恢復本月產生' : '本月略過',
+              icon: this.isSkippedThisMonth(sub) ? 'pi pi-replay' : 'pi pi-calendar-times',
+              command: () => this.setSubscriptionMonthSkip(sub)
+          },
           { label: '編輯', icon: 'pi pi-pencil', command: () => this.editSub(sub) },
           { separator: true },
           { label: '刪除', icon: 'pi pi-trash', styleClass: 'text-danger', command: () => this.deleteSub(sub.id) }
       ];
       this.menu.toggle(event);
+  }
+
+  isSkippedThisMonth(sub: Subscription) {
+      const today = new Date();
+      const thisMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-01`;
+      return sub.skippedMonth === thisMonth;
+  }
+
+  setSubscriptionMonthSkip(sub: Subscription) {
+      const undo = this.isSkippedThisMonth(sub);
+      const request = undo
+          ? this.accountingService.undoSkipSubscriptionCurrentMonth(sub.id)
+          : this.accountingService.skipSubscriptionCurrentMonth(sub.id);
+      request.subscribe(() => {
+          this.messageService.add({
+              severity: 'success',
+              summary: '成功',
+              detail: undo ? '已恢復本月自動產生' : '本月將略過自動產生'
+          });
+          this.loadData();
+      });
   }
 
   showInstMenu(event: MouseEvent, inst: Installment) {
@@ -363,7 +389,7 @@ export class RecurringListComponent implements OnInit {
   }
 
   deleteSub(id: number) {
-      if (confirm('確定要刪除此訂閱項目嗎？')) {
+      if (confirm('確定要刪除此訂閱項目嗎？刪除後將停止自動產生帳目，已產生的帳目會保留。')) {
           this.accountingService.deleteSubscription(id).subscribe(() => {
               this.messageService.add({ severity: 'success', summary: '成功', detail: '訂閱項目已刪除' });
               this.loadData();

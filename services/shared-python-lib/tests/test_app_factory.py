@@ -19,7 +19,13 @@ def dummy_router():
 
 @pytest.fixture()
 def mock_get_db():
-    return MagicMock()
+    session = MagicMock()
+
+    def get_db():
+        return session
+
+    get_db.session = session
+    return get_db
 
 
 def test_create_app_includes_routers(dummy_router, mock_get_db):
@@ -46,6 +52,25 @@ def test_create_app_has_health_endpoint(dummy_router, mock_get_db):
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
+
+    resp = client.get("/health/ready")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok", "database": "ok"}
+
+
+def test_readiness_is_unavailable_when_database_query_fails(dummy_router, mock_get_db):
+    mock_get_db.session.execute.side_effect = RuntimeError("database unavailable")
+    app = create_app(
+        title="Test Service",
+        version="0.0.1",
+        routers=[dummy_router],
+        get_db=mock_get_db,
+    )
+
+    resp = TestClient(app).get("/health/ready")
+
+    assert resp.status_code == 503
+    assert resp.json() == {"status": "degraded", "database": "error: RuntimeError"}
 
 
 def test_create_app_error_handler_shapes_response(dummy_router, mock_get_db):

@@ -24,12 +24,6 @@ class SharedSettings(BaseSettings):
         extra="ignore",
     )
 
-    # Postgres
-    postgres_user: str = "postgres"
-    postgres_password: str = "postgres"
-    db_host: str = "localhost"
-    postgres_port: int = 5432
-
     # CORS
     allowed_origins: str = "http://localhost:4200"
 
@@ -38,9 +32,3 @@ class SharedSettings(BaseSettings):
 
     def get_allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
-
-    def get_database_url(self, db_name: str) -> str:
-        return (
-            f"postgresql://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.db_host}:{self.postgres_port}/{db_name}"
-        )

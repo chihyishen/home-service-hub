@@ -93,9 +93,21 @@ describe('AccountingService', () => {
 
     service.createCard(card).subscribe();
 
-    const req = httpMock.expectOne('/api/accounting/cards/');
+    const req = httpMock.expectOne('/api/accounting/cards');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(card);
     req.flush({ id: 1, ...card });
+  });
+
+  it('可設定及取消訂閱本月略過', () => {
+    service.skipSubscriptionCurrentMonth(7).subscribe();
+    const skipRequest = httpMock.expectOne('/api/accounting/recurring/subscriptions/7/skip-current-month');
+    expect(skipRequest.request.method).toBe('POST');
+    skipRequest.flush({ id: 7, skippedMonth: '2026-10-01' });
+
+    service.undoSkipSubscriptionCurrentMonth(7).subscribe();
+    const undoRequest = httpMock.expectOne('/api/accounting/recurring/subscriptions/7/skip-current-month');
+    expect(undoRequest.request.method).toBe('DELETE');
+    undoRequest.flush({ id: 7, skippedMonth: null });
   });
 });

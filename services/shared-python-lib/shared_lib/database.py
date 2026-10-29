@@ -33,7 +33,7 @@ def get_database_url(
     if required_vars is None:
         required_vars = ["POSTGRES_USER", "POSTGRES_PASSWORD"]
 
-    load_dotenv(env_path or _default_env_path(), override=True)
+    load_dotenv(env_path or _default_env_path(), override=False)
 
     env_values = {name: os.getenv(name) for name in required_vars}
     missing_vars = [name for name, value in env_values.items() if not value]

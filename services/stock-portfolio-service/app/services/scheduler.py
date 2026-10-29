@@ -29,6 +29,7 @@ from datetime import timedelta as _timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from . import (
     dividend_auto_record_service,
@@ -36,6 +37,7 @@ from . import (
     market_data_service,
     portfolio_service,
     portfolio_snapshot_service,
+    post_import_orchestrator,
     symbol_map_service,
     twse_service,
 )
@@ -235,6 +237,14 @@ def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> Ba
         id="portfolio_snapshot",
         kwargs={"session_factory": session_factory},
         replace_existing=True,
+    )
+    scheduler.add_job(
+        post_import_orchestrator.run_pending_portfolio_recalc,
+        IntervalTrigger(seconds=60, timezone=TW_TIMEZONE),
+        id="portfolio_recalc_recovery",
+        kwargs={"session_factory": session_factory},
+        replace_existing=True,
+        next_run_time=_now_tw(),
     )
     scheduler.add_job(
         run_symbol_map_refresh,

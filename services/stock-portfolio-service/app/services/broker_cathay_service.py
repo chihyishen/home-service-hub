@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import csv
 import io
-import json
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
-from pathlib import Path
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..models import portfolio as models
-from . import per_date_verify, symbol_map_service
+from . import per_date_verify, portfolio_recalc_service, symbol_map_service
 from . import portfolio_service as svc
 from .import_service import (
     ImportResult,
@@ -36,21 +35,11 @@ CATHAY_SIDE_MAP: dict[str, tuple[str, str]] = {
     "券賣": ("SELL", "SHORT"),
 }
 
-_DATA_PATH = Path(__file__).resolve().parents[1] / "data/name_to_symbol.json"
-
-
-def _load_name_to_symbol() -> dict[str, list[str]]:
-    symbol_to_name = json.loads(_DATA_PATH.read_text(encoding="utf-8"))
-    reverse: defaultdict[str, list[str]] = defaultdict(list)
-    for symbol, name in symbol_to_name.items():
-        reverse[name].append(symbol)
-    return dict(reverse)
-
-
-NAME_TO_SYMBOL: dict[str, list[str]] = _load_name_to_symbol()
-
-
-def resolve_symbol(name: str, overrides: dict[str, str] | None = None) -> str:
+def resolve_symbol(
+    name: str,
+    name_to_symbol: Mapping[str, str],
+    overrides: dict[str, str] | None = None,
+) -> str:
     if overrides and name in overrides:
         # User-typed code may include broker suffixes or stray whitespace;
         # sanitize_symbol strips `.TW`/`.TWO`, uppercases, trims — same shape
@@ -59,11 +48,9 @@ def resolve_symbol(name: str, overrides: dict[str, str] | None = None) -> str:
         if not override_symbol:
             raise ValueError(f"invalid override symbol for 股名='{name}'")
         return override_symbol
-    candidates = NAME_TO_SYMBOL.get(name, [])
-    if len(candidates) == 1:
-        return candidates[0]
-    if len(candidates) >= 2:
-        raise ValueError(f"ambiguous symbol for 股名='{name}': {candidates}")
+    symbol = name_to_symbol.get(name)
+    if symbol:
+        return symbol
     raise ValueError(f"cannot resolve symbol for 股名='{name}'")
 
 
@@ -109,6 +96,7 @@ def _parse_trade_date(value: str, row_index: int) -> datetime:
 def parse_cathay_rows(
     raw_bytes: bytes,
     *,
+    name_to_symbol: Mapping[str, str],
     name_overrides: dict[str, str] | None = None,
 ) -> ParseResult:
     stream = io.StringIO(raw_bytes.decode("utf-8-sig"))
@@ -123,14 +111,12 @@ def parse_cathay_rows(
             name = _required(raw_row, "股名", row_index)
             trade_date = _parse_trade_date(_required(raw_row, "日期", row_index), row_index)
             try:
-                symbol = resolve_symbol(name, name_overrides)
+                symbol = resolve_symbol(name, name_to_symbol, name_overrides)
             except ValueError as exc:
-                # Both "cannot resolve" (unknown) and "ambiguous symbol"
-                # (multiple candidates in NAME_TO_SYMBOL) surface to the
-                # override UX — the user picks the right ticker. Other
-                # ValueErrors (e.g. invalid override) still propagate.
+                # Unknown names surface to the override UX. Invalid overrides
+                # still propagate as hard errors.
                 msg = str(exc)
-                if "cannot resolve" in msg or "ambiguous symbol" in msg:
+                if "cannot resolve" in msg:
                     unresolved_occurrences[name] += 1
                     unresolved_dates[name].add(trade_date.date().isoformat())
                     continue
@@ -397,6 +383,11 @@ def _insert_transaction(db: Session, row: ParsedRow) -> models.Transaction:
     svc._recompute_day_trade_flags(
         db, tx.symbol, svc._trade_calendar_date(tx.trade_date)
     )
+    portfolio_recalc_service.mark_import_row(
+        db,
+        event_date=svc._trade_calendar_date(tx.trade_date),
+        symbol=tx.symbol,
+    )
     return tx
 
 
@@ -519,6 +510,11 @@ def _commit_rehash(db: Session, parsed: ParseResult) -> ImportResult:
                     svc._recompute_day_trade_flags(
                         db, existing.symbol, svc._trade_calendar_date(existing.trade_date)
                     )
+                    portfolio_recalc_service.mark_import_row(
+                        db,
+                        event_date=svc._trade_calendar_date(existing.trade_date),
+                        symbol=existing.symbol,
+                    )
                     rehashed += 1
                     continue
                 duplicate = (
@@ -548,6 +544,11 @@ def _commit_rehash(db: Session, parsed: ParseResult) -> ImportResult:
                     db.flush()
                     svc._recompute_day_trade_flags(
                         db, business_match.symbol, svc._trade_calendar_date(business_match.trade_date)
+                    )
+                    portfolio_recalc_service.mark_import_row(
+                        db,
+                        event_date=svc._trade_calendar_date(business_match.trade_date),
+                        symbol=business_match.symbol,
                     )
                     rehashed += 1
                     continue
@@ -581,15 +582,14 @@ def _commit_rehash(db: Session, parsed: ParseResult) -> ImportResult:
     )
 
 
-def parse_cathay_transactions_csv(
-    raw_bytes: bytes,
+def commit_cathay_transactions(
+    parsed: ParseResult,
     *,
     dry_run: bool,
     db: Session,
     name_overrides: dict[str, str] | None = None,
     confirmed_overrides: set[str] | None = None,
 ) -> ImportResult:
-    parsed = parse_cathay_rows(raw_bytes, name_overrides=name_overrides)
     name_to_earliest_date: dict[str, date] = {}
     for row in parsed.rows:
         name = row.payload["name"]
@@ -633,3 +633,25 @@ def parse_cathay_transactions_csv(
     result.override_validations = validations
     result.skipped_unverified = skipped_unverified
     return result
+
+
+def parse_cathay_transactions_csv(
+    raw_bytes: bytes,
+    *,
+    dry_run: bool,
+    db: Session,
+    name_overrides: dict[str, str] | None = None,
+    confirmed_overrides: set[str] | None = None,
+) -> ImportResult:
+    parsed = parse_cathay_rows(
+        raw_bytes,
+        name_to_symbol=symbol_map_service.load_name_to_symbol(db),
+        name_overrides=name_overrides,
+    )
+    return commit_cathay_transactions(
+        parsed,
+        dry_run=dry_run,
+        db=db,
+        name_overrides=name_overrides,
+        confirmed_overrides=confirmed_overrides,
+    )

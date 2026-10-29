@@ -38,6 +38,7 @@ def test_build_scheduler_registers_three_jobs():
         "tw_daily_prices",
         "quote_refresh",
         "portfolio_snapshot",
+        "portfolio_recalc_recovery",
         "symbol_map_refresh",
         "dividend_auto_record",
     }

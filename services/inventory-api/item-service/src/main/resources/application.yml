@@ -45,13 +45,6 @@ springdoc:
     path: /swagger-ui.html
     enabled: ${INVENTORY_API_DOCS_ENABLED:false}
 
-logbook:
-  filter:
-    enabled: true
-  strategy: default
-  format:
-    style: json
-
 logging:
   level:
     org.hibernate.SQL: "${INVENTORY_HIBERNATE_SQL_LOG_LEVEL:OFF}"

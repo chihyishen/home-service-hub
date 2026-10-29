@@ -3,8 +3,6 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="UNKNOWN-APP"/>
-    <springProperty scope="context" name="logbookLogLevel" source="INVENTORY_LOGBOOK_LOG_LEVEL" defaultValue="OFF"/>
-
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${appName} traceId=%X{traceId:-} spanId=%X{spanId:-} --- [%15.15t] %-40.40logger{39} : %m%n</pattern>
@@ -18,11 +16,6 @@
         <captureMarkerAttribute>true</captureMarkerAttribute>
         <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
     </appender>
-
-    <logger name="org.zalando.logbook" level="${logbookLogLevel}" additivity="false">
-        <appender-ref ref="OTEL"/>
-        <appender-ref ref="CONSOLE"/>
-    </logger>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

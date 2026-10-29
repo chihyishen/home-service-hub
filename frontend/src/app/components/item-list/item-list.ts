@@ -138,6 +138,9 @@ export class ItemListComponent implements OnInit {
 
     const groups: { location: string; items: ItemResponse[] }[] = [];
     groupsMap.forEach((items, location) => {
+      items.sort((a, b) =>
+        a.name.localeCompare(b.name, 'zh-TW') || a.id - b.id
+      );
       groups.push({ location, items });
     });
 
@@ -431,9 +434,12 @@ export class ItemListComponent implements OnInit {
     callback?: () => void
   ) {
     this.itemService.createTransaction(itemId, payload).subscribe({
-      next: () => {
+      next: result => {
+        this.items.update(items => items
+          .map(item => item.id === itemId ? result.item : item)
+          .filter(item => !this.lowStockOnly || item.stockStatus === 'LOW' || item.stockStatus === 'OUT')
+        );
         this.messageService.add({ severity: 'success', summary: '成功', detail: successMessage });
-        this.loadItems();
         callback?.();
       },
       error: err => this.messageService.add({ severity: 'error', summary: '錯誤', detail: err?.error?.message || '操作失敗' })

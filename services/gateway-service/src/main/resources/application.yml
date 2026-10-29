@@ -36,7 +36,6 @@ spring:
             - id: accounting
               uri: ${GATEWAY_ACCOUNTING_URI:http://127.0.0.1:8000}
               predicates: [Path=/api/accounting/**]
-              filters: [StripPrefix=2]
             - id: portfolio
               uri: ${GATEWAY_PORTFOLIO_URI:http://127.0.0.1:8001}
               predicates: [Path=/api/portfolio/**]
@@ -62,6 +61,17 @@ management:
       probes:
         enabled: true
       show-details: never
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_COLLECTOR_ENDPOINT_HTTP}/v1/traces
+          compression: gzip
+  tracing:
+    sampling:
+      probability: 0.3
 
 logging:
   level:

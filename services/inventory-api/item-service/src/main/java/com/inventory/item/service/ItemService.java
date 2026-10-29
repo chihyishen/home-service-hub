@@ -17,7 +17,6 @@ import com.inventory.item.repository.ItemRepository;
 import com.inventory.item.repository.ShoppingListItemRepository;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +27,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Observed(name = "item.service", contextualName = "Layer: Service")
 public class ItemService {
 
     private final ItemRepository itemRepository;

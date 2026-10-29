@@ -62,10 +62,10 @@ describe('ItemListComponent', () => {
 
   it('should group items by location', () => {
     const mockItems: ItemResponse[] = [
-      { id: 1, name: 'Item A', quantity: 5, location: 'Kitchen', category: 'Food', stockStatus: 'OK' } as any,
+      { id: 4, name: 'Item D', quantity: 1, location: 'Kitchen', category: 'Food', stockStatus: 'OK' } as any,
       { id: 2, name: 'Item B', quantity: 2, location: 'Bathroom', category: 'Hygiene', stockStatus: 'LOW' } as any,
       { id: 3, name: 'Item C', quantity: 10, location: '', category: 'Tools', stockStatus: 'OK' } as any,
-      { id: 4, name: 'Item D', quantity: 1, location: 'Kitchen', category: 'Food', stockStatus: 'OK' } as any
+      { id: 1, name: 'Item A', quantity: 5, location: 'Kitchen', category: 'Food', stockStatus: 'OK' } as any
     ];
 
     component.items.set(mockItems);
@@ -78,9 +78,37 @@ describe('ItemListComponent', () => {
 
     expect(groups[1].location).toBe('Kitchen');
     expect(groups[1].items.length).toBe(2);
+    expect(groups[1].items.map(item => item.name)).toEqual(['Item A', 'Item D']);
 
     expect(groups[2].location).toBe('未知位置');
     expect(groups[2].items.length).toBe(1);
+  });
+
+  it('updates only the changed item after a quick consume', () => {
+    const original = { id: 1, name: '肥皂', quantity: 3, location: '浴室', stockStatus: 'NORMAL' } as ItemResponse;
+    const updated = { ...original, quantity: 2 };
+    component.items.set([original]);
+    const loadSpy = vi.spyOn(component, 'loadItems');
+    vi.spyOn(itemService, 'createTransaction').mockReturnValue(of({ item: updated, transaction: {} as any }));
+
+    component.consumeOne(original);
+
+    expect(component.items()).toEqual([updated]);
+    expect(loadSpy).not.toHaveBeenCalled();
+  });
+
+  it('removes an item that leaves low stock after a quick consume', () => {
+    const original = { id: 1, name: '肥皂', quantity: 1, location: '浴室', stockStatus: 'LOW' } as ItemResponse;
+    const updated = { ...original, quantity: 2, stockStatus: 'NORMAL' };
+    component.lowStockOnly = true;
+    component.items.set([original]);
+    const loadSpy = vi.spyOn(component, 'loadItems');
+    vi.spyOn(itemService, 'createTransaction').mockReturnValue(of({ item: updated, transaction: {} as any }));
+
+    component.consumeOne(original);
+
+    expect(component.items()).toEqual([]);
+    expect(loadSpy).not.toHaveBeenCalled();
   });
 
   it('should debounce search inputs', () => {

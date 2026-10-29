@@ -4,7 +4,6 @@ import com.inventory.item.dto.ShoppingListItemRequest;
 import com.inventory.item.dto.ShoppingListItemResponse;
 import com.inventory.item.model.ShoppingListItemStatus;
 import com.inventory.item.service.ShoppingListService;
-import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/shopping-list")
 @RequiredArgsConstructor
-@Observed(name = "shopping-list.api", contextualName = "Layer: Controller")
 @Tag(name = "Shopping List", description = "採買清單管理 API")
 public class ShoppingListController {
 

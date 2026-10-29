@@ -170,6 +170,7 @@ export interface Subscription {
   cardId?: number;
   cardName?: string;
   active: boolean;
+  skippedMonth?: string | null;
 }
 
 export interface SubscriptionCreate {

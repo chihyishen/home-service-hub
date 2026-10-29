@@ -4,7 +4,7 @@ import json
 from datetime import date
 from decimal import Decimal
 
-from app.services.dividend_sources import tpex_otc, twse_twt48u, twse_twt49u
+from app.services.dividend_sources import tpex_otc, twse_twt48u
 
 # ---------- TWT48U (TWT48U_ALL OpenAPI — English-keyed schema) ----------
 # TWSE migrated the dataset from /exchangeReport/TWT48U (Chinese keys,
@@ -103,60 +103,6 @@ def test_twt48u_fetch_no_warning_on_normal_snapshot(monkeypatch, caplog):
         rows = twse_twt48u.fetch_twt48u()
     assert len(rows) == 1
     assert not any("empty" in r.message.lower() for r in caplog.records)
-
-
-# ---------- TWT49U ----------
-
-def test_twt49u_parses_payload():
-    payload = [
-        {
-            "公司代號": "2330", "除權息日期": "115/06/15",
-            "現金股利": "13.0", "股票股利": "",
-        },
-        {
-            "公司代號": "0050", "除權息日期": "115/07/01",
-            "現金股利": "3.5", "股票股利": "0",
-        },
-    ]
-    rows = twse_twt49u.parse_twt49u(payload)
-    assert [r.symbol for r in rows] == ["2330", "0050"]
-    assert rows[0].cash_dividend == Decimal("13.0")
-    assert rows[1].cash_dividend == Decimal("3.5")
-    assert rows[1].stock_dividend is None
-    assert rows[0].source == "TWSE_TWT49U"
-
-
-def test_twt49u_skips_missing_symbol():
-    payload = [{"公司代號": "", "除權息日期": "115/06/15", "現金股利": "1"}]
-    assert twse_twt49u.parse_twt49u(payload) == []
-
-
-def test_twt49u_accepts_bytes():
-    payload = json.dumps([
-        {"公司代號": "2330", "除權息日期": "115/06/15", "現金股利": "13"}
-    ]).encode("utf-8")
-    rows = twse_twt49u.parse_twt49u(payload)
-    assert len(rows) == 1
-
-
-def test_twt49u_western_year_format():
-    payload = [{"公司代號": "2330", "除權息日期": "2026/06/15", "現金股利": "13"}]
-    rows = twse_twt49u.parse_twt49u(payload)
-    assert rows[0].ex_dividend_date == date(2026, 6, 15)
-
-
-def test_twt49u_fetch_is_deprecated_no_network(monkeypatch):
-    """TWSE removed the standalone TWT49U endpoint (now 404); 除息/除權 are
-    both covered by TWT48U_ALL. fetch_twt49u must short-circuit to [] and
-    never touch the network."""
-    def _boom(*args, **kwargs):
-        raise AssertionError("fetch_twt49u must not perform network I/O")
-
-    # raising=False: the module no longer even imports _http_get; the patch
-    # only fires if someone reintroduces network I/O under that name.
-    monkeypatch.setattr(twse_twt49u, "_http_get", _boom, raising=False)
-    assert twse_twt49u.fetch_twt49u() == []
-    assert twse_twt49u.fetch_twt49u(2026) == []
 
 
 # ---------- TPEx OTC ----------

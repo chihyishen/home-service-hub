@@ -334,6 +334,50 @@ def test_replay_simple_buy_and_close(db_session):
     assert snaps[date(2026, 5, 15)].total_market_value == Decimal("52000")
 
 
+def test_replay_updates_existing_snapshots_after_deleting_last_holding(db_session):
+    sym = "2330"
+    tx = _seed_tx(
+        db_session,
+        symbol=sym,
+        side=portfolio_models.TransactionType.BUY,
+        qty=100,
+        price="500",
+        trade_date=date(2026, 5, 14),
+    )
+    _seed_dividend(db_session, symbol=sym, amount="100", ex_date=date(2026, 5, 14))
+    _seed_dividend(db_session, symbol=sym, amount="200", ex_date=date(2026, 5, 15))
+    for day in (date(2026, 5, 14), date(2026, 5, 15)):
+        _seed_price(db_session, symbol=sym, d=day, close="500")
+    db_session.commit()
+
+    nbs.replay_snapshots_range(
+        db_session,
+        date(2026, 5, 14),
+        date(2026, 5, 15),
+        active_dates=nbs.compute_active_dates(
+            db_session, date(2026, 5, 14), date(2026, 5, 15)
+        ),
+    )
+    db_session.delete(tx)
+    db_session.commit()
+
+    nbs.run_backfill(
+        db_session,
+        date(2026, 5, 14),
+        date(2026, 5, 15),
+        phase="snapshots",
+        active_dates=nbs.compute_active_dates(
+            db_session, date(2026, 5, 14), date(2026, 5, 15)
+        ),
+    )
+    snaps = {s.date: s for s in db_session.query(PortfolioSnapshot).all()}
+    assert set(snaps) == {date(2026, 5, 14), date(2026, 5, 15)}
+    assert all(s.total_market_value == 0 and s.total_cost == 0 for s in snaps.values())
+    assert snaps[date(2026, 5, 14)].total_dividends == Decimal("100")
+    assert snaps[date(2026, 5, 15)].total_dividends == Decimal("300")
+    assert all(s.total_realized_pnl == 0 for s in snaps.values())
+
+
 def test_replay_sell_reduces_holdings_and_cost(db_session):
     sym = "2330"
     _seed_tx(
@@ -990,7 +1034,7 @@ def test_replay_skips_data_gap_day_and_preserves_last_trading_mv(
     assert result.stale_rows_deleted == 1
 
 
-def test_replay_deletes_stale_zero_mv_positive_cost_row_on_skipped_date(
+def test_replay_preserves_snapshot_date_when_no_holdings_remain(
     db_session: Any,
 ) -> None:
     db_session.add(
@@ -1010,8 +1054,11 @@ def test_replay_deletes_stale_zero_mv_positive_cost_row_on_skipped_date(
         db_session, date(2023, 1, 23), date(2023, 1, 23)
     )
 
-    assert result.stale_rows_deleted == 1
-    assert db_session.query(PortfolioSnapshot).count() == 0
+    assert result.stale_rows_deleted == 0
+    snapshot = db_session.query(PortfolioSnapshot).one()
+    assert snapshot.date == date(2023, 1, 23)
+    assert snapshot.total_market_value == Decimal("0")
+    assert snapshot.total_cost == Decimal("0")
 
 
 def test_replay_preserves_legit_zero_holding_row_on_skipped_date(
@@ -1040,6 +1087,14 @@ def test_replay_preserves_legit_zero_holding_row_on_skipped_date(
 
 def test_replay_bulk_deletes_stale_candidates_once(db_session: Any) -> None:
     start = date(2024, 1, 1)
+    _seed_tx(
+        db_session,
+        symbol="2330",
+        side=portfolio_models.TransactionType.BUY,
+        qty=10,
+        price="10",
+        trade_date=date(2023, 12, 29),
+    )
     for offset in range(50):
         d = start.fromordinal(start.toordinal() + offset)
         db_session.add(

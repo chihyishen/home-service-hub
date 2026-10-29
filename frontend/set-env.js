@@ -23,14 +23,7 @@ if (fs.existsSync(envPath)) {
 }
 
 // 嚴格校驗
-const required = [
-  'FRONTEND_API_URL',
-  'INVENTORY_ITEM_SERVICE_HOST',
-  'INVENTORY_ITEM_SERVICE_PORT',
-  'ACCOUNTING_SERVICE_HOST',
-  'ACCOUNTING_SERVICE_PORT',
-  'OTEL_COLLECTOR_ENDPOINT_HTTP'
-];
+const required = ['FRONTEND_API_URL'];
 
 required.forEach(v => {
   if (!envConfig[v]) {
@@ -42,11 +35,6 @@ required.forEach(v => {
 const envConfigFile = `export const environment = {
   production: false,
   apiUrl: '${envConfig.FRONTEND_API_URL}',
-  inventoryServiceHost: '${envConfig.INVENTORY_ITEM_SERVICE_HOST}',
-  inventoryServicePort: '${envConfig.INVENTORY_ITEM_SERVICE_PORT}',
-  accountingServiceHost: '${envConfig.ACCOUNTING_SERVICE_HOST}',
-  accountingServicePort: '${envConfig.ACCOUNTING_SERVICE_PORT}',
-  otelEndpoint: '${envConfig.OTEL_COLLECTOR_ENDPOINT_HTTP}',
   oidcUrl: '${envConfig.KEYCLOAK_PUBLIC_URL || 'http://localhost:8180'}',
   oidcRealm: 'home-service-hub',
   oidcClientId: 'home-service-ui'

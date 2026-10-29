@@ -5,7 +5,7 @@ x-internal-no-proxy-env: &internal-no-proxy-env
 services:
   keycloak-postgres:
     image: postgres:17.5-alpine
-    profiles: ["apps", "identity"]
+    profiles: ["identity"]
     environment:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
@@ -22,7 +22,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.1
-    profiles: ["apps", "identity"]
+    profiles: ["identity"]
     command: ["start-dev", "--import-realm", "--health-enabled=true"]
     environment:
       KC_DB: postgres
@@ -60,41 +60,6 @@ services:
       retries: 20
       start_period: 30s
 
-  gateway-service:
-    profiles: ["apps"]
-    build:
-      context: ./services/gateway-service
-    environment:
-      GATEWAY_BIND_HOST: 0.0.0.0
-      GATEWAY_PORT: 8088
-      GATEWAY_INVENTORY_URI: http://inventory-item-service:8080
-      GATEWAY_ACCOUNTING_URI: http://accounting-service:8000
-      GATEWAY_PORTFOLIO_URI: http://stock-portfolio-service:8001
-      GATEWAY_OTLP_URI: http://otel-collector:4318
-      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI}
-      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-home-service-api}
-      GATEWAY_JWKS_URI: http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
-    ports:
-      - "${GATEWAY_BIND_HOST:-127.0.0.1}:${GATEWAY_PORT:-8088}:8088"
-    depends_on:
-      inventory-item-service:
-        condition: service_healthy
-      accounting-service:
-        condition: service_healthy
-      stock-portfolio-service:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    networks:
-      - inventory-net
-    extra_hosts:
-      - "${KEYCLOAK_PUBLIC_HOST:-host.docker.internal}:host-gateway"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8088/actuator/health/readiness"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
   # --- 1. 資料庫 ---
   postgres:
     image: postgres@sha256:b3968e348b48f1198cc6de6611d055dbad91cd561b7990c406c3fc28d7095b21
@@ -114,87 +79,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  # --- 2. 微服務 ---
-  inventory-item-service:
-    profiles: ["apps"]
-    build:
-      context: ./services/inventory-api
-    container_name: inventory-item-service
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${INVENTORY_DB}
-      - INVENTORY_SERVER_ADDRESS=0.0.0.0
-      - SECURITY_OAUTH2_ENFORCEMENT_ENABLED=true
-      - SECURITY_OAUTH2_ISSUER_URI=${OIDC_ISSUER_URI}
-      - SECURITY_OAUTH2_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
-      - SECURITY_OAUTH2_JWK_SET_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
-      - INVENTORY_IMAGE_STORAGE_DIR=/data/inventory-images
-    ports:
-      - "${APP_BIND_HOST:-127.0.0.1}:${INVENTORY_ITEM_SERVICE_PORT}:8080"
-    volumes:
-      - ./infra/inventory-images:/data/inventory-images
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - inventory-net
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  accounting-service:
-    profiles: ["apps"]
-    build:
-      context: ./services/accounting-service
-    container_name: accounting-service
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ACCOUNTING_DB}
-      - AUTH_ENFORCEMENT_ENABLED=true
-      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI}
-      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
-      - OIDC_JWKS_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
-    ports:
-      - "${APP_BIND_HOST:-127.0.0.1}:${ACCOUNTING_SERVICE_PORT}:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - inventory-net
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  stock-portfolio-service:
-    profiles: ["apps"]
-    build:
-      context: ./services/stock-portfolio-service
-    container_name: stock-portfolio-service
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${STOCK_DB}
-      - AUTH_ENFORCEMENT_ENABLED=true
-      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI}
-      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-home-service-api}
-      - OIDC_JWKS_URI=http://keycloak:8080/realms/home-service-hub/protocol/openid-connect/certs
-    ports:
-      - "${APP_BIND_HOST:-127.0.0.1}:${STOCK_SERVICE_PORT}:8001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - inventory-net
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/health').status==200 else 1)"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
 
   # --- 4. OpenTelemetry Collector ---
   otel-collector:

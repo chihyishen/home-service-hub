@@ -31,6 +31,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..models import portfolio as models
+from . import portfolio_recalc_service
 from . import portfolio_service as svc
 from .per_date_verify import OverrideValidation
 
@@ -448,6 +449,11 @@ def _persist_transaction(db: Session, row: ParsedRow) -> models.Transaction:
     svc._recompute_day_trade_flags(
         db, db_tx.symbol, svc._trade_calendar_date(db_tx.trade_date)
     )
+    portfolio_recalc_service.mark_import_row(
+        db,
+        event_date=svc._trade_calendar_date(db_tx.trade_date),
+        symbol=db_tx.symbol,
+    )
     db.commit()
     db.refresh(db_tx)
     return db_tx
@@ -463,6 +469,11 @@ def _persist_dividend(db: Session, row: ParsedRow) -> models.Dividend:
         import_fingerprint=row.fingerprint,
     )
     db.add(db_div)
+    portfolio_recalc_service.mark_import_row(
+        db,
+        event_date=db_div.ex_dividend_date.date(),
+        symbol=db_div.symbol,
+    )
     db.commit()
     db.refresh(db_div)
     return db_div

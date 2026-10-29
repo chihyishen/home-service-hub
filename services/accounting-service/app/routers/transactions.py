@@ -11,10 +11,10 @@ from ..services import transaction_service
 
 tracer = get_tracer("accounting-service")
 
-router = APIRouter(prefix="/transactions", tags=["Transactions"])
+router = APIRouter(prefix="/api/accounting/transactions", tags=["Transactions"])
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=list[schemas.Transaction], summary="獲取交易清單")
+@router.get("", response_model=list[schemas.Transaction], summary="獲取交易清單")
 def list_transactions(
     skip: int = 0,
     limit: int = 100,
@@ -63,7 +63,7 @@ def list_transactions(
         
         return result
 
-@router.post("/", response_model=schemas.Transaction, summary="新增交易紀錄")
+@router.post("", response_model=schemas.Transaction, summary="新增交易紀錄")
 def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
     with tracer.start_as_current_span("router.create_transaction") as span:
         span.set_attribute("transaction.type", transaction.transaction_type)

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { 
   Transaction, TransactionCreate, Category, CreditCard, CreditCardCreate,
   Subscription, SubscriptionCreate, Installment, InstallmentCreate,
@@ -14,7 +15,7 @@ import {
 })
 export class AccountingService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/accounting';
+  private apiUrl = `${environment.apiUrl}/accounting`;
 
   getTransactions(skip = 0, limit = 300, category?: string, dateFrom?: string, dateTo?: string): Observable<Transaction[]> {
     let params = new HttpParams()
@@ -31,15 +32,11 @@ export class AccountingService {
       params = params.set('date_to', dateTo);
     }
     
-    return this.http.get<Transaction[]>(`${this.apiUrl}/transactions/`, { params });
-  }
-
-  getTransaction(id: number): Observable<Transaction> {
-    return this.http.get<Transaction>(`${this.apiUrl}/transactions/${id}`);
+    return this.http.get<Transaction[]>(`${this.apiUrl}/transactions`, { params });
   }
 
   createTransaction(data: TransactionCreate): Observable<Transaction> {
-    return this.http.post<Transaction>(`${this.apiUrl}/transactions/`, data);
+    return this.http.post<Transaction>(`${this.apiUrl}/transactions`, data);
   }
 
   updateTransaction(id: number, data: Partial<TransactionCreate>): Observable<Transaction> {
@@ -69,7 +66,7 @@ export class AccountingService {
 
   // Cards
   getCards(): Observable<CreditCard[]> {
-    return this.http.get<CreditCard[]>(`${this.apiUrl}/cards/`);
+    return this.http.get<CreditCard[]>(`${this.apiUrl}/cards`);
   }
 
   getCardUsage(): Observable<CardUsageSummary[]> {
@@ -77,7 +74,7 @@ export class AccountingService {
   }
 
   createCard(data: CreditCardCreate): Observable<CreditCard> {
-    return this.http.post<CreditCard>(`${this.apiUrl}/cards/`, data);
+    return this.http.post<CreditCard>(`${this.apiUrl}/cards`, data);
   }
 
   updateCard(id: number, data: Partial<CreditCardCreate>): Observable<CreditCard> {
@@ -90,11 +87,11 @@ export class AccountingService {
 
   // Categories
   getCategories(): Observable<Category[]> {
-    return this.http.get<Category[]>(`${this.apiUrl}/categories/`);
+    return this.http.get<Category[]>(`${this.apiUrl}/categories`);
   }
 
   createCategory(data: { name: string, color: string }): Observable<Category> {
-    return this.http.post<Category>(`${this.apiUrl}/categories/`, data);
+    return this.http.post<Category>(`${this.apiUrl}/categories`, data);
   }
 
   updateCategory(id: number, data: Partial<Category>): Observable<Category> {
@@ -107,11 +104,11 @@ export class AccountingService {
 
   // Payment Methods
   getPaymentMethods(): Observable<PaymentMethod[]> {
-    return this.http.get<PaymentMethod[]>(`${this.apiUrl}/payment-methods/`);
+    return this.http.get<PaymentMethod[]>(`${this.apiUrl}/payment-methods`);
   }
 
   createPaymentMethod(data: { name: string }): Observable<PaymentMethod> {
-    return this.http.post<PaymentMethod>(`${this.apiUrl}/payment-methods/`, data);
+    return this.http.post<PaymentMethod>(`${this.apiUrl}/payment-methods`, data);
   }
 
   updatePaymentMethod(id: number, data: Partial<PaymentMethod>): Observable<PaymentMethod> {
@@ -137,6 +134,14 @@ export class AccountingService {
 
   toggleSubscription(id: number): Observable<Subscription> {
     return this.http.patch<Subscription>(`${this.apiUrl}/recurring/subscriptions/${id}/toggle`, {});
+  }
+
+  skipSubscriptionCurrentMonth(id: number): Observable<Subscription> {
+    return this.http.post<Subscription>(`${this.apiUrl}/recurring/subscriptions/${id}/skip-current-month`, {});
+  }
+
+  undoSkipSubscriptionCurrentMonth(id: number): Observable<Subscription> {
+    return this.http.delete<Subscription>(`${this.apiUrl}/recurring/subscriptions/${id}/skip-current-month`);
   }
 
   deleteSubscription(id: number): Observable<void> {

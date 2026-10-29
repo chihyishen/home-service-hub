@@ -3,6 +3,7 @@ from logging.config import fileConfig
 # Import all models so Base.metadata knows about them
 import app.models.corporate_action
 import app.models.portfolio
+import app.models.portfolio_recalc_state
 import app.models.portfolio_snapshot
 import app.models.price_history
 import app.models.symbol_map  # noqa: F401

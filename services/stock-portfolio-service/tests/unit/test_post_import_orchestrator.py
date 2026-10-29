@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -11,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from app.models import portfolio as portfolio_models
+from app.models.corporate_action import CorporateAction
 from app.services import post_import_orchestrator as orch
 
 TW = timezone(timedelta(hours=8))
@@ -80,13 +80,11 @@ def test_chain_calls_steps_in_order(db_session):
     with patch.object(orch, "_step_symbol_map_backfill", side_effect=lambda f: (order.append("symbol_map"), orch.StepResult("symbol_map_backfill", "ok"))[1]), \
          patch.object(orch, "_step_dividends", side_effect=lambda f, s, a, b: (order.append("dividends"), orch.StepResult("dividend_auto_record", "ok"))[1]), \
          patch.object(orch, "_step_networth_backfill", side_effect=lambda f, a, b: (order.append("networth"), orch.StepResult("networth_backfill", "ok"))[1]):
-        result = asyncio.run(
-            orch.run_chain(
-                _session_factory(db_session),
-                recalc_from=datetime.now(TW).date(),
-                recalc_to=datetime.now(TW).date(),
-                touched_symbols={"2330"},
-            )
+        result = orch.run_chain(
+            _session_factory(db_session),
+            recalc_from=datetime.now(TW).date(),
+            recalc_to=datetime.now(TW).date(),
+            touched_symbols={"2330"},
         )
     assert order == ["symbol_map", "dividends", "networth"]
     assert result.state == "completed"
@@ -114,13 +112,11 @@ def test_step_failure_does_not_skip_later_steps(db_session):
     with patch.object(orch, "_step_symbol_map_backfill", side_effect=ok_symbol), \
          patch.object(orch, "_step_dividends", side_effect=boom_dividends), \
          patch.object(orch, "_step_networth_backfill", side_effect=ok_networth):
-        result = asyncio.run(
-            orch.run_chain(
-                _session_factory(db_session),
-                recalc_from=datetime.now(TW).date(),
-                recalc_to=datetime.now(TW).date(),
-                touched_symbols={"2330"},
-            )
+        result = orch.run_chain(
+            _session_factory(db_session),
+            recalc_from=datetime.now(TW).date(),
+            recalc_to=datetime.now(TW).date(),
+            touched_symbols={"2330"},
         )
     assert calls == ["symbol_map", "dividends", "networth"]
     assert result.state == "partial"
@@ -141,12 +137,10 @@ def test_quotes_only_chain_runs_single_networth_step_and_stores_status(
     )
     monkeypatch.setattr(orch, "_step_networth_backfill", lambda _f, _a, _b: canned)
 
-    result = asyncio.run(
-        orch.run_chain_quotes_only(
-            _session_factory(db_session),
-            today=today,
-            touched_symbols={"2330"},
-        )
+    result = orch.run_chain_quotes_only(
+        _session_factory(db_session),
+        today=today,
+        touched_symbols={"2330"},
     )
 
     assert result.state == "completed"
@@ -205,10 +199,8 @@ def test_recalc_lock_serializes_concurrent_chains(db_session):
     import threading
     import time as _t
 
-    # Tagging by `threading.current_thread()` would lie here — the step runs in
-    # the asyncio default executor, not the caller thread. Track phase only;
-    # with the lock the sequence must be enter→exit→enter→exit. Without the
-    # lock the two enters would bunch up before either exit.
+    # Track phase order; with the lock the sequence must be
+    # enter→exit→enter→exit. Without it, the two enters can interleave.
     events: list[tuple[str, float]] = []  # (phase, monotonic)
     events_lock = threading.Lock()
     barrier = threading.Barrier(2)
@@ -293,11 +285,9 @@ def test_latest_status_returns_recent_result(db_session):
          patch.object(orch, "_step_dividends", return_value=orch.StepResult("dividend_auto_record", "ok")), \
          patch.object(orch, "_step_networth_backfill", return_value=orch.StepResult("networth_backfill", "ok")):
         today = datetime.now(TW).date()
-        asyncio.run(
-            orch.run_chain(
-                _session_factory(db_session),
-                recalc_from=today, recalc_to=today, touched_symbols={"2330"},
-            )
+        orch.run_chain(
+            _session_factory(db_session),
+            recalc_from=today, recalc_to=today, touched_symbols={"2330"},
         )
     status = orch.latest_status()
     assert status["state"] == "completed"
@@ -371,12 +361,15 @@ def test_import_transactions_schedules_recalc_on_success(client, db_session, mon
     monkeypatch.setenv("POST_IMPORT_RECALC_ENABLED", "true")
     calls: list[dict] = []
 
-    def fake_schedule(session_factory, *, recalc_from, recalc_to, touched_symbols):
+    def fake_schedule(
+        session_factory, *, recalc_from, recalc_to, touched_symbols, expected_generation
+    ):
         calls.append(
             {
                 "recalc_from": recalc_from,
                 "recalc_to": recalc_to,
                 "touched_symbols": touched_symbols,
+                "expected_generation": expected_generation,
             }
         )
         return orch.ChainResult(
@@ -448,10 +441,13 @@ def test_manual_recalc_defaults_to_min_trade_date_and_today(client, db_session, 
     db_session.commit()
     captured: dict = {}
 
-    def fake_schedule(session_factory, *, recalc_from, recalc_to, touched_symbols):
+    def fake_schedule(
+        session_factory, *, recalc_from, recalc_to, touched_symbols, expected_generation
+    ):
         captured["recalc_from"] = recalc_from
         captured["recalc_to"] = recalc_to
         captured["touched_symbols"] = touched_symbols
+        captured["expected_generation"] = expected_generation
         return orch.ChainResult(
             state="completed",
             started_at=datetime.now(UTC).isoformat(),
@@ -468,6 +464,7 @@ def test_manual_recalc_defaults_to_min_trade_date_and_today(client, db_session, 
     assert captured["recalc_to"] == orch.today_tw()
     # Default start_date is min(trade_date) → ~30 days ago.
     assert captured["recalc_from"] <= orch.today_tw()
+    assert captured["expected_generation"] >= 1
 
 
 def test_manual_recalc_accepts_explicit_range(client, db_session, monkeypatch):
@@ -475,9 +472,12 @@ def test_manual_recalc_accepts_explicit_range(client, db_session, monkeypatch):
     db_session.commit()
     captured: dict = {}
 
-    def fake_schedule(session_factory, *, recalc_from, recalc_to, touched_symbols):
+    def fake_schedule(
+        session_factory, *, recalc_from, recalc_to, touched_symbols, expected_generation
+    ):
         captured["recalc_from"] = recalc_from
         captured["recalc_to"] = recalc_to
+        captured["expected_generation"] = expected_generation
         return orch.ChainResult(
             state="completed",
             started_at=datetime.now(UTC).isoformat(),
@@ -492,6 +492,7 @@ def test_manual_recalc_accepts_explicit_range(client, db_session, monkeypatch):
     assert response.status_code == 200
     assert captured["recalc_from"].isoformat() == "2024-01-15"
     assert captured["recalc_to"].isoformat() == "2026-05-17"
+    assert captured["expected_generation"] >= 1
 
 
 def test_refresh_quotes_schedules_open_holdings_only(client, db_session, monkeypatch):
@@ -530,6 +531,61 @@ def test_refresh_quotes_schedules_open_holdings_only(client, db_session, monkeyp
         "touched_symbols": ["0050", "2330"],
     }
     assert calls == [{"touched_symbols": {"0050", "2330"}}]
+
+
+def test_refresh_quotes_uses_as_of_long_holdings_with_splits(
+    client, db_session, monkeypatch
+):
+    today = date(2026, 3, 15)
+
+    def tx(
+        symbol,
+        side,
+        qty,
+        trade_date,
+        position_side=portfolio_models.PositionSide.LONG,
+    ):
+        return portfolio_models.Transaction(
+            symbol=symbol,
+            name=symbol,
+            type=side,
+            position_side=position_side,
+            quantity=qty,
+            price=Decimal("10"),
+            fee=Decimal("0"),
+            tax=Decimal("0"),
+            trade_date=trade_date,
+        )
+
+    db_session.add_all(
+        [
+            tx("2330", portfolio_models.TransactionType.BUY, 100, datetime(2026, 1, 1, tzinfo=UTC)),
+            tx("2330", portfolio_models.TransactionType.SELL, 100, datetime(2026, 3, 1, tzinfo=UTC)),
+            tx("0050", portfolio_models.TransactionType.BUY, 100, datetime(2026, 3, 1, tzinfo=UTC)),
+            tx("0050", portfolio_models.TransactionType.SELL, 100, datetime(2026, 3, 1, tzinfo=UTC), portfolio_models.PositionSide.SHORT),
+            tx("FUTURE", portfolio_models.TransactionType.BUY, 10, datetime(2026, 3, 16, tzinfo=UTC)),
+            CorporateAction(
+                symbol="2330",
+                effective_date=date(2026, 2, 1),
+                ratio=Decimal("2"),
+                source_event_key="2330_2026-02-01_refresh_quotes",
+            ),
+            CorporateAction(
+                symbol="2330",
+                effective_date=date(2026, 3, 16),
+                ratio=Decimal("0.001"),
+                source_event_key="2330_2026-03-16_refresh_quotes",
+            ),
+        ]
+    )
+    db_session.commit()
+    monkeypatch.setattr(orch, "today_tw", lambda: today)
+    monkeypatch.setattr(orch, "schedule_quotes_refresh_sync", lambda *_a, **_kw: None)
+
+    response = client.post("/api/portfolio/imports/refresh-quotes")
+
+    assert response.status_code == 202, response.text
+    assert response.json()["touched_symbols"] == ["0050", "2330"]
 
 
 def test_refresh_quotes_returns_204_for_empty_portfolio(client, monkeypatch):

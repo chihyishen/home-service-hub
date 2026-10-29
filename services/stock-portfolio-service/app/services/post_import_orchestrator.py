@@ -5,20 +5,17 @@ Sequentially: symbol-name backfill → dividend auto-record for touched
 symbols → networth backfill across the affected date range. Each step is
 isolated so a single TWSE outage cannot block the rest of the chain.
 
-State is kept in-process: a module-level ``_LATEST_RESULTS`` dict keyed
-by start timestamp, plus a ``threading.Lock`` that serializes concurrent
-invocations. This fits the single-instance deployment; a worker queue
-would be overkill and adds an operational surface for one user.
+The database dirty marker records the affected range and generation so work
+survives a process restart; the in-memory result cache only serves recent
+progress details. A ``threading.Lock`` serializes concurrent invocations for
+the single-instance deployment.
 
-The lock is a thread lock (not asyncio.Lock) because FastAPI ``BackgroundTasks``
-runs sync callables in worker threads, each of which spins up its own event loop
-via ``asyncio.run``. An asyncio.Lock bound to a different loop would raise
-``RuntimeError`` under concurrent invocations.
+FastAPI ``BackgroundTasks`` runs sync callables in worker threads, so the
+thread lock serializes concurrent invocations without an event loop.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import threading
@@ -32,6 +29,7 @@ from . import (
     dividend_auto_record_service,
     dividend_event_service,
     networth_backfill_service,
+    portfolio_recalc_service,
     symbol_map_service,
 )
 from .dividend_history_service import HistoricalDividendEvent
@@ -247,23 +245,6 @@ def _step_networth_backfill(
             active_dates = networth_backfill_service.compute_active_dates(
                 db, recalc_from, recalc_to
             )
-            if not active_dates:
-                inactive_weekdays = networth_backfill_service.count_trading_days(
-                    recalc_from, recalc_to
-                )
-                return StepResult(
-                    name="networth_backfill",
-                    status="ok",
-                    detail={
-                        "dates_processed": 0,
-                        "dates_skipped": 0,
-                        "dates_inactive": inactive_weekdays,
-                        "rows_written": 0,
-                        "snapshots_written": 0,
-                        "stale_rows_deleted": 0,
-                        "errors": [],
-                    },
-                )
             outcome = networth_backfill_service.run_backfill(
                 db,
                 recalc_from,
@@ -305,16 +286,16 @@ def _final_state(steps: list[StepResult]) -> str:
     return "partial"
 
 
-async def run_chain(
+def run_chain(
     session_factory: Callable[[], AbstractContextManager],
     *,
     recalc_from: dt_date,
     recalc_to: dt_date,
     touched_symbols: set[str],
+    durable_generation: int | None = None,
 ) -> ChainResult:
     """Run the full recalc chain. Caller (``schedule_chain_sync``) holds
-    ``_RECALC_LOCK`` for the duration so this coroutine does not touch the lock
-    itself — see module docstring for why the lock is ``threading.Lock``."""
+    ``_RECALC_LOCK`` for the duration."""
     started = datetime.now(UTC)
     result = ChainResult(
         state="running",
@@ -325,8 +306,6 @@ async def run_chain(
         current_step="awaiting_lock",
     )
     _store(result)
-
-    loop = asyncio.get_running_loop()
 
     for step_name, runner in (
         ("symbol_map_backfill", lambda: _step_symbol_map_backfill(session_factory)),
@@ -343,7 +322,15 @@ async def run_chain(
     ):
         result.current_step = step_name
         _store(result)
-        step_result = await loop.run_in_executor(None, runner)
+        if durable_generation is not None:
+            with session_factory() as db:
+                portfolio_recalc_service.set_status(
+                    db,
+                    durable_generation,
+                    status="running",
+                    current_step=step_name,
+                )
+        step_result = runner()
         result.steps.append(step_result)
         _store(result)
 
@@ -363,7 +350,7 @@ async def run_chain(
     return result
 
 
-async def run_chain_quotes_only(
+def run_chain_quotes_only(
     session_factory: Callable[[], AbstractContextManager],
     *,
     today: dt_date,
@@ -380,13 +367,9 @@ async def run_chain_quotes_only(
     )
     _store(result)
 
-    loop = asyncio.get_running_loop()
     result.current_step = "networth_backfill"
     _store(result)
-    step_result = await loop.run_in_executor(
-        None,
-        lambda: _step_networth_backfill(session_factory, today, today),
-    )
+    step_result = _step_networth_backfill(session_factory, today, today)
     result.steps.append(step_result)
     _store(result)
 
@@ -412,22 +395,171 @@ def schedule_chain_sync(
     recalc_from: dt_date,
     recalc_to: dt_date,
     touched_symbols: set[str],
+    expected_generation: int | None = None,
 ) -> ChainResult:
     """Sync entrypoint for FastAPI ``BackgroundTasks`` (which calls regular callables).
 
     Serializes concurrent chain runs via ``_RECALC_LOCK``. The lock is acquired
-    here (sync, before spawning the event loop) so each ``asyncio.run`` below
-    operates on its own loop without ever touching the shared lock primitive.
+    here so the complete synchronous chain runs under one lock.
     """
     with _RECALC_LOCK:
-        return asyncio.run(
-            run_chain(
-                session_factory,
-                recalc_from=recalc_from,
-                recalc_to=recalc_to,
-                touched_symbols=touched_symbols,
+        with session_factory() as db:
+            work = portfolio_recalc_service.get_work(db)
+        if work is not None:
+            return _run_persisted_work_locked(session_factory, work)
+        if expected_generation is not None:
+            finished = datetime.now(UTC).isoformat()
+            return ChainResult(
+                state="completed",
+                started_at=finished,
+                finished_at=finished,
+                recalc_from=recalc_from.isoformat(),
+                recalc_to=recalc_to.isoformat(),
+                touched_symbols=sorted(touched_symbols),
             )
+        return run_chain(
+            session_factory,
+            recalc_from=recalc_from,
+            recalc_to=recalc_to,
+            touched_symbols=touched_symbols,
         )
+
+
+def _step_snapshot_replay(
+    session_factory: Callable[[], AbstractContextManager],
+    recalc_from: dt_date,
+    recalc_to: dt_date,
+) -> StepResult:
+    try:
+        with session_factory() as db:
+            active_dates = networth_backfill_service.compute_active_dates(
+                db, recalc_from, recalc_to
+            )
+            outcome = networth_backfill_service.run_backfill(
+                db,
+                recalc_from,
+                recalc_to,
+                phase="snapshots",
+                active_dates=active_dates,
+            )
+        detail = {
+            "snapshots_written": outcome.snapshots_written,
+            "stale_rows_deleted": outcome.stale_rows_deleted,
+            "errors": [
+                {"date": error.date.isoformat(), "reason": error.reason}
+                for error in outcome.errors
+            ],
+        }
+        return StepResult(
+            name="networth_snapshot_replay",
+            status="ok" if not outcome.errors else "partial",
+            detail=detail,
+        )
+    except Exception as exc:
+        logger.exception(
+            "post_import.snapshot_replay.failed", extra={"error": str(exc)}
+        )
+        return StepResult(
+            name="networth_snapshot_replay", status="failed", error=str(exc)
+        )
+
+
+def _run_persisted_work_locked(
+    session_factory: Callable[[], AbstractContextManager],
+    work: portfolio_recalc_service.RecalcWork,
+) -> ChainResult:
+    """Run one durable generation; callers hold ``_RECALC_LOCK``."""
+    started = datetime.now(UTC)
+    result = ChainResult(
+        state="running",
+        started_at=started.isoformat(),
+        recalc_from=work.recalc_from.isoformat(),
+        recalc_to=work.recalc_to.isoformat(),
+        touched_symbols=sorted(work.touched_symbols),
+        current_step="starting",
+    )
+    _store(result)
+    with session_factory() as db:
+        claimed = portfolio_recalc_service.set_status(
+            db, work.generation, status="running", current_step="starting"
+        )
+    if not claimed:
+        result.state = "completed"
+        result.finished_at = datetime.now(UTC).isoformat()
+        result.current_step = None
+        _store(result)
+        return result
+
+    try:
+        if work.mode == "chain":
+            result = run_chain(
+                session_factory,
+                recalc_from=work.recalc_from,
+                recalc_to=work.recalc_to,
+                touched_symbols=work.touched_symbols,
+                durable_generation=work.generation,
+            )
+        else:
+            result.current_step = "networth_snapshot_replay"
+            _store(result)
+            with session_factory() as db:
+                portfolio_recalc_service.set_status(
+                    db,
+                    work.generation,
+                    status="running",
+                    current_step=result.current_step,
+                )
+            step = _step_snapshot_replay(
+                session_factory, work.recalc_from, work.recalc_to
+            )
+            result.steps.append(step)
+            result.state = _final_state(result.steps)
+            result.finished_at = datetime.now(UTC).isoformat()
+            result.current_step = None
+            _store(result)
+    except Exception as exc:
+        logger.exception("post_import.persisted_recalc.failed", extra={"error": str(exc)})
+        result.steps.append(StepResult("portfolio_recalc", "failed", error=str(exc)))
+        result.state = "failed"
+        result.finished_at = datetime.now(UTC).isoformat()
+        result.current_step = None
+        _store(result)
+
+    errors = "; ".join(
+        step.error or str(step.detail.get("errors", ""))
+        for step in result.steps
+        if step.status in {"failed", "partial"}
+    ) or None
+    with session_factory() as db:
+        portfolio_recalc_service.set_status(
+            db,
+            work.generation,
+            status="idle" if result.state == "completed" else result.state,
+            current_step=None if result.state == "completed" else result.current_step,
+            error=errors,
+        )
+    return result
+
+
+def run_pending_portfolio_recalc(
+    session_factory: Callable[[], AbstractContextManager],
+) -> dict:
+    """Recover and retry the latest durable snapshot/import work."""
+    if not _RECALC_LOCK.acquire(blocking=False):
+        return {"status": "busy"}
+    try:
+        with session_factory() as db:
+            work = portfolio_recalc_service.get_work(db)
+        if work is None:
+            return {"status": "idle"}
+        if work.status in {"failed", "partial"}:
+            return {"status": work.status, "generation": work.generation}
+        if work.mode == "chain" and not is_enabled():
+            return {"status": "disabled", "generation": work.generation}
+        result = _run_persisted_work_locked(session_factory, work)
+        return {"status": result.state, "generation": work.generation}
+    finally:
+        _RECALC_LOCK.release()
 
 
 def schedule_quotes_refresh_sync(
@@ -437,10 +569,8 @@ def schedule_quotes_refresh_sync(
 ) -> ChainResult:
     today = today_tw()
     with _RECALC_LOCK:
-        return asyncio.run(
-            run_chain_quotes_only(
-                session_factory,
-                today=today,
-                touched_symbols=touched_symbols,
-            )
+        return run_chain_quotes_only(
+            session_factory,
+            today=today,
+            touched_symbols=touched_symbols,
         )

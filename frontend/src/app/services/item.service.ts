@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, defer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { HttpParams } from '@angular/common/http';
-import { BaseApiService } from './base-api.service';
+import { HttpClient } from '@angular/common/http';
 import {
   ItemRequest,
   ItemResponse,
@@ -15,8 +15,9 @@ import { environment } from '../../environments/environment';
 @Injectable({
   providedIn: 'root'
 })
-export class ItemService extends BaseApiService<ItemResponse> {
-  protected override baseUrl = `${environment.apiUrl}/items`;
+export class ItemService {
+  private http = inject(HttpClient);
+  private baseUrl = `${environment.apiUrl}/items`;
 
   getAllFiltered(keyword?: string, lowStockOnly?: boolean, category?: string, location?: string): Observable<ItemResponse[]> {
     let params = new HttpParams();
@@ -35,15 +36,11 @@ export class ItemService extends BaseApiService<ItemResponse> {
     return this.http.get<string[]>(`${this.baseUrl}/locations`);
   }
 
-  getById(id: number): Observable<ItemResponse> {
-    return this.getOne(id);
-  }
-
-  override create(item: Partial<ItemResponse> | ItemRequest): Observable<ItemResponse> {
+  create(item: Partial<ItemResponse> | ItemRequest): Observable<ItemResponse> {
     return this.http.post<ItemResponse>(this.baseUrl, item);
   }
 
-  override update(id: number, item: Partial<ItemResponse> | ItemRequest): Observable<ItemResponse> {
+  update(id: number, item: Partial<ItemResponse> | ItemRequest): Observable<ItemResponse> {
     return this.http.put<ItemResponse>(`${this.baseUrl}/${id}`, item);
   }
 
@@ -95,7 +92,7 @@ export class ItemService extends BaseApiService<ItemResponse> {
   }
 
   delete(id: number): Observable<void> {
-    return this.remove(id);
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
   createTransaction(id: number, payload: InventoryTransactionRequest): Observable<ItemTransactionResultResponse> {

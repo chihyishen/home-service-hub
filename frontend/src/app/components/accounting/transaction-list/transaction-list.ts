@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountingService } from '../../../services/accounting.service';
 import { Transaction, Category, CreditCard, PaymentMethod } from '../../../models/accounting.model';
-import { forkJoin } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -530,13 +530,14 @@ export class TransactionListComponent implements OnInit {
       if (!confirmed) return;
 
       this.isGeneratingRecurring = true;
-      this.accountingService.triggerRecurringGeneration().subscribe({
+      this.accountingService.triggerRecurringGeneration().pipe(
+          finalize(() => { this.isGeneratingRecurring = false; })
+      ).subscribe({
           next: () => {
               this.messageService.add({ severity: 'success', summary: '同步完成', detail: `已同步 ${yearMonth} 定期交易` });
               this.loadData();
           },
-          error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '同步失敗，請稍後再試' }),
-          complete: () => { this.isGeneratingRecurring = false; }
+          error: () => this.messageService.add({ severity: 'error', summary: '錯誤', detail: '同步失敗，請稍後再試' })
       });
   }
 }

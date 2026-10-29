@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Literal
@@ -130,15 +130,6 @@ class PortfolioSummary(BaseModel):
     holdings: list[StockHolding]
     portfolio_xirr: Decimal | None = None          # 整體投資組合年化報酬率
     quotes_status: Literal["ok", "partial", "unavailable"] = "ok"
-
-
-class ExDividendRecord(BaseModel):
-    symbol: str
-    name: str
-    ex_dividend_date: date | None = None     # 除息日
-    ex_rights_date: date | None = None       # 除權日
-    cash_dividend: str | None = None         # 現金股利（字串保留原始精度）
-    stock_dividend: str | None = None        # 股票股利
 
 
 # Sort field allowlists for paginated list endpoints. Server validates the

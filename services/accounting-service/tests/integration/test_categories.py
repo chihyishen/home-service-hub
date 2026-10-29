@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 def _create_category(client: TestClient, name: str, color: str) -> dict:
     response = client.post(
-        "/categories/",
+        "/api/accounting/categories",
         json={"name": name, "color": color},
     )
     assert response.status_code == 200
@@ -50,7 +50,7 @@ def test_update_category_syncs_linked_transactions_and_subscriptions(client: Tes
     db_session.commit()
 
     response = client.put(
-        f"/categories/{category['id']}",
+        f"/api/accounting/categories/{category['id']}",
         json={"name": "外食", "color": "#222222"},
     )
 
@@ -83,7 +83,7 @@ def test_category_merge_preview_returns_source_target_and_affected_counts(client
     db_session.commit()
 
     response = client.post(
-        "/categories/merge-preview",
+        "/api/accounting/categories/merge-preview",
         json={
             "sourceCategoryId": source["id"],
             "targetCategoryId": target["id"],
@@ -116,7 +116,7 @@ def test_category_merge_apply_repoints_records_and_deletes_source(client: TestCl
     db_session.commit()
 
     response = client.post(
-        "/categories/merge",
+        "/api/accounting/categories/merge",
         json={
             "sourceCategoryId": source["id"],
             "targetCategoryId": target["id"],
@@ -141,7 +141,7 @@ def test_category_merge_apply_repoints_records_and_deletes_source(client: TestCl
     assert merged_subscription.category_name == "娛樂"
 
 
-@pytest.mark.parametrize("path", ["/categories/merge-preview", "/categories/merge"])
+@pytest.mark.parametrize("path", ["/api/accounting/categories/merge-preview", "/api/accounting/categories/merge"])
 def test_category_merge_errors(client: TestClient, path: str):
     existing = _create_category(client, name="交通", color="#555555")
 

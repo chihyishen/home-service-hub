@@ -3,7 +3,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from app.models import portfolio as models
-from app.schemas.portfolio import ExDividendRecord
 from app.services import portfolio_service
 
 
@@ -60,9 +59,8 @@ def test_get_active_holdings_uses_same_day_ordering_and_symbol_normalization(db_
     assert active_holdings["0050"]["total_quantity"] == 6
 
 
-@patch("app.routers.exdividend.fetch_upcoming_exdividends")
 @patch("app.services.portfolio.summary.get_stock_quotes")
-def test_summary_and_exdividend_use_same_active_symbols(mock_get_quotes, mock_fetch_exdividends, client, db_session):
+def test_summary_uses_active_symbols(mock_get_quotes, db_session):
     db_session.add_all(
         [
             models.Transaction(
@@ -135,13 +133,6 @@ def test_summary_and_exdividend_use_same_active_symbols(mock_get_quotes, mock_fe
             "time": "13:30:00",
         },
     }
-    mock_fetch_exdividends.side_effect = lambda held_symbols: [
-        ExDividendRecord(symbol=symbol, name=symbol) for symbol in sorted(held_symbols)
-    ]
-
     summary = portfolio_service.get_portfolio_summary(db_session)
-    response = client.get("/api/portfolio/ex-dividends/upcoming")
 
-    assert response.status_code == 200
     assert {holding.symbol for holding in summary.holdings} == {"0050", "00919"}
-    assert {record["symbol"] for record in response.json()} == {"0050", "00919"}

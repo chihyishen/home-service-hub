@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { provideRouter } from '@angular/router';
+import { MessageService } from 'primeng/api';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -20,7 +21,7 @@ describe('App', () => {
 
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), MessageService],
     }).compileComponents();
   });
 
@@ -36,5 +37,16 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.header-title')?.textContent).toContain('庫存管理');
+  });
+
+  it('renders API errors from the root message service', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    TestBed.inject(MessageService).add({ key: 'api-error', severity: 'error', detail: '訂閱不存在' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('p-toast')?.textContent).toContain('訂閱不存在');
   });
 });

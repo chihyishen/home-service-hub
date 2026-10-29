@@ -1,18 +1,16 @@
-import { Injectable } from '@angular/core';
-import { HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BaseApiService } from './base-api.service';
+import { environment } from '../../environments/environment';
 import {
   PortfolioSummary,
   Transaction,
   Dividend,
-  ExDividendRecord,
   ImportKind,
   ImportResult,
   NetworthPoint,
   RecalcStatus,
   RecalcTriggerResponse,
-  CorporateAction,
   UpcomingEvent,
   Paged,
   TransactionQuery,
@@ -33,11 +31,13 @@ function buildParams(query: Record<string, unknown>): HttpParams {
 @Injectable({
   providedIn: 'root'
 })
-export class PortfolioService extends BaseApiService<Transaction> {
-  protected override baseUrl = '/api/portfolio/transactions';
+export class PortfolioService {
+  private http = inject(HttpClient);
+  private apiUrl = `${environment.apiUrl}/portfolio`;
+  private baseUrl = `${this.apiUrl}/transactions`;
 
   getSummary(): Observable<PortfolioSummary> {
-    return this.http.get<PortfolioSummary>('/api/portfolio/summary');
+    return this.http.get<PortfolioSummary>(`${this.apiUrl}/summary`);
   }
 
   refreshQuotes(): Observable<{
@@ -49,53 +49,49 @@ export class PortfolioService extends BaseApiService<Transaction> {
       refresh_scheduled: boolean;
       date: string;
       touched_symbols: string[];
-    } | null>('/api/portfolio/imports/refresh-quotes', null);
+    } | null>(`${this.apiUrl}/imports/refresh-quotes`, null);
   }
 
   getTransactions(query: TransactionQuery = {}): Observable<Paged<Transaction>> {
-    return this.http.get<Paged<Transaction>>('/api/portfolio/transactions', {
+    return this.http.get<Paged<Transaction>>(`${this.apiUrl}/transactions`, {
       params: buildParams(query as Record<string, unknown>),
     });
   }
 
   createTransaction(transaction: Partial<Transaction>): Observable<Transaction> {
-    return this.create(transaction);
+    return this.http.post<Transaction>(this.baseUrl, transaction);
   }
 
   updateTransaction(id: number, transaction: Partial<Transaction>): Observable<Transaction> {
-    return this.update(id, transaction);
+    return this.http.put<Transaction>(`${this.baseUrl}/${id}`, transaction);
   }
 
   deleteTransaction(id: number): Observable<void> {
-    return this.remove(id);
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
   getDividends(query: DividendQuery = {}): Observable<Paged<Dividend>> {
-    return this.http.get<Paged<Dividend>>('/api/portfolio/dividends', {
+    return this.http.get<Paged<Dividend>>(`${this.apiUrl}/dividends`, {
       params: buildParams(query as Record<string, unknown>),
     });
   }
 
   getRealizedPnl(query: RealizedPnlQuery = {}): Observable<RealizedPnlPaged> {
-    return this.http.get<RealizedPnlPaged>('/api/portfolio/realized-pnl', {
+    return this.http.get<RealizedPnlPaged>(`${this.apiUrl}/realized-pnl`, {
       params: buildParams(query as Record<string, unknown>),
     });
   }
 
   createDividend(dividend: Partial<Dividend>): Observable<Dividend> {
-    return this.http.post<Dividend>('/api/portfolio/dividends', dividend);
+    return this.http.post<Dividend>(`${this.apiUrl}/dividends`, dividend);
   }
 
   updateDividend(id: number, dividend: Partial<Dividend>): Observable<Dividend> {
-    return this.http.put<Dividend>(`/api/portfolio/dividends/${id}`, dividend);
+    return this.http.put<Dividend>(`${this.apiUrl}/dividends/${id}`, dividend);
   }
 
   deleteDividend(id: number): Observable<void> {
-    return this.http.delete<void>(`/api/portfolio/dividends/${id}`);
-  }
-
-  getUpcomingExDividends(): Observable<ExDividendRecord[]> {
-    return this.http.get<ExDividendRecord[]>('/api/portfolio/ex-dividends/upcoming');
+    return this.http.delete<void>(`${this.apiUrl}/dividends/${id}`);
   }
 
   verifyOverrideSymbol(
@@ -120,7 +116,7 @@ export class PortfolioService extends BaseApiService<Transaction> {
         | 'user_overridden';
       expected_name: string | null;
       fetched_name: string | null;
-    }>('/api/portfolio/imports/verify-symbol', {
+    }>(`${this.apiUrl}/imports/verify-symbol`, {
       name,
       code,
       trade_date: tradeDate,
@@ -144,18 +140,18 @@ export class PortfolioService extends BaseApiService<Transaction> {
       form.append('confirmed_overrides', JSON.stringify(confirmedOverrides));
     }
     const url =
-      `/api/portfolio/imports/${kind}` +
+      `${this.apiUrl}/imports/${kind}` +
       `?dry_run=${dryRun ? 'true' : 'false'}` +
       `&has_header=${hasHeader ? 'true' : 'false'}`;
     return this.http.post<ImportResult>(url, form);
   }
 
   getRecalcStatus(): Observable<RecalcStatus> {
-    return this.http.get<RecalcStatus>('/api/portfolio/imports/recalc/status');
+    return this.http.get<RecalcStatus>(`${this.apiUrl}/imports/recalc/status`);
   }
 
   triggerRecalc(range?: { start_date?: string; end_date?: string }): Observable<RecalcTriggerResponse> {
-    return this.http.post<RecalcTriggerResponse>('/api/portfolio/imports/recalc', range ?? {});
+    return this.http.post<RecalcTriggerResponse>(`${this.apiUrl}/imports/recalc`, range ?? {});
   }
 
   getNetworthHistory(from?: string, to?: string, interval: 'day' | 'week' | 'month' = 'day'): Observable<NetworthPoint[]> {
@@ -173,53 +169,19 @@ export class PortfolioService extends BaseApiService<Transaction> {
       params = (params ?? new HttpParams()).set('interval', interval);
     }
 
-    return this.http.get<NetworthPoint[]>('/api/portfolio/history', params ? { params } : {});
-  }
-
-  getCorporateActions(symbol?: string, from?: string, to?: string): Observable<CorporateAction[]> {
-    let params: HttpParams | undefined;
-
-    if (symbol) {
-      params = (params ?? new HttpParams()).set('symbol', symbol);
-    }
-    if (from) {
-      params = (params ?? new HttpParams()).set('from', from);
-    }
-    if (to) {
-      params = (params ?? new HttpParams()).set('to', to);
-    }
-
-    return this.http.get<CorporateAction[]>(
-      '/api/portfolio/corporate-actions',
-      params ? { params } : {},
-    );
+    return this.http.get<NetworthPoint[]>(`${this.apiUrl}/history`, params ? { params } : {});
   }
 
   getUpcomingEvents(from?: string): Observable<UpcomingEvent[]> {
     const params = from ? new HttpParams().set('from', from) : undefined;
     return this.http.get<UpcomingEvent[]>(
-      '/api/portfolio/upcoming-events',
+      `${this.apiUrl}/upcoming-events`,
       params ? { params } : {},
     );
   }
 
   getSymbolNames(): Observable<Record<string, string>> {
-    return this.http.get<Record<string, string>>('/api/portfolio/symbol-map/names');
+    return this.http.get<Record<string, string>>(`${this.apiUrl}/symbol-map/names`);
   }
 
-  triggerDividendBackfill(): Observable<{
-    symbols_scanned: number;
-    events_seen: number;
-    cash_inserted: number;
-    stock_inserted: number;
-    skipped_no_holding: number;
-  }> {
-    return this.http.post<{
-      symbols_scanned: number;
-      events_seen: number;
-      cash_inserted: number;
-      stock_inserted: number;
-      skipped_no_holding: number;
-    }>('/api/portfolio/dividends/backfill', {});
-  }
 }

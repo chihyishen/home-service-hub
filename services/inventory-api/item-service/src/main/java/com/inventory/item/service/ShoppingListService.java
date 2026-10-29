@@ -10,7 +10,6 @@ import com.inventory.item.model.ShoppingListItemSource;
 import com.inventory.item.model.ShoppingListItemStatus;
 import com.inventory.item.repository.ItemRepository;
 import com.inventory.item.repository.ShoppingListItemRepository;
-import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Observed(name = "shopping-list.service", contextualName = "Layer: Service")
 public class ShoppingListService {
 
     private final ShoppingListItemRepository shoppingListItemRepository;

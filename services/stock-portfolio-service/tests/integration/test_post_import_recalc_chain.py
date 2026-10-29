@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
@@ -127,13 +126,11 @@ def _run_chain_with_fake_fetchers(
         ),
     )
 
-    asyncio.run(
-        orch.run_chain(
-            _session_factory(db_session),
-            recalc_from=recalc_from,
-            recalc_to=recalc_to,
-            touched_symbols=touched_symbols,
-        )
+    orch.run_chain(
+        _session_factory(db_session),
+        recalc_from=recalc_from,
+        recalc_to=recalc_to,
+        touched_symbols=touched_symbols,
     )
     return twse_calls, tpex_calls
 

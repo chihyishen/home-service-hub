@@ -16,6 +16,7 @@ class Subscription(Base, TimestampMixin):
     day_of_month = Column(Integer)
     card_id = Column(Integer, ForeignKey("credit_cards.id"))
     active = Column(Boolean, default=True)
+    skipped_month = Column(Date, nullable=True)
 
     card = relationship("CreditCard", back_populates="subscriptions")
     category_info = relationship("Category")

@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
   imports: [
-    CommonModule, RouterModule, TooltipModule
+    CommonModule, RouterModule, TooltipModule, ToastModule
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'

@@ -12,8 +12,6 @@ tracer = get_tracer("stock-portfolio-service")
 
 logger = logging.getLogger(__name__)
 
-class TWSEapiError(Exception):
-    pass
 
 def _to_decimal(val: Any) -> Decimal:
     """

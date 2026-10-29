@@ -41,7 +41,6 @@
     "@opentelemetry/resources": "^2.5.0",
     "@opentelemetry/sdk-trace-web": "^2.5.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@primeng/themes": "^21.0.4",
     "@primeuix/themes": "^2.0.3",
     "chart.js": "^4.5.1",
     "keycloak-js": "^26.2.1",

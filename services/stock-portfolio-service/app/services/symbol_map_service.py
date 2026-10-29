@@ -111,6 +111,11 @@ def is_day_trade_eligible(
     return not any(token in type_value for token in _INELIGIBLE_TYPE_SUBSTRINGS)
 
 
+def load_name_to_symbol(db: Session) -> dict[str, str]:
+    """Return the current database-backed Chinese-name -> ticker map."""
+    return dict(db.query(SymbolMap.name, SymbolMap.symbol).all())
+
+
 def resolve_name(db: Session, name: str) -> str | None:
     """Return the ticker for a Chinese name, or None if unmapped."""
     row = (

@@ -1,4 +1,4 @@
-"""Merge TWT48U + TWT49U + TPEx dividend events for a holdings set."""
+"""Merge TWSE TWT48U_ALL + TPEx dividend events for a holdings set."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ import logging
 from datetime import date as dt_date
 from datetime import datetime, timedelta, timezone
 
-from .dividend_sources import DividendEventRow, tpex_otc, twse_twt48u, twse_twt49u
+from .dividend_sources import DividendEventRow, tpex_otc, twse_twt48u
 
 logger = logging.getLogger(__name__)
 
 _TW_OFFSET = timezone(timedelta(hours=8))
 
-_SOURCE_PRIORITY = (twse_twt48u, twse_twt49u, tpex_otc)
+_SOURCE_PRIORITY = (twse_twt48u, tpex_otc)
 
 
 def _current_tw_year() -> int:
@@ -22,7 +22,6 @@ def _current_tw_year() -> int:
 def _safe_fetch(module, year: int) -> list[DividendEventRow]:
     fetcher = {
         twse_twt48u: twse_twt48u.fetch_twt48u,
-        twse_twt49u: twse_twt49u.fetch_twt49u,
         tpex_otc: tpex_otc.fetch_tpex_otc,
     }[module]
     try:

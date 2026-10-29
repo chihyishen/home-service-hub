@@ -33,6 +33,7 @@ class Subscription(SubscriptionBase, AuditSchema):
     id: int
     category_name: str
     card_name: str | None = None
+    skipped_month: dt_date | None = None
 
 class InstallmentBase(BaseSchema):
     name: str = Field(..., description="分期名稱", examples=["iPhone 15"])

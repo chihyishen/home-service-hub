@@ -23,7 +23,6 @@ describe('PortfolioDashboardComponent', () => {
     refreshQuotes: ReturnType<typeof vi.fn>;
     getRecalcStatus: ReturnType<typeof vi.fn>;
     getSummary: ReturnType<typeof vi.fn>;
-    getUpcomingExDividends: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -32,7 +31,6 @@ describe('PortfolioDashboardComponent', () => {
       refreshQuotes: vi.fn(),
       getRecalcStatus: vi.fn(),
       getSummary: vi.fn().mockReturnValue(of(summary)),
-      getUpcomingExDividends: vi.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({

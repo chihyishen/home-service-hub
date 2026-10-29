@@ -1,6 +1,8 @@
 # Gateway security operations
 
-The supported topology is `LAN/VPN browser or agent -> frontend/gateway -> private backends`, with Keycloak reachable only through the trusted LAN/VPN identity listener. Backend ports remain loopback-bound on the host and private inside Compose.
+The supported topology is `LAN/VPN browser or agent -> frontend/gateway -> private backends`, with Keycloak reachable only through the trusted LAN/VPN identity listener. Backend ports remain loopback-bound on the host.
+
+The current Hermes agent client is scoped to Accounting API access only.
 
 Rate limits use a local Caffeine cache and Bucket4j token buckets. Counters reset whenever the gateway restarts. `GATEWAY_INSTANCE_COUNT` must remain `1`; startup fails when multiple instances are declared with `GATEWAY_RATE_STORE=local`. Configure a shared store before horizontal scaling.
 

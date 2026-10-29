@@ -69,7 +69,7 @@ def test_create_transaction_requires_category_id(client: TestClient, db_session)
     db_session.commit()
 
     response = client.post(
-        "/transactions/",
+        "/api/accounting/transactions",
         json={
             "date": date.today().isoformat(),
             "item": "午餐",
@@ -101,12 +101,85 @@ def test_update_transaction_rejects_null_category_id(client: TestClient, db_sess
     )
 
     response = client.put(
-        f"/transactions/{created.id}",
+        f"/api/accounting/transactions/{created.id}",
         json={"categoryId": None},
     )
 
     assert response.status_code == 400
     assert response.json()["message"] == "category_id cannot be null"
+
+
+def test_refund_lifecycle_blocks_amount_and_type_edits_but_allows_note_and_undo(client, db_session):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+    original = transaction_service.create_transaction(
+        db_session,
+        _transaction_create(
+            db_session,
+            category_name="退款測試",
+            date=date.today(),
+            item="商品",
+            paid_amount=900,
+            transaction_amount=1000,
+            payment_method="Cash",
+        ),
+    )
+    refund = transaction_service.refund_transaction(db_session, original.id, 200)
+
+    for transaction in (original, refund):
+        payload = {
+            "date": transaction.date.isoformat(),
+            "categoryId": transaction.category_id,
+            "item": transaction.item,
+            "paidAmount": transaction.paid_amount,
+            "transactionAmount": transaction.transaction_amount,
+            "paymentMethod": transaction.payment_method,
+            "cardId": transaction.card_id,
+            "transactionType": transaction.transaction_type,
+            "note": "補充備註",
+        }
+        response = client.put(f"/api/accounting/transactions/{transaction.id}", json=payload)
+        assert response.status_code == 200
+        assert response.json()["note"] == "補充備註"
+
+        for field, value in (
+            ("paidAmount", transaction.paid_amount + 1),
+            ("transactionAmount", transaction.transaction_amount + 1),
+            ("transactionType", "INCOME" if transaction.transaction_type == "EXPENSE" else "EXPENSE"),
+        ):
+            response = client.put(
+                f"/api/accounting/transactions/{transaction.id}",
+                json={field: value},
+            )
+            assert response.status_code == 400
+
+    response = client.delete(f"/api/accounting/transactions/{original.id}")
+    assert response.status_code == 400
+    assert "先刪除相關退款" in response.json()["message"]
+
+    assert client.delete(f"/api/accounting/transactions/{refund.id}").status_code == 200
+    assert client.delete(f"/api/accounting/transactions/{original.id}").status_code == 200
+
+
+def test_create_transaction_cannot_set_refund_relation(client, db_session):
+    db_session.add(models.PaymentMethod(name="Cash", is_active=True))
+    db_session.commit()
+    category = _get_or_create_category(db_session, "退款測試")
+
+    response = client.post(
+        "/api/accounting/transactions",
+        json={
+            "categoryId": category.id,
+            "item": "偽造退款",
+            "paidAmount": 100,
+            "transactionAmount": 100,
+            "paymentMethod": "Cash",
+            "transactionType": "INCOME",
+            "relatedTransactionId": 123,
+        },
+    )
+
+    assert response.status_code == 422
 
 
 def test_refund_guards_and_explicit_payment_method_override(db_session):
@@ -589,7 +662,7 @@ def test_annual_report_endpoint_is_read_only_and_returns_camel_case(client: Test
     db_session.commit()
 
     before_count = db_session.query(models.Transaction).count()
-    response = client.get(f"/transactions/report/annual/{today.year}")
+    response = client.get(f"/api/accounting/transactions/report/annual/{today.year}")
     after_count = db_session.query(models.Transaction).count()
 
     assert response.status_code == 200
@@ -610,6 +683,6 @@ def test_openapi_delete_summaries_do_not_mention_soft_delete(client: TestClient)
     spec = response.json()
     assert "軟刪除" not in str(spec)
     assert "soft delete" not in str(spec).lower()
-    assert "/transactions/report/annual/{year}" in spec["paths"]
-    annual_report_schema = spec["paths"]["/transactions/report/annual/{year}"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert "/api/accounting/transactions/report/annual/{year}" in spec["paths"]
+    annual_report_schema = spec["paths"]["/api/accounting/transactions/report/annual/{year}"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert annual_report_schema["$ref"] == "#/components/schemas/AnnualReport"

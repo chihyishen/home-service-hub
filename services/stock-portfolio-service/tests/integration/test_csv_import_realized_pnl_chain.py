@@ -8,6 +8,7 @@ from typing import Any
 
 from app.models.portfolio_snapshot import PortfolioSnapshot
 from app.models.price_history import PriceHistory
+from app.models.symbol_map import SymbolMap
 from app.services import broker_cathay_service
 from app.services.networth_backfill_service import replay_snapshots_range
 
@@ -53,10 +54,14 @@ def _seed_price(db: Any, *, symbol: str, d: date, close: str) -> None:
 def test_cathay_csv_import_snapshot_realized_pnl_matches_endpoint(
     client: Any,
     db_session: Any,
-    monkeypatch: Any,
 ) -> None:
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, "融券股", ["7788"])
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, "沖賣股", ["8899"])
+    db_session.add_all(
+        [
+            SymbolMap(name="融券股", symbol="7788", market="TWSE"),
+            SymbolMap(name="沖賣股", symbol="8899", market="TWSE"),
+        ]
+    )
+    db_session.commit()
 
     result = broker_cathay_service.parse_cathay_transactions_csv(
         _cathay_csv(

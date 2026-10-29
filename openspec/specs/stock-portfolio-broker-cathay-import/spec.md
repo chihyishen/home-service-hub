@@ -21,47 +21,40 @@ Non-國泰 CSVs (no preamble) SHALL continue to be routed to the existing generi
 - **WHEN** uploaded to the same endpoint
 - **THEN** the file SHALL be routed to the existing generic parser and produce identical results to the pre-feature implementation
 
-### Requirement: Chinese stock name resolves to ticker symbol via bundled reverse map plus optional caller-supplied overrides
+### Requirement: Chinese stock name resolves via symbol_map plus optional caller-supplied overrides
 
 The 國泰 parser SHALL resolve `股名` (Chinese stock name) to a ticker symbol via a two-tier lookup, in order:
 
-1. **Caller-supplied `name_overrides`** — an optional `dict[name, symbol]` passed through the endpoint as a JSON-encoded multipart form field `name_overrides`. If a name is present in the overrides dict, the override SHALL be used unconditionally (overrides win over the static map).
-2. **Bundled `name_to_symbol` map** — shipped under `app/data/name_to_symbol.json`, generated from the `twstock` package's bundled code table (~42K entries covering TWSE listed, TPEx OTC, ETFs, ETNs, warrants). Loaded once at module-import and reverse-indexed so a name maps to a list of candidate symbols.
+1. **Caller-supplied `name_overrides`** — an optional `dict[name, symbol]` passed through the endpoint as a JSON-encoded multipart form field `name_overrides`. If a name is present in the overrides dict, the override SHALL be used unconditionally.
+2. **Database `symbol_map` table** — the existing twstock-backed name map, loaded once for each import request.
 
-Unresolved names (missing from both overrides and static map) SHALL NOT roll back the batch. Instead they SHALL be collected into `ParseResult.unresolved_names` and the corresponding rows SHALL be skipped from the commit pipeline (reported as `skipped_unresolved` in the result, not `errors`).
+Unresolved names (missing from both overrides and `symbol_map`) SHALL NOT roll back the batch. Instead they SHALL be collected into `ParseResult.unresolved_names` and the corresponding rows SHALL be skipped from the commit pipeline (reported as `skipped_unresolved` in the result, not `errors`).
 
-#### Scenario: Unique name resolves cleanly via static map
+#### Scenario: Name resolves cleanly via symbol_map
 
-- **GIVEN** a CSV row with `股名='晶宏'` where `name_to_symbol.json` maps `晶宏` to a single symbol and no override is supplied
+- **GIVEN** a CSV row with `股名='晶宏'` where `symbol_map` maps `晶宏` to `3141` and no override is supplied
 - **WHEN** the row is parsed
 - **THEN** the resulting payload SHALL contain `symbol` equal to that single ticker
 
-#### Scenario: Override wins over static map
+#### Scenario: Override wins over symbol_map
 
-- **GIVEN** a CSV row with `股名='台積電'` (static map: `[2330]`) AND `name_overrides={"台積電": "2330B"}` is supplied
+- **GIVEN** a CSV row with `股名='台積電'` (`symbol_map`: `2330`) AND `name_overrides={"台積電": "2330B"}` is supplied
 - **WHEN** the row is parsed
 - **THEN** the resulting payload SHALL contain `symbol='2330B'`
 
-#### Scenario: Override resolves a name absent from the static map
+#### Scenario: Override resolves a name absent from symbol_map
 
-- **GIVEN** a CSV row with `股名='新光金'` not present in the static map AND `name_overrides={"新光金": "2888"}` is supplied
+- **GIVEN** a CSV row with `股名='新光金'` not present in `symbol_map` AND `name_overrides={"新光金": "2888"}` is supplied
 - **WHEN** the row is parsed
 - **THEN** the resulting payload SHALL contain `symbol='2888'`
 
 #### Scenario: Unknown name without override is collected, not raised
 
-- **GIVEN** a CSV row with `股名='元太元大18售19'` (a delisted warrant) absent from both overrides and the static map
+- **GIVEN** a CSV row with `股名='元太元大18售19'` (a delisted warrant) absent from both overrides and `symbol_map`
 - **WHEN** the row is parsed
 - **THEN** the row SHALL NOT appear in `ParseResult.rows`
 - **AND** the name SHALL appear in `ParseResult.unresolved_names` with its occurrence count and up to 3 sample trade dates
 - **AND** no `errors` entry SHALL be created for this name (it is a soft-skip, not a hard error)
-
-#### Scenario: Ambiguous name produces a row-level hard error (still rolls back)
-
-- **GIVEN** a CSV row with `股名='元大23購15'` where the static map yields 2 or more candidates AND no override resolves the ambiguity
-- **WHEN** the row is parsed
-- **THEN** the row SHALL be reported in `errors` with message containing `ambiguous symbol for 股名='元大23購15'` followed by the candidate list
-- **AND** the whole batch SHALL roll back (ambiguous mapping is an operator-intervention case, distinct from "name simply unknown")
 
 ### Requirement: 國泰 type vocabulary collapses to BUY / SELL
 
@@ -162,7 +155,7 @@ The whole batch SHALL run inside a single database transaction. Any row error (n
 
 #### Scenario: Hard row error rolls back the entire batch
 
-- **GIVEN** a 國泰 CSV where row 500 of 1997 contains an **ambiguous** `股名` (or a malformed date, malformed quantity, etc.) — a *hard* error, not an unresolvable name
+- **GIVEN** a 國泰 CSV where row 500 of 1997 contains a malformed date or quantity — a *hard* error, not an unresolvable name
 - **WHEN** the CSV is uploaded with `dry_run=false`
 - **THEN** the transaction SHALL be rolled back
 - **AND** no `import_fingerprint` updates SHALL persist
@@ -170,7 +163,7 @@ The whole batch SHALL run inside a single database transaction. Any row error (n
 
 #### Scenario: Unresolved names do not roll back the batch
 
-- **GIVEN** a 國泰 CSV of 1997 rows where 104 rows reference 14 unique names absent from both static map and overrides
+- **GIVEN** a 國泰 CSV of 1997 rows where 104 rows reference 14 unique names absent from both `symbol_map` and overrides
 - **WHEN** the CSV is uploaded with `dry_run=false` and no other errors are present
 - **THEN** the 1893 resolvable rows SHALL be committed (rehashed or inserted per the normal rules)
 - **AND** the 104 unresolved rows SHALL be skipped, reported as `skipped_unresolved=104`
@@ -194,7 +187,7 @@ The generic-path response SHALL always set `skipped_unresolved=0` and `unresolve
 
 #### Scenario: Endpoint returns unresolved_names in response
 
-- **GIVEN** a 國泰 CSV with 14 unique names absent from both overrides and static map (104 rows)
+- **GIVEN** a 國泰 CSV with 14 unique names absent from both overrides and `symbol_map` (104 rows)
 - **WHEN** the CSV is uploaded with `dry_run=true`
 - **THEN** the response SHALL include `skipped_unresolved=104`
 - **AND** `unresolved_names` SHALL contain 14 entries, each with `name`, `occurrences`, and `sample_dates` (up to 3 most recent dates per name)
@@ -216,7 +209,7 @@ Verification results SHALL be cached in-process per `(code, yyyymmdd)` so re-run
 
 The response SHALL include `override_validations: list[OverrideValidation]` where each entry has `{name, code, status, expected_name?, fetched_name?}` with `status` ∈ `{verified, name_mismatch, not_traded_on_date, fetch_failed, user_overridden}`. The response SHALL include `skipped_unverified: int` — count of rows whose override resolved to a non-verified, non-confirmed status.
 
-`auto_resolved` rows (resolved via static twstock map without an override) SHALL NOT be verified. Verification applies only to user-supplied overrides.
+`auto_resolved` rows (resolved via `symbol_map` without an override) SHALL NOT be verified. Verification applies only to user-supplied overrides.
 
 #### Scenario: Override with matching name on trade date is verified
 
@@ -371,4 +364,3 @@ The snapshot SHALL be applied on:
 #### Scenario: Rehash preserves an already-stamped instrument_type after warrant-code recycle
 - **WHEN** either rehash branch matches an existing row whose `instrument_type` is already non-NULL (e.g. `'上櫃認購(售)權證'`) AND the symbol's current `symbol_map.type` has changed to a different value (e.g. `'上市ETF'` after recycle)
 - **THEN** the existing `instrument_type` value SHALL be preserved unchanged (the rehash MUST NOT overwrite the historical snapshot with the post-recycle live value)
-

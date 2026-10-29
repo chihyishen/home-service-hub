@@ -1,7 +1,5 @@
 package com.inventory.item.config;
 
-import io.micrometer.observation.ObservationRegistry;
-import io.micrometer.observation.aop.ObservedAspect;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import jakarta.annotation.PostConstruct;
@@ -17,11 +15,6 @@ public class LoggingConfig {
 
     public LoggingConfig(OpenTelemetry openTelemetry) {
         this.openTelemetry = openTelemetry;
-    }
-
-    @Bean
-    public ObservedAspect observedAspect(ObservationRegistry observationRegistry) {
-        return new ObservedAspect(observationRegistry);
     }
 
     @PostConstruct

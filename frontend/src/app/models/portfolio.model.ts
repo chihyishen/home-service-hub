@@ -176,15 +176,6 @@ export interface CorporateAction {
   source_event_key: string;
 }
 
-export interface ExDividendRecord {
-  symbol: string;
-  name: string;
-  ex_dividend_date?: string;
-  ex_rights_date?: string;
-  cash_dividend?: string;
-  stock_dividend?: string;
-}
-
 export interface Paged<T> {
   items: T[];
   total: number;

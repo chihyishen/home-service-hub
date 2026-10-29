@@ -22,7 +22,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("com.bucket4j:bucket4j_jdk17-core:8.15.0")
     implementation("com.github.ben-manes.caffeine:caffeine")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -42,6 +43,11 @@ if (dotEnvFile.exists()) {
         }
     }
 }
+
+// ponytail: 根 .env 的 SPRING_APPLICATION_NAME 是給 item-service 用的（它的 application.yml
+// 寫 ${SPRING_APPLICATION_NAME} 且無預設值），但 env var 會蓋掉本服務 application.yml 的
+// spring.application.name，害 gateway 的 trace 全部掛在 inventory-item-service 名下。
+envMap.remove("SPRING_APPLICATION_NAME")
 
 tasks.withType<org.springframework.boot.gradle.tasks.run.BootRun> {
     environment(envMap)

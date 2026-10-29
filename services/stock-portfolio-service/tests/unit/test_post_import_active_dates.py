@@ -47,18 +47,24 @@ def test_networth_step_passes_computed_active_dates(db_session: Any, monkeypatch
     )
 
 
-def test_networth_step_short_circuits_empty_active_dates(
+def test_networth_step_replays_existing_snapshots_with_empty_active_dates(
     db_session: Any, monkeypatch: Any
 ) -> None:
     monkeypatch.setattr(nbs, "compute_active_dates", MagicMock(return_value=set()))
-    run = MagicMock()
+    run = MagicMock(return_value=nbs.NetworthBackfillResult(dates_inactive=5))
     monkeypatch.setattr(nbs, "run_backfill", run)
 
     step = orch._step_networth_backfill(
         _session_factory(db_session), date(2026, 5, 11), date(2026, 5, 15)
     )
 
-    run.assert_not_called()
+    run.assert_called_once_with(
+        db_session,
+        date(2026, 5, 11),
+        date(2026, 5, 15),
+        phase="both",
+        active_dates=set(),
+    )
     assert step.status == "ok"
     assert step.detail == {
         "dates_processed": 0,

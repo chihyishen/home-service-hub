@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ...models import portfolio as models
 from ...schemas import portfolio as schemas
-from .. import symbol_map_service
+from .. import portfolio_recalc_service, symbol_map_service
 from .day_trade import _recompute_day_trade_flags, _validate_transaction_ledger
 from .helpers import _escape_like_prefix, _trade_calendar_date, sanitize_symbol
 from .history_backfill import (
@@ -47,6 +47,11 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
         db_transaction.symbol,
         _trade_calendar_date(db_transaction.trade_date),
     )
+    portfolio_recalc_service.mark_mutation(
+        db,
+        dates=[_trade_calendar_date(db_transaction.trade_date)],
+        touched_symbols={db_transaction.symbol},
+    )
     db.commit()
     db.refresh(db_transaction)
 
@@ -65,6 +70,11 @@ def create_dividend(db: Session, dividend: schemas.DividendCreate):
 
     db_dividend = models.Dividend(**dividend_data)
     db.add(db_dividend)
+    portfolio_recalc_service.mark_mutation(
+        db,
+        dates=[db_dividend.ex_dividend_date.date()],
+        touched_symbols={db_dividend.symbol},
+    )
     db.commit()
     db.refresh(db_dividend)
     return db_dividend
@@ -197,6 +207,11 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
     if (new_symbol, new_calendar) != (old_symbol, old_calendar):
         _recompute_day_trade_flags(db, new_symbol, new_calendar)
 
+    portfolio_recalc_service.mark_mutation(
+        db,
+        dates=[old_calendar, new_calendar],
+        touched_symbols={old_symbol, new_symbol},
+    )
     db.commit()
     db.refresh(db_transaction)
     return db_transaction
@@ -212,6 +227,9 @@ def delete_transaction(db: Session, transaction_id: int):
     db.delete(db_transaction)
     db.flush()
     _recompute_day_trade_flags(db, symbol, calendar)
+    portfolio_recalc_service.mark_mutation(
+        db, dates=[calendar], touched_symbols={symbol}
+    )
     db.commit()
     return True
 
@@ -271,13 +289,20 @@ def update_dividend(db: Session, dividend_id: int, dividend_update: schemas.Divi
     db_dividend = db.query(models.Dividend).filter(models.Dividend.id == dividend_id).first()
     if not db_dividend:
         return None
-    
+
+    old_date = db_dividend.ex_dividend_date.date()
+    old_symbol = sanitize_symbol(db_dividend.symbol)
     update_data = dividend_update.model_dump(exclude_unset=True)
     update_data["symbol"] = sanitize_symbol(update_data["symbol"])
-    
+
     for key, value in update_data.items():
         setattr(db_dividend, key, value)
-    
+
+    portfolio_recalc_service.mark_mutation(
+        db,
+        dates=[old_date, db_dividend.ex_dividend_date.date()],
+        touched_symbols={old_symbol, db_dividend.symbol},
+    )
     db.commit()
     db.refresh(db_dividend)
     return db_dividend
@@ -286,6 +311,11 @@ def delete_dividend(db: Session, dividend_id: int):
     db_dividend = db.query(models.Dividend).filter(models.Dividend.id == dividend_id).first()
     if not db_dividend:
         return False
+    portfolio_recalc_service.mark_mutation(
+        db,
+        dates=[db_dividend.ex_dividend_date.date()],
+        touched_symbols={sanitize_symbol(db_dividend.symbol)},
+    )
     db.delete(db_dividend)
     db.commit()
     return True

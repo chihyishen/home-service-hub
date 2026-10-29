@@ -205,27 +205,24 @@ def test_recompute_keeps_stamped_warrant_ineligible_after_symbol_map_recycle(
         ("上市ETF", None),
         (None, None),
     ],
-    ids=["warrant", "non_warrant", "unmapped"],
+    ids=["warrant", "non_warrant", "no_type"],
 )
 def test_cathay_insert_and_rehash_paths_snapshot_only_warrant_type(
     db_session,
-    monkeypatch,
     branch: str,
     map_type: str | None,
     expected: str | None,
 ):
     name = f"snapshot-{branch}-{map_type or 'unmapped'}"
     symbol = f"S{abs(hash((branch, map_type))) % 100000:05d}"
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, name, [symbol])
-    if map_type is not None:
-        db_session.add(
-            SymbolMap(name=name, symbol=symbol, market="TWSE", type=map_type)
-        )
-        db_session.commit()
+    db_session.add(SymbolMap(name=name, symbol=symbol, market="TWSE", type=map_type))
+    db_session.commit()
     _seed_cathay_match(db_session, symbol=symbol, branch=branch)
 
     result = broker_cathay_service.parse_cathay_transactions_csv(
-        _cathay_csv(name), dry_run=False, db=db_session
+        _cathay_csv(name),
+        dry_run=False,
+        db=db_session,
     )
 
     if branch == "insert":
@@ -285,7 +282,7 @@ def test_create_transaction_stamps_warrant_and_leaves_etf_null(db_session):
 
 @pytest.mark.parametrize("branch", ["legacy", "business"])
 def test_rehash_preserves_existing_instrument_type_after_recycle(
-    db_session, monkeypatch, branch: str
+    db_session, branch: str
 ):
     """If a row was already stamped historically, rehash must NOT clobber it
     even when ``symbol_map`` now resolves the symbol to a different (possibly
@@ -293,7 +290,6 @@ def test_rehash_preserves_existing_instrument_type_after_recycle(
     """
     name = f"preserve-{branch}"
     symbol = f"R{abs(hash(branch)) % 100000:05d}"
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, name, [symbol])
 
     # symbol_map currently reports the RECYCLED non-warrant instrument.
     db_session.add(

@@ -24,7 +24,6 @@ class TransactionBase(BaseSchema):
     transaction_type: str = Field(default="EXPENSE", description="交易類型 (INCOME, EXPENSE)", examples=["EXPENSE"])
     note: str | None = Field(default=None, description="備註")
     tags: list[str] | None = Field(default=None, description="標籤")
-    related_transaction_id: int | None = Field(default=None, description="關聯的原始交易 ID (沖銷用)")
 
 class TransactionCreate(TransactionBase):
     model_config = ConfigDict(extra="forbid")
@@ -51,6 +50,7 @@ class TransactionUpdate(BaseSchema):
 class Transaction(TransactionBase, AuditSchema):
     id: int
     category_name: str
+    related_transaction_id: int | None = None
     subscription_id: int | None = None
     installment_id: int | None = None
     card_name: str | None = None

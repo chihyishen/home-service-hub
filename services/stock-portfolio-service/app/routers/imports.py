@@ -21,12 +21,20 @@ from datetime import UTC, datetime, timedelta, timezone
 from datetime import date as dt_date
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, Query, Response, UploadFile
-from sqlalchemy import case, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal, get_db
 from ..models import portfolio as portfolio_models
-from ..services import broker_cathay_service, import_service, per_date_verify, post_import_orchestrator
+from ..services import (
+    broker_cathay_service,
+    import_service,
+    per_date_verify,
+    portfolio_recalc_service,
+    portfolio_service,
+    post_import_orchestrator,
+    symbol_map_service,
+)
 
 router = APIRouter(prefix="/api/portfolio/imports", tags=["Portfolio Imports"])
 
@@ -124,12 +132,16 @@ def _touched_symbols_and_min_ex_date(
 def _maybe_schedule_chain(
     background_tasks: BackgroundTasks,
     *,
+    db: Session,
     touched_symbols: set[str],
     recalc_from: dt_date | None,
 ) -> bool:
     if recalc_from is None or not touched_symbols:
         return False
     if not post_import_orchestrator.is_enabled():
+        return False
+    work = portfolio_recalc_service.get_work(db)
+    if work is None:
         return False
     recalc_to = post_import_orchestrator.today_tw()
     if recalc_from > recalc_to:
@@ -140,6 +152,7 @@ def _maybe_schedule_chain(
         recalc_from=recalc_from,
         recalc_to=recalc_to,
         touched_symbols=touched_symbols,
+        expected_generation=work.generation,
     )
     return True
 
@@ -189,10 +202,11 @@ def import_transactions(
         if csv_format == "cathay":
             parsed = broker_cathay_service.parse_cathay_rows(
                 raw,
+                name_to_symbol=symbol_map_service.load_name_to_symbol(db),
                 name_overrides=overrides_dict,
             )
-            result = broker_cathay_service.parse_cathay_transactions_csv(
-                raw,
+            result = broker_cathay_service.commit_cathay_transactions(
+                parsed,
                 dry_run=dry_run,
                 db=db,
                 name_overrides=overrides_dict,
@@ -207,7 +221,10 @@ def import_transactions(
     if not result.dry_run and result.created > 0:
         symbols, min_trade = _touched_symbols_and_min_trade_date(db, result.created_ids)
         recalc_scheduled = _maybe_schedule_chain(
-            background_tasks, touched_symbols=symbols, recalc_from=min_trade
+            background_tasks,
+            db=db,
+            touched_symbols=symbols,
+            recalc_from=min_trade,
         )
     return _serialize_result(parsed, result, recalc_scheduled=recalc_scheduled)
 
@@ -230,7 +247,10 @@ def import_dividends(
     if not result.dry_run and result.created > 0:
         symbols, min_ex = _touched_symbols_and_min_ex_date(db, result.created_ids)
         recalc_scheduled = _maybe_schedule_chain(
-            background_tasks, touched_symbols=symbols, recalc_from=min_ex
+            background_tasks,
+            db=db,
+            touched_symbols=symbols,
+            recalc_from=min_ex,
         )
     return _serialize_result(parsed, result, recalc_scheduled=recalc_scheduled)
 
@@ -262,6 +282,19 @@ def trigger_recalc(
     body: dict = Body(default_factory=dict),
     db: Session = Depends(get_db),
 ) -> dict:
+    existing_work = portfolio_recalc_service.get_work(db)
+    if existing_work is not None and not body.get("start_date") and not body.get("end_date"):
+        existing_work = portfolio_recalc_service.retry_work(db) or existing_work
+        background_tasks.add_task(
+            post_import_orchestrator.run_pending_portfolio_recalc, SessionLocal
+        )
+        return {
+            "recalc_scheduled": True,
+            "start_date": existing_work.recalc_from.isoformat(),
+            "end_date": existing_work.recalc_to.isoformat(),
+            "touched_symbols": sorted(existing_work.touched_symbols),
+        }
+
     raw_start = body.get("start_date")
     raw_end = body.get("end_date")
     try:
@@ -293,12 +326,22 @@ def trigger_recalc(
     if not touched:
         raise HTTPException(status_code=409, detail="no transactions to recalc")
 
+    generation = portfolio_recalc_service.mark_dirty(
+        db,
+        recalc_from=start_date,
+        recalc_to=end_date,
+        touched_symbols=touched,
+        mode="chain",
+    )
+    db.commit()
+
     background_tasks.add_task(
         post_import_orchestrator.schedule_chain_sync,
         SessionLocal,
         recalc_from=start_date,
         recalc_to=end_date,
         touched_symbols=touched,
+        expected_generation=generation,
     )
     return {
         "recalc_scheduled": True,
@@ -319,28 +362,20 @@ def refresh_quotes(
         datetime.max.time(),
         tzinfo=timezone(timedelta(hours=8)),
     ).astimezone(UTC)
-    signed_qty = case(
-        (
-            portfolio_models.Transaction.type
-            == portfolio_models.TransactionType.BUY,
-            portfolio_models.Transaction.quantity,
-        ),
-        else_=-portfolio_models.Transaction.quantity,
+    transactions = (
+        db.query(portfolio_models.Transaction)
+        .filter(portfolio_models.Transaction.trade_date <= today_utc_eod)
+        .all()
     )
-    net_qty = func.sum(signed_qty)
-    touched = {
-        symbol
-        for symbol, _qty in (
-            db.query(
-                portfolio_models.Transaction.symbol,
-                net_qty.label("qty"),
-            )
-            .filter(portfolio_models.Transaction.trade_date <= today_utc_eod)
-            .group_by(portfolio_models.Transaction.symbol)
-            .having(net_qty > 0)
-            .all()
-        )
+    actions_by_symbol = {
+        symbol: [action for action in actions if action.effective_date <= today]
+        for symbol, actions in portfolio_service._load_corp_actions_by_symbol(db).items()
     }
+    touched = set(
+        portfolio_service._aggregate_active_holdings(
+            transactions, actions_by_symbol
+        )
+    )
     if not touched:
         return Response(status_code=204)
 
@@ -362,5 +397,8 @@ def refresh_quotes(
 
 
 @router.get("/recalc/status")
-def recalc_status() -> dict:
+def recalc_status(db: Session = Depends(get_db)) -> dict:
+    persisted = portfolio_recalc_service.status_response(db)
+    if persisted is not None:
+        return persisted
     return post_import_orchestrator.latest_status()

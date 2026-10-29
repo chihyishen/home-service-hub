@@ -9,6 +9,8 @@ from app.models import portfolio as models
 from app.services import broker_cathay_service, import_service
 from app.services.per_date_verify import OverrideValidation
 
+NAME_TO_SYMBOL = {"晶宏": "3141"}
+
 CATHAY_HEADER = (
     "股名,日期,成交股數,淨收付金額,買賣別,成交價,成本,手續費,交易稅,"
     "融資金額/券擔保品,資自備款/券保證金,利息,稅款,券手續費/標借費,委託書號\n"
@@ -39,7 +41,19 @@ def _row(
 
 @pytest.fixture(autouse=True)
 def _stable_name_map(monkeypatch):
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, "晶宏", ["3141"])
+    NAME_TO_SYMBOL.clear()
+    NAME_TO_SYMBOL["晶宏"] = "3141"
+    monkeypatch.setattr(
+        broker_cathay_service.symbol_map_service,
+        "load_name_to_symbol",
+        lambda _db: NAME_TO_SYMBOL,
+    )
+
+
+def _parse_cathay_rows(raw: bytes, **kwargs):
+    return broker_cathay_service.parse_cathay_rows(
+        raw, name_to_symbol=NAME_TO_SYMBOL, **kwargs
+    )
 
 
 def _legacy_fp() -> str:
@@ -100,21 +114,12 @@ def test_detect_csv_format_blank_leading_lines():
 
 
 def test_resolve_symbol_unique():
-    assert broker_cathay_service.resolve_symbol("晶宏") == "3141"
+    assert broker_cathay_service.resolve_symbol("晶宏", NAME_TO_SYMBOL) == "3141"
 
 
 def test_resolve_symbol_unknown_raises_with_message():
     with pytest.raises(ValueError, match="cannot resolve symbol for 股名='不存在'"):
-        broker_cathay_service.resolve_symbol("不存在")
-
-
-def test_resolve_symbol_ambiguous_raises_with_candidates(monkeypatch):
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, "元大23購15", ["A", "B"])
-    with pytest.raises(
-        ValueError,
-        match=r"ambiguous symbol for 股名='元大23購15': \['A', 'B'\]",
-    ):
-        broker_cathay_service.resolve_symbol("元大23購15")
+        broker_cathay_service.resolve_symbol("不存在", NAME_TO_SYMBOL)
 
 
 @pytest.mark.parametrize(
@@ -131,7 +136,7 @@ def test_resolve_symbol_ambiguous_raises_with_candidates(monkeypatch):
     ],
 )
 def test_cathay_type_collapse_all_eight_variants(side, type_, subtype):
-    parsed = broker_cathay_service.parse_cathay_rows(_cathay_csv(_row(side=side)))
+    parsed = _parse_cathay_rows(_cathay_csv(_row(side=side)))
     assert parsed.errors == []
     assert parsed.rows[0].payload["type"] == type_
     assert parsed.rows[0].payload["broker_subtype"] == subtype
@@ -151,13 +156,13 @@ def test_cathay_type_collapse_all_eight_variants(side, type_, subtype):
     ],
 )
 def test_cathay_day_trade_marker_emitted_for_intraday_sides(side, marker):
-    parsed = broker_cathay_service.parse_cathay_rows(_cathay_csv(_row(side=side)))
+    parsed = _parse_cathay_rows(_cathay_csv(_row(side=side)))
     assert parsed.errors == []
     assert parsed.rows[0].payload["broker_day_trade_marker"] == marker
 
 
 def test_cathay_subtype_does_not_affect_fingerprint():
-    parsed = broker_cathay_service.parse_cathay_rows(
+    parsed = _parse_cathay_rows(
         _cathay_csv(_row(side="現買"), _row(side="資買"))
     )
     assert parsed.errors == []
@@ -165,14 +170,14 @@ def test_cathay_subtype_does_not_affect_fingerprint():
 
 
 def test_cathay_parser_skips_preamble_and_reads_header():
-    parsed = broker_cathay_service.parse_cathay_rows(_cathay_csv(_row()))
+    parsed = _parse_cathay_rows(_cathay_csv(_row()))
     assert parsed.errors == []
     assert len(parsed.rows) == 1
     assert parsed.rows[0].payload["symbol"] == "3141"
 
 
 def test_cathay_thousands_separator_in_quantity_and_price():
-    parsed = broker_cathay_service.parse_cathay_rows(
+    parsed = _parse_cathay_rows(
         _cathay_csv(_row(quantity="1,000", price="56,322"))
     )
     assert parsed.errors == []
@@ -319,7 +324,7 @@ def test_dry_run_rehash_reports_counts_writes_nothing(db_session):
 
 
 def test_name_overrides_resolves_name_absent_from_static_map():
-    parsed = broker_cathay_service.parse_cathay_rows(
+    parsed = _parse_cathay_rows(
         _cathay_csv(_row(name="不存在")),
         name_overrides={"不存在": "9999"},
     )
@@ -330,7 +335,7 @@ def test_name_overrides_resolves_name_absent_from_static_map():
 
 
 def test_name_overrides_wins_over_static_map():
-    parsed = broker_cathay_service.parse_cathay_rows(
+    parsed = _parse_cathay_rows(
         _cathay_csv(_row()),
         name_overrides={"晶宏": "9999"},
     )
@@ -340,7 +345,7 @@ def test_name_overrides_wins_over_static_map():
 
 
 def test_unresolved_name_collected_not_raised():
-    parsed = broker_cathay_service.parse_cathay_rows(_cathay_csv(_row(name="不存在")))
+    parsed = _parse_cathay_rows(_cathay_csv(_row(name="不存在")))
 
     assert parsed.rows == []
     assert parsed.errors == []
@@ -368,29 +373,6 @@ def test_unresolved_does_not_rollback_resolved_rows(db_session):
     assert len(result.unresolved_names) == 1
     assert result.unresolved_names[0].name == "不存在"
     assert db_session.query(models.Transaction).count() == 2
-
-
-def test_ambiguous_name_surfaces_to_unresolved_panel(db_session, monkeypatch):
-    """Per PR #6 review: ambiguous names (multiple candidates in
-    NAME_TO_SYMBOL) now flow into the same override UX as unknown names,
-    instead of hard-failing the batch. The user picks the right ticker on the
-    frontend; resolvable rows commit as usual."""
-    monkeypatch.setitem(broker_cathay_service.NAME_TO_SYMBOL, "模擬曖昧", ["A", "B"])
-    _seed_legacy_transaction(db_session)
-    result = broker_cathay_service.parse_cathay_transactions_csv(
-        _cathay_csv(_row(order_id="aT532"), _row(name="模擬曖昧", order_id="bad")),
-        dry_run=False,
-        db=db_session,
-    )
-
-    # Resolvable row still rehashes; ambiguous one is collected for the
-    # override panel rather than poisoning the whole batch.
-    assert result.rehashed == 1
-    assert result.created == 0
-    assert result.errors == []
-    assert [u.name for u in result.unresolved_names] == ["模擬曖昧"]
-    assert result.skipped_unresolved == 1
-    assert db_session.query(models.Transaction).count() == 1
 
 
 def test_endpoint_accepts_name_overrides_form_field(client, monkeypatch):

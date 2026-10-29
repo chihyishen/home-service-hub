@@ -27,6 +27,9 @@
             {{ $any(item).name }}
             @if (!isInstallmentView()) {
               <p-tag [severity]="$any(item).active ? 'success' : 'secondary'" [value]="$any(item).active ? '啟用' : '停用'" (click)="toggleSub($any(item).id); $event.stopPropagation();" class="status-tag" styleClass="text-xs px-2 py-1"></p-tag>
+              @if (isSkippedThisMonth($any(item))) {
+                <p-tag severity="warn" value="本月略過" styleClass="text-xs px-2 py-1"></p-tag>
+              }
             }
           </div>
           <div class="sub-text d-flex align-items-center gap-2 mt-1">

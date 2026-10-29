@@ -507,6 +507,12 @@ def replay_snapshots_range(
         .order_by(portfolio_models.Dividend.ex_dividend_date)
         .all()
     )
+    snapshot_dates = {
+        snapshot_date
+        for (snapshot_date,) in db.query(PortfolioSnapshot.date)
+        .filter(PortfolioSnapshot.date >= from_d, PortfolioSnapshot.date <= to_d)
+        .all()
+    }
     price_map = _load_price_map(db, from_d, to_d)
     trading_dates = {d for (_s, d) in price_map.keys()}
     prior_snapshot = (
@@ -609,7 +615,11 @@ def replay_snapshots_range(
             div_i += 1
 
         is_weekend = cur.weekday() >= 5
-        is_inactive = active_dates is not None and cur not in active_dates
+        is_inactive = (
+            active_dates is not None
+            and cur not in active_dates
+            and cur not in snapshot_dates
+        )
         is_holiday = cur not in trading_dates
         would_skip = is_weekend or is_inactive or is_holiday
         if is_inactive and not is_weekend:
@@ -618,7 +628,7 @@ def replay_snapshots_range(
         if would_skip:
             wrote_forward_fill = False
             if (
-                cur in held_calendar
+                (cur in held_calendar or cur in snapshot_dates)
                 and last_trading_mv is not None
                 and last_trading_cost is not None
                 and sum(qty.values()) > 0
@@ -630,6 +640,19 @@ def replay_snapshots_range(
                         total_market_value=last_trading_mv,
                         total_cost=last_trading_cost,
                         total_unrealized_pnl=last_trading_mv - last_trading_cost,
+                        total_dividends=cumulative_dividends,
+                        total_realized_pnl=cumulative_realized,
+                        portfolio_xirr=None,
+                    ),
+                )
+            elif cur in snapshot_dates and sum(qty.values()) <= 0:
+                wrote_forward_fill = write_snapshot(
+                    cur,
+                    PortfolioSnapshot(
+                        date=cur,
+                        total_market_value=Decimal("0"),
+                        total_cost=Decimal("0"),
+                        total_unrealized_pnl=Decimal("0"),
                         total_dividends=cumulative_dividends,
                         total_realized_pnl=cumulative_realized,
                         portfolio_xirr=None,

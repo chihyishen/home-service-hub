@@ -6,7 +6,6 @@ import com.inventory.item.dto.ItemTransactionResultResponse;
 import com.inventory.item.dto.InventoryTransactionRequest;
 import com.inventory.item.dto.InventoryTransactionResponse;
 import com.inventory.item.service.ItemService;
-import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,8 +22,6 @@ import java.util.List;
 @RequestMapping("/api/items")
 
 @RequiredArgsConstructor
-
-@Observed(name = "item.api", contextualName = "Layer: Controller")
 
 @Tag(name = "Items", description = "品項管理 (Item API) - 提供庫存品項的增刪查改功能")
 

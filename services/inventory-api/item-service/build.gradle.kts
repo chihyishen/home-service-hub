@@ -12,12 +12,10 @@ dependencies {
     // === 1. Web / Observability (formerly provided by common-library) ===
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
-    implementation("org.springframework.boot:spring-boot-starter-aop:4.0.0-M2")
     implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:2.1.0")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.24.0-alpha")
     implementation("io.opentelemetry:opentelemetry-api-incubator")
-    implementation("org.zalando:logbook-spring-boot-starter:4.0.0-RC.1")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
     implementation("org.springframework.boot:spring-boot-starter-jackson")
 

@@ -214,10 +214,28 @@ def refund_transaction(db: Session, transaction_id: int, refund_amount: int):
         db.refresh(refund_tx)
         return get_transaction(db, refund_tx.id)
 
+
+def _has_refunds(db: Session, transaction_id: int) -> bool:
+    return db.query(models.Transaction.id).filter(
+        models.Transaction.related_transaction_id == transaction_id
+    ).first() is not None
+
+
 def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionUpdate):
     with tracer.start_as_current_span("service.update_transaction"):
         db_transaction = get_transaction(db, transaction_id)
         update_data = transaction_update.model_dump(exclude_unset=True)
+
+        amount_or_type_changed = any(
+            key in update_data and update_data[key] != getattr(db_transaction, key)
+            for key in ("paid_amount", "transaction_amount", "transaction_type")
+        )
+        if amount_or_type_changed:
+            if db_transaction.related_transaction_id is not None or _has_refunds(db, db_transaction.id):
+                raise HTTPException(
+                    status_code=400,
+                    detail="已有退款的交易不可修改金額或類型",
+                )
 
         # --- 資料校驗與自動同步 ---
         if "category_id" in update_data:
@@ -252,6 +270,11 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
 def delete_transaction(db: Session, transaction_id: int):
     with tracer.start_as_current_span("service.delete_transaction"):
         db_transaction = get_transaction(db, transaction_id)
+        if _has_refunds(db, db_transaction.id):
+            raise HTTPException(
+                status_code=400,
+                detail="請先刪除相關退款，才能刪除此原始交易",
+            )
         db.delete(db_transaction)
         db.commit()
         return {"message": "Transaction deleted successfully"}

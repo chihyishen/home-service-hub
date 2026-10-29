@@ -21,8 +21,6 @@ ValidationStatus = Literal[
 ]
 StatusHint = Literal["ok", "not_traded", "error"]
 
-_TWSE_CODE_RE = re.compile(r"^\d{4}$")
-_TPEX_CODE_RE = re.compile(r"^\d{4,6}[A-Z]?$")
 _TWSE_TITLE_RE = re.compile(r"^\d+年\d+月\s+(\S+)\s+(\S+)\s+")
 _TPEX_SUBTITLE_RE = re.compile(r"^(\S+)\s+(\S+)\s+\d+年\d+月")
 

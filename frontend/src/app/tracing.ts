@@ -7,7 +7,6 @@ import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-docu
 import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import { environment } from '../environments/environment';
 
 export function initTracing() {
   const exporter = new OTLPTraceExporter({
@@ -33,15 +32,11 @@ export function initTracing() {
       new DocumentLoadInstrumentation(),
       new FetchInstrumentation({
         propagateTraceHeaderCorsUrls: [
-           new RegExp(`http://${environment.inventoryServiceHost}:${environment.inventoryServicePort}/.*`),
-           new RegExp(`http://${environment.accountingServiceHost}:${environment.accountingServicePort}/.*`),
            new RegExp(`${window.location.origin}/api/.*`)
         ],
       }),
       new XMLHttpRequestInstrumentation({
         propagateTraceHeaderCorsUrls: [
-           new RegExp(`http://${environment.inventoryServiceHost}:${environment.inventoryServicePort}/.*`),
-           new RegExp(`http://${environment.accountingServiceHost}:${environment.accountingServicePort}/.*`),
            new RegExp(`${window.location.origin}/api/.*`)
         ],
       }),
