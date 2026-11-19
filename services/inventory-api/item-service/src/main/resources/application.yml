@@ -8,11 +8,6 @@ spring:
       enabled: true
   application:
     name: ${SPRING_APPLICATION_NAME}
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-
   servlet:
     multipart:
       max-file-size: 15MB    # phone photos are ~3-8MB; default 1MB rejected them
