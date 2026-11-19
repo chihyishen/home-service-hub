@@ -110,7 +110,7 @@ graph TD
 ### 4. 本機安全預設
 
 - Compose 發佈的基礎設施服務預設只綁定 loopback。`INFRA_BIND_HOST` 控制 PostgreSQL、OTel、Tempo 與 Loki。後端服務由 PM2 啟動並只綁定 `127.0.0.1`。
-- Grafana 固定保留 `127.0.0.1:3000`，並可透過 `GRAFANA_VPN_BIND_HOST` 增加第二個受信任入口。當 WireGuard Server 位於家用路由器時，將它設成主機的 LAN IP；本機目前使用 `192.168.0.100`，VPN client 即可開啟 `http://192.168.0.100:3000`。這個入口不經過 Gateway，且不會連帶開放其他基礎設施服務。
+- Grafana 只綁 `127.0.0.1:3000`；區網／VPN 一律經 nginx 的 `http://<LAN-IP>/grafana/` 進入。
 - PM2 啟動的 Accounting、Stock backends 與 Gateway 都只綁定 `127.0.0.1`；nginx（`~/projects/infra`）維持 VPN/LAN 可達，作為唯一瀏覽器入口，API 流量經其反向代理進入 Gateway。
 - Inventory 在本機直接啟動時由 `INVENTORY_SERVER_ADDRESS` 控制監聽位址，預設 `127.0.0.1`。
 - Inventory 的 OpenAPI 與 Swagger UI 預設關閉；維護端點或要提供 API 清單給 agent 時，設 `INVENTORY_API_DOCS_ENABLED=true`，再從 `/v3/api-docs` 匯出 `api.json`。只在受信任環境短暫開啟。

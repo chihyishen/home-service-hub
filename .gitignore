@@ -32,8 +32,6 @@ tmp/
 secrets/
 *.secret
 *.secrets
-keycloak/export/
-infra/keycloak/certs/
 *.pem
 **/.venv/
 **/__pycache__/

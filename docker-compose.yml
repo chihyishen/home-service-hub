@@ -73,10 +73,12 @@ services:
     container_name: inventory-grafana
     ports:
       - "127.0.0.1:3000:3000"
-      - "${GRAFANA_VPN_BIND_HOST:-127.0.0.2}:3000:3000"
     environment:
       <<: *internal-no-proxy-env
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      # Served to the LAN only via nginx (~/projects/infra) at /grafana/.
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     depends_on:
       - loki
       - tempo
