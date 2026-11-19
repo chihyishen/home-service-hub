@@ -18,10 +18,6 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -44,19 +40,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.setContentType("application/json");
             response.setHeader("Retry-After", String.valueOf(Math.max(1, Duration.ofNanos(probe.getNanosToWaitForRefill()).toSeconds())));
             response.getWriter().write("{\"error\":\"rate_limited\",\"correlationId\":\"" + correlation + "\"}");
-            LOG.warn("rate_limit.rejected route={} principal_type={} key_hash={}", route, identity.startsWith("auth:") ? "authenticated" : "source", hash(identity));
+            LOG.warn("rate_limit.rejected route={} key_hash={}", route, hash(identity));
             return;
         }
         chain.doFilter(request, response);
     }
 
     String trustedIdentity(HttpServletRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-            Jwt jwt = jwtAuth.getToken();
-            String client = jwt.getClaimAsString("azp");
-            return "auth:" + (client == null ? jwt.getSubject() : client + ":" + jwt.getSubject());
-        }
         return "source:" + request.getRemoteAddr();
     }
 

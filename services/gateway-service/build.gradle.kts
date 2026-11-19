@@ -19,7 +19,6 @@ dependencyManagement {
 
 dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
@@ -27,7 +26,6 @@ dependencies {
     implementation("com.bucket4j:bucket4j_jdk17-core:8.15.0")
     implementation("com.github.ben-manes.caffeine:caffeine")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.security:spring-security-test")
 }
 
 tasks.test { useJUnitPlatform() }

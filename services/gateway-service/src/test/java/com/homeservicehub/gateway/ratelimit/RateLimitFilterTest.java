@@ -2,14 +2,14 @@ package com.homeservicehub.gateway.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 class RateLimitFilterTest {
-    @AfterEach void clear() { SecurityContextHolder.clearContext(); }
+    @Test void identityIsSourceAddress() {
+        assertThat(new RateLimitFilter(1, 1).trustedIdentity(request("/api/items", "10.0.0.5"))).isEqualTo("source:10.0.0.5");
+    }
 
     @Test void rejectsBurstWithStableResponseAndRetryAfter() throws Exception {
         RateLimitFilter filter = new RateLimitFilter(1, 1);

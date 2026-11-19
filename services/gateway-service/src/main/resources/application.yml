@@ -7,11 +7,6 @@ server:
     connection-timeout: 5s
   forward-headers-strategy: none
 
-security:
-  oidc:
-    issuer-uri: ${OIDC_ISSUER_URI}
-    audience: ${OIDC_AUDIENCE:home-service-api}
-    jwk-set-uri: ${GATEWAY_JWKS_URI:}
 gateway:
   instance-count: ${GATEWAY_INSTANCE_COUNT:1}
   rate-limit:
@@ -79,5 +74,4 @@ management:
 
 logging:
   level:
-    org.springframework.security: INFO
     org.springframework.cloud.gateway: INFO
