@@ -34,7 +34,6 @@
               }
             ],
             "styles": [
-              "@fontsource-variable/noto-sans-tc/index.css",
               "./src/styles.scss"
             ]
           },
