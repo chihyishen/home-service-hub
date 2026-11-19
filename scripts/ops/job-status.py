@@ -2,6 +2,7 @@
 """把 ~/Library/Logs/home-service-hub/status/*.json 濃縮成早報的一行。
 
 失敗或太久沒跑（超過 max 小時）才列出；還沒有紀錄的 job 先略過（剛上線時）。
+早報用 macOS 內建 /usr/bin/python3（3.9）執行，所以不能用 3.11 的 datetime.UTC。
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ JOBS = {
 
 
 def summarize(status_dir: Path = STATUS_DIR, now: datetime | None = None) -> str:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(timezone.utc)  # noqa: UP017 (py3.9)
     problems, checked = [], 0
     for job, (label, max_hours) in JOBS.items():
         path = status_dir / f"{job}.json"
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             p = Path(d)
-            now = datetime(2026, 11, 20, 8, tzinfo=timezone.utc)
+            now = datetime(2026, 11, 20, 8, tzinfo=timezone.utc)  # noqa: UP017 (py3.9)
             (p / "backup.json").write_text(json.dumps({"ok": True, "at": "2026-11-19T19:17:00+00:00"}))
             assert summarize(p, now) == "排程：全部正常（1 項）"
             (p / "portfolio.dca.json").write_text(json.dumps({"ok": False, "at": "2026-11-19T09:30:00+00:00"}))
