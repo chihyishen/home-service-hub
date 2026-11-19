@@ -86,8 +86,11 @@ export class App implements OnInit, OnDestroy {
   }
 
   private initTheme() {
-    if (typeof window === 'undefined') return;
-    // 預設強制使用淺色主題
-    this.applyTheme(false);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    // 跟隨系統（iOS/macOS 日出日落自動切換會即時反映）
+    this.themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    this.themeListener = event => this.applyTheme(event.matches);
+    this.applyTheme(this.themeMediaQuery.matches);
+    this.themeMediaQuery.addEventListener('change', this.themeListener);
   }
 }
