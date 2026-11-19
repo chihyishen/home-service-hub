@@ -19,6 +19,13 @@ import { TableModule } from 'primeng/table';
 import { RouterLink } from '@angular/router';
 import { SelectModule } from 'primeng/select';
 
+// #3f4a5c → #dde2e8 線性插值
+function slateRamp(i: number, n: number): string {
+  const t = n <= 1 ? 0 : i / (n - 1);
+  const [a, b] = [[0x3f, 0x4a, 0x5c], [0xdd, 0xe2, 0xe8]];
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(', ')})`;
+}
+
 // 低飽和色票，配合黑灰白主調（深→淺排列，最大分類最深）
 const MUTED_PALETTE = [
   '#4a5568', '#8496a9', '#a8645e', '#5f8672', '#b59a6a', '#8a7aa0', '#6f9aa6', '#c4a99a',
@@ -59,7 +66,7 @@ export class AccountingDashboardComponent implements OnInit {
             enabled: true
         }
     },
-    cutout: '60%', 
+    cutout: '72%', 
     layout: {
         padding: 0
     },
@@ -244,11 +251,9 @@ export class AccountingDashboardComponent implements OnInit {
     const labels = report.expenseBreakdown.map(item => item.category);
     const data = report.expenseBreakdown.map(item => item.amount);
     
-    // 擴充色票，確保分類多時不會沒顏色
-    const modernPalette = MUTED_PALETTE;
-    
-    // 根據分類數量循環生成背景色
-    const backgroundColors = labels.map((_, i) => modernPalette[i % modernPalette.length]);
+    // 單色灰階：最大分類最深，往後漸淺（分類已依金額排序）
+    const backgroundColors = labels.map((_, i) => slateRamp(i, labels.length));
+    const gap = getComputedStyle(document.documentElement).getPropertyValue('--app-surface').trim() || '#fff';
 
     this.chartData = {
       labels: labels,
@@ -256,7 +261,9 @@ export class AccountingDashboardComponent implements OnInit {
         {
           data: data,
           backgroundColor: backgroundColors,
-          borderWidth: 0
+          borderColor: gap,
+          borderWidth: 2,
+          hoverOffset: 4
         }
       ]
     };

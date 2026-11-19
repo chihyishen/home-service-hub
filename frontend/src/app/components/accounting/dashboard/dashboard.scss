@@ -87,8 +87,8 @@
     text-align: center;
     pointer-events: none;
     
-    .l { font-size: 0.7rem; font-weight: 700; color: var(--app-text-muted); }
-    .v { font-size: 1.1rem; font-weight: 800; color: var(--app-text); }
+    .l { display: block; font-size: 0.7rem; font-weight: 700; color: var(--app-text-muted); letter-spacing: 0.1em; }
+    .v { display: block; font-size: 1.35rem; font-weight: 800; color: var(--app-text); }
   }
 }
 
