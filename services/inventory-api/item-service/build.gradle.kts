@@ -39,8 +39,6 @@ dependencies {
 
     // 4.3 Actuator (health)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     // 5. 開發工具 (熱重載等)
     // 這行確保 DevTools 不會被打包進 Production
@@ -49,7 +47,7 @@ dependencies {
     // 6. 測試 (僅測試時使用)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-    testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testRuntimeOnly("com.h2database:h2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
