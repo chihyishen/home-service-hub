@@ -65,9 +65,8 @@
 
     &.up { color: var(--app-trend-positive); }
     &.down { color: var(--app-trend-negative); }
-    // 記帳結餘：正 = 綠、負 = 紅（與股市紅漲綠跌相反）
-    &.gain { color: var(--app-trend-negative); }
-    &.loss { color: var(--app-trend-positive); }
+    &.gain { color: var(--app-trend-positive); }
+    &.loss { color: var(--app-trend-negative); }
   }
 
   .meta {

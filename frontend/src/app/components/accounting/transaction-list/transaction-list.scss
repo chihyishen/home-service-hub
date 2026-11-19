@@ -63,8 +63,8 @@
     &.expense .v { color: var(--app-danger); }
     &.income .v { color: var(--app-success); }
     // 記帳結餘：正 = 綠（好）、負 = 紅；與股市紅漲綠跌相反
-    &.net.positive .v { color: var(--app-trend-negative); }
-    &.net.negative .v { color: var(--app-trend-positive); }
+    &.net.positive .v { color: var(--app-trend-positive); }
+    &.net.negative .v { color: var(--app-trend-negative); }
   }
 }
 

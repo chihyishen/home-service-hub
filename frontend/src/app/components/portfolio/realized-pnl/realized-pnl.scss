@@ -8,7 +8,7 @@
 .realized-summary-card {
   background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-positive-soft) 100%);
   border: 1px solid var(--app-border);
-  border-left: 6px solid var(--app-trend-positive);
+  border-left: 6px solid var(--app-border);
   border-radius: 16px;
   box-shadow: var(--app-card-shadow);
   flex: 1 1 260px;
@@ -38,7 +38,7 @@
 
   &.is-loss {
     background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-negative-soft) 100%);
-    border-left-color: var(--app-trend-negative);
+    border-left-color: var(--app-border);
 
     .value {
       color: var(--app-trend-negative);

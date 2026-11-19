@@ -28,8 +28,8 @@ function slateRamp(i: number, n: number): string {
 
 // 低飽和色票，配合黑灰白主調（深→淺排列，最大分類最深）
 const MUTED_PALETTE = [
-  '#4a5568', '#8496a9', '#a8645e', '#5f8672', '#b59a6a', '#8a7aa0', '#6f9aa6', '#c4a99a',
-  '#9aa3ad', '#6b7c8f', '#c99a95', '#92b3a1', '#cdbf9c', '#b0a5c4', '#a7c3cb', '#d3d8de',
+  '#4a5568', '#8496a9', '#b59a6a', '#8a7aa0', '#6f9aa6', '#c4a99a',
+  '#9aa3ad', '#6b7c8f', '#cdbf9c', '#b0a5c4', '#a7c3cb', '#d3d8de',
 ];
 
 @Component({
@@ -302,8 +302,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '收入',
           data: report.monthlyTrend.map(item => item.totalIncome),
-          borderColor: '#5f8672',
-          backgroundColor: 'rgba(95, 134, 114, 0.08)',
+          borderColor: '#3f4a5c',
+          backgroundColor: 'rgba(63, 74, 92, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -311,8 +311,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '支出',
           data: report.monthlyTrend.map(item => item.totalExpense),
-          borderColor: '#a8645e',
-          backgroundColor: 'rgba(168, 100, 94, 0.08)',
+          borderColor: '#a3adb9',
+          backgroundColor: 'rgba(163, 173, 185, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -320,8 +320,9 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '結餘',
           data: report.monthlyTrend.map(item => item.surplus),
-          borderColor: '#5b6b7f',
-          backgroundColor: 'rgba(91, 107, 127, 0.08)',
+          borderColor: '#6b7c8f',
+          backgroundColor: 'rgba(107, 124, 143, 0.08)',
+          borderDash: [5, 4],
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5

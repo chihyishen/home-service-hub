@@ -89,10 +89,11 @@ export class NetworthChartComponent implements OnInit {
             const div = Number(point.total_dividends ?? 0);
             return (mv - cost) + realized + div;
           }),
-          borderColor: '#a8645e',
+          borderColor: '#8496a9',
+          borderDash: [2, 3],
           pointRadius: 0,
           pointHoverRadius: 4,
-          backgroundColor: '#a8645e',
+          backgroundColor: '#8496a9',
           tension: 0.25,
           fill: false,
         },

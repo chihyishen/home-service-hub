@@ -27,10 +27,11 @@
   --app-state-dividend-bg: rgba(126, 120, 168, 0.08);
 
   /* Taiwan convention (red up / green down), desaturated to sit in the grey palette */
-  --app-trend-positive: #a8645e;
-  --app-trend-negative: #5f8672;
-  --app-trend-positive-soft: rgba(168, 100, 94, 0.06);
-  --app-trend-negative-soft: rgba(95, 134, 114, 0.06);
+  // 漲跌不靠紅綠：正 = 主字色、負 = 次要灰，方向由 +/− 符號表達
+  --app-trend-positive: var(--app-text);
+  --app-trend-negative: var(--app-text-muted);
+  --app-trend-positive-soft: rgba(107, 114, 128, 0.06);
+  --app-trend-negative-soft: rgba(107, 114, 128, 0.03);
   --app-card-shadow: 0 10px 30px rgba(18, 26, 40, 0.045);
   --app-raised-shadow: 0 16px 36px rgba(18, 26, 40, 0.09);
   --app-inset-line: rgba(255, 255, 255, 0.62);
@@ -62,10 +63,10 @@
   --app-state-warning-bg: rgba(150, 165, 197, 0.15);
   --app-state-danger-bg: rgba(164, 148, 198, 0.16);
   --app-state-dividend-bg: rgba(171, 166, 208, 0.12);
-  --app-trend-positive: #c99a95;
-  --app-trend-negative: #92b3a1;
-  --app-trend-positive-soft: rgba(201, 154, 149, 0.08);
-  --app-trend-negative-soft: rgba(146, 179, 161, 0.08);
+  --app-trend-positive: var(--app-text);
+  --app-trend-negative: var(--app-text-muted);
+  --app-trend-positive-soft: rgba(153, 163, 179, 0.08);
+  --app-trend-negative-soft: rgba(153, 163, 179, 0.04);
   --app-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
   --app-raised-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   --app-inset-line: rgba(255, 255, 255, 0.05);
