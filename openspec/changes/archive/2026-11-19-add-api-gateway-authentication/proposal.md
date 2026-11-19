@@ -1,3 +1,5 @@
+Superseded 2026-11-19 by docs/superpowers/specs/2026-11-19-remove-keycloak-design.md; not implemented further.
+
 ## Why
 
 The frontend and AI agents can currently reach individual backend services without a shared authentication or policy boundary. Establishing a single gateway and Keycloak-backed identity layer now preserves the recent loopback-only hardening while providing a safe path for LAN/VPN access, user login, agent credentials, authorization, and abuse controls.

@@ -18,8 +18,8 @@ frontend/              # Angular 21 + PrimeNG (utility CSS layer in styles.scss;
 infra/                 # Docker Compose configs for observability stack
 ```
 
-Request path: browser → `frontend/proxy.conf.js` (plain forward, no rewrite) → `gateway-service`
-(Spring Cloud Gateway, :8088) → the target service. The gateway routes by prefix:
+Request path: browser → nginx (`~/projects/infra`, plain HTTP, serves `frontend/dist` at `/hub/`) →
+`gateway-service` (Spring Cloud Gateway, :8088) → the target service. The gateway routes by prefix:
 - `/api/items`, `/api/shopping-list` → inventory-api
 - `/api/accounting` → accounting-service
 - `/api/portfolio` → stock-portfolio-service
@@ -80,7 +80,7 @@ npx pm2 start ecosystem.config.js   # start all services at once
 
 ## Key Conventions
 
-- **Environment**: Python database settings load the root `.env` without overriding process environment variables, so process environment takes precedence. The Gradle build auto-loads root `.env` into Java `bootRun` and test tasks. The frontend's `proxy.conf.js` and `set-env.js` also read from root `.env`.
+- **Environment**: Python database settings load the root `.env` without overriding process environment variables, so process environment takes precedence. The Gradle build auto-loads root `.env` into Java `bootRun` and test tasks. The frontend's `proxy.conf.js` (local `ng serve` only, not the LAN path) and `set-env.js` also read from root `.env`.
 - **Python service structure**: Both Python services follow identical layout — `app/{main,database,tracing,models/,routers/,schemas/,services/}`.
 - **Java structure**: Standard Spring layered architecture under `com.inventory.item` — controller → service → repository, with DTOs via MapStruct, Lombok for boilerplate.
 - **Testing**: Java tests use H2 in-memory DB. Python tests are split into `unit/` and `integration/` directories.
