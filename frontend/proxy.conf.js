@@ -16,7 +16,7 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-// 嚴格讀取：若缺失必要變數則報錯
+// 讀取 Gateway 位址，未設定時預設 127.0.0.1:8088
 const GATEWAY_TARGET = `http://${envConfig.GATEWAY_HOST || '127.0.0.1'}:${envConfig.GATEWAY_PORT || '8088'}`;
 
 module.exports = {
