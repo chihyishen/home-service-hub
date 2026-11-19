@@ -14,7 +14,7 @@
 ## 🟡 近期：操作性與可靠性
 
 - [x] **Grafana Operations dashboard**：已驗證服務篩選、錯誤／警告、即時日誌查詢，以及 Loki 重啟後的資料持久性。
-- [ ] **第二階段入口整合**（規劃中）：將 Grafana、Jellyfin、streamer-rec 一併納入 nginx 入口。
+- [x] **入口整合**：nginx（`~/projects/infra`）統一提供 `/hub/`、`/rec/`、`/grafana/`、`/jellyfin/`；觀測性元件也已移到 `~/projects/infra`。
 - [ ] **備份與還原演練**：記錄並驗證 PostgreSQL、庫存圖片目錄與必要設定的家庭環境復原流程。
 - [ ] **排程結果可見性**：讓每日行情、股利與資產快照工作的開始、完成、筆數、耗時及失敗原因能從結構化日誌快速查找。
 

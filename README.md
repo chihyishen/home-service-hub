@@ -78,7 +78,7 @@ graph TD
 - **🚪 統一入口與閘道**: nginx 為唯一 LAN 入口，Spring Cloud Gateway 集中路由並限流；無登入流程。
 - **可追查的 Logs 與 Traces**: OpenTelemetry 將服務日誌送至 Loki、trace 送至 Tempo，再由 Grafana 統一查閱；用於除錯與追查跨服務流程，而不是收集所有 request body。
 - **Python Logs 與 Traces**: Python 服務以標準 `logging` 搭配 OpenTelemetry 輸出日誌；FastAPI trace 只保留 request root span，省略 ASGI `send` / `receive` 細節與 `/health`，讓 Grafana 的結構更接近應用流程。
-- **Streamer DVR operations**: `STREAMER_DVR_LOG_DIR` 預設指向相鄰的 `../streamer-dvr/logs/`；Compose 只會以 read-only 方式將它掛載給 OTel Collector。Collector 解析其中的 JSONL 業務事件後送入 Loki；Grafana 的 `Streamer DVR · Operations` 位於獨立 folder，SQLite 與 Streamer DVR Vue Logs 頁面不受影響。
+- **Streamer DVR operations**: `~/projects/infra` 的 Compose 以 read-only 方式將 `../streamer-rec/streamer-dvr/logs/`（可用 `STREAMER_DVR_LOG_DIR` 覆寫）掛載給 OTel Collector。Collector 解析其中的 JSONL 業務事件後送入 Loki；Grafana 的 `Streamer DVR · Operations` 位於獨立 folder，SQLite 與 Streamer DVR Vue Logs 頁面不受影響。
 - **AI 驅動記帳系統**: Agent 先解析自然語言輸入，再呼叫 Accounting API 建立財務交易。
 - **智慧庫存與投資**: 整合物件儲存（本機圖片目錄）管理實體物資，並自動抓取即時台股數據；台股組合支援 CSV 匯入、每日 OHLC 回填、除權息事件抓取、減資/分割自動調整成本基礎，以及當沖標記推導。
 - **In-process Scheduler**: 台股組合服務內建 APScheduler，每日 17:00 回補 TWSE/TPEx 收盤、盤中每 15 分鐘刷新報價、15:30 寫入淨值快照。可透過 `SCHEDULER_ENABLED=false` 關閉。
@@ -87,8 +87,8 @@ graph TD
 
 ### 1. 環境準備
 - **配置環境變數**: `cp .env.example .env`，再替換其中的密碼與固定 LAN IP；請勿直接使用範例 placeholder。
-- **啟動基礎設施**: `docker compose up -d`。Compose 管理 PostgreSQL 與觀測性元件；應用服務由下方命令或 PM2 啟動。
-- **啟動 nginx 入口**: 於 `~/projects/infra` 執行 `docker compose up -d`。
+- **啟動基礎設施**: `docker compose up -d`。Compose 只管理 PostgreSQL；應用服務由下方命令或 PM2 啟動。
+- **啟動 nginx 入口與觀測性元件**: 於 `~/projects/infra` 執行 `docker compose up -d`（nginx、OTel Collector、Tempo、Loki、Grafana，與 streamer-rec 共用）。
 
 ### 2. 啟動服務 (各服務目錄下執行)
 - **Inventory**: `./gradlew :item-service:bootRun`
@@ -109,7 +109,7 @@ graph TD
 
 ### 4. 本機安全預設
 
-- Compose 發佈的基礎設施服務預設只綁定 loopback。`INFRA_BIND_HOST` 控制 PostgreSQL、OTel、Tempo 與 Loki。後端服務由 PM2 啟動並只綁定 `127.0.0.1`。
+- Compose 發佈的基礎設施服務預設只綁定 loopback。`INFRA_BIND_HOST` 控制 PostgreSQL；OTel、Tempo、Loki 由 `~/projects/infra` 同樣只綁 loopback。後端服務由 PM2 啟動並只綁定 `127.0.0.1`。
 - Grafana 只綁 `127.0.0.1:3000`；區網／VPN 一律經 nginx 的 `http://<LAN-IP>/grafana/` 進入。
 - PM2 啟動的 Accounting、Stock backends 與 Gateway 都只綁定 `127.0.0.1`；nginx（`~/projects/infra`）維持 VPN/LAN 可達，作為唯一瀏覽器入口，API 流量經其反向代理進入 Gateway。
 - Inventory 在本機直接啟動時由 `INVENTORY_SERVER_ADDRESS` 控制監聽位址，預設 `127.0.0.1`。

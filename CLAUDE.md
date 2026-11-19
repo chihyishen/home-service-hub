@@ -15,7 +15,7 @@ services/
   accounting-service/  # Python 3.13 / FastAPI — financial transaction tracking
   stock-portfolio-service/  # Python 3.13 / FastAPI — Taiwan stock portfolio
 frontend/              # Angular 21 + PrimeNG (utility CSS layer in styles.scss; Bootstrap removed)
-infra/                 # Docker Compose configs for observability stack
+infra/                 # item image storage (inventory-images); shared nginx + observability live in ~/projects/infra
 ```
 
 Request path: browser → nginx (`~/projects/infra`, plain HTTP, serves `frontend/dist` at `/hub/`) →
@@ -27,14 +27,14 @@ Request path: browser → nginx (`~/projects/infra`, plain HTTP, serves `fronten
 Every service declares its own full `/api/<domain>` prefix and the gateway strips nothing, so the
 path the browser calls is the path the service serves. Keep it that way when adding endpoints.
 
-All services connect to a shared PostgreSQL instance (separate databases per service). Observability is via OpenTelemetry → OTel Collector → Tempo/Loki/Grafana.
+All services connect to a shared PostgreSQL instance (separate databases per service). Observability is via OpenTelemetry → OTel Collector → Tempo/Loki/Grafana, run from the sibling repo `~/projects/infra` (shared with streamer-rec).
 
 ## Common Commands
 
 ### Infrastructure
 ```bash
 cp .env.example .env          # first-time setup
-docker compose up -d           # start Postgres and the always-on logs/traces stack
+docker compose up -d           # start Postgres (logs/traces stack + nginx: ~/projects/infra)
 ```
 
 ### Inventory API (Java/Spring Boot)

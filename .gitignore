@@ -1,6 +1,5 @@
 # Data directories
 infra/inventory-images
-infra/tempo-data
 
 # IDEs
 .vscode/

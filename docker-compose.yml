@@ -1,7 +1,3 @@
-x-internal-no-proxy-env: &internal-no-proxy-env
-  NO_PROXY: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-otel-collector"
-  no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-otel-collector"
-
 services:
   # --- 1. 資料庫 ---
   postgres:
@@ -23,78 +19,9 @@ services:
       timeout: 5s
       retries: 10
 
-  # --- 4. OpenTelemetry Collector ---
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib@sha256:213886eb6407af91b87fa47551c3632be1a6419ff3a5114ef1e6fc364628496f
-    container_name: inventory-otel-collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    environment:
-      <<: *internal-no-proxy-env
-    volumes:
-      - ./infra/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-      - "${STREAMER_DVR_LOG_DIR:-../streamer-rec/streamer-dvr/logs}:/var/log/streamer-dvr:ro"
-    ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:4317:4317"
-      - "${INFRA_BIND_HOST:-127.0.0.1}:4318:4318"
-    depends_on:
-      - tempo
-      - loki
-    networks:
-      - inventory-net
-
-  # --- 5. 監控 (Tempo, Loki, Grafana) ---
-  tempo:
-    image: grafana/tempo@sha256:feb779230ff7ba69900b17e157360c3e056e8a58123f9fb5ea29ac40ebf5531b
-    container_name: inventory-tempo
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:3200:3200"
-    volumes:
-      - ./infra/config/tempo.yaml:/etc/tempo.yaml
-      - ./infra/tempo-data:/var/tempo
-    networks:
-      - inventory-net
-
-  loki:
-    image: grafana/loki@sha256:be31579ac047e9f78b81e48f3b69d3af709e7299b431d5aa78bcda43382f9511
-    container_name: inventory-loki
-    ports:
-      - "${INFRA_BIND_HOST:-127.0.0.1}:3100:3100"
-      - "${INFRA_BIND_HOST:-127.0.0.1}:9096:9096"
-    volumes:
-      - ./infra/config/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - inventory-net
-
-  grafana:
-    image: grafana/grafana@sha256:2175aaa91c96733d86d31cf270d5310b278654b03f5718c59de12a865380a31f
-    container_name: inventory-grafana
-    ports:
-      - "127.0.0.1:3000:3000"
-    environment:
-      <<: *internal-no-proxy-env
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      # Served to the LAN only via nginx (~/projects/infra) at /grafana/.
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-    depends_on:
-      - loki
-      - tempo
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./infra/config/grafana-config.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-      - ./infra/config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
-      - ./infra/config/dashboards:/var/lib/grafana/dashboards:ro
-    networks:
-      - inventory-net
-
 networks:
   inventory-net:
     driver: bridge
 
 volumes:
   postgres_data:
-  loki_data:
-  grafana_data:
