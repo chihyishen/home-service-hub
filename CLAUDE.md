@@ -68,7 +68,7 @@ pytest tests/integration/
 ```bash
 cd frontend
 npm install
-npm start        # dev server (runs set-env.js then ng serve)
+npm start        # Angular dev server
 npm test         # tests via Vitest
 npm run build    # production build
 ```
@@ -80,7 +80,7 @@ npx pm2 start ecosystem.config.js   # start all services at once
 
 ## Key Conventions
 
-- **Environment**: Python database settings load the root `.env` without overriding process environment variables, so process environment takes precedence. The Gradle build auto-loads root `.env` into Java `bootRun` and test tasks. The frontend's `proxy.conf.js` (local `ng serve` only, not the LAN path) and `set-env.js` also read from root `.env`.
+- **Environment**: Python database settings load the root `.env` without overriding process environment variables, so process environment takes precedence. The Gradle build auto-loads root `.env` into Java `bootRun` and test tasks. Angular uses the same-origin `/api` path. For local development, `proxy.conf.js` reads the Gateway host and port from the root `.env` when available.
 - **Python service structure**: Both Python services follow identical layout — `app/{main,database,tracing,models/,routers/,schemas/,services/}`.
 - **Java structure**: Standard Spring layered architecture under `com.inventory.item` — controller → service → repository, with DTOs via MapStruct, Lombok for boilerplate.
 - **Testing**: Java tests use H2 in-memory DB. Python tests are split into `unit/` and `integration/` directories.

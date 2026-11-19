@@ -49,12 +49,5 @@ module.exports = {
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
-  },
-  "/otlp": {
-    // 固定的 Collector HTTP 端點
-    "target": GATEWAY_TARGET,
-    "secure": false,
-    "changeOrigin": true,
-    "logLevel": "debug"
   }
 };

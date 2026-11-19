@@ -166,8 +166,4 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      # set-env.js generates src/environments/environment.ts and reads only
-      # the root .env file (no process.env fallback) — seed it from the example.
-      - run: cp ../.env.example ../.env
-      - run: node set-env.js
       - run: npx ng test --watch=false

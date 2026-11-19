@@ -38,10 +38,6 @@ spring:
               uri: ${GATEWAY_INVENTORY_URI:http://127.0.0.1:8080}
               predicates: [Path=/images/inventory-items/**, "Method=GET,HEAD"]
               filters: [StripPrefix=1]
-            - id: browser-otlp
-              uri: ${GATEWAY_OTLP_URI:http://127.0.0.1:4318}
-              predicates: [Path=/otlp/v1/traces, Method=POST, "Header=Content-Type,application/(x-protobuf|json).*"]
-              filters: [StripPrefix=1, RequestSize=1MB]
           http-client:
             connect-timeout: 3000
             read-timeout: 10s

@@ -27,9 +27,9 @@ class RateLimitFilterTest {
         MockHttpServletRequest business = request("/api/items", "10.0.0.2");
         business.addHeader("X-Forwarded-For", "203.0.113.9");
         filter.doFilter(business, new MockHttpServletResponse(), (req, res) -> {});
-        MockHttpServletResponse telemetry = new MockHttpServletResponse();
-        filter.doFilter(request("/otlp/v1/traces", "10.0.0.2"), telemetry, (req, res) -> {});
-        assertThat(telemetry.getStatus()).isEqualTo(200);
+        MockHttpServletResponse image = new MockHttpServletResponse();
+        filter.doFilter(request("/images/inventory-items/example.webp", "10.0.0.2"), image, (req, res) -> {});
+        assertThat(image.getStatus()).isEqualTo(200);
         MockHttpServletResponse sameSource = new MockHttpServletResponse();
         filter.doFilter(request("/api/items", "10.0.0.2"), sameSource, (req, res) -> {});
         assertThat(sameSource.getStatus()).isEqualTo(429);

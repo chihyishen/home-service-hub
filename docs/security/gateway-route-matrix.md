@@ -14,7 +14,6 @@ Unknown routes and methods are denied by default. Backend actuator and API docum
 | `/api/portfolio/**` | POST, PUT, PATCH | Portfolio, path preserved |
 | `/api/portfolio/**` | DELETE | Portfolio, path preserved |
 | `/images/inventory-items/**` | GET, HEAD | Inventory, `/images` stripped |
-| `/otlp/v1/traces` | POST | Collector, `/otlp` stripped |
 | `/actuator/health/liveness` | GET | Gateway local endpoint |
 | `/actuator/health/readiness` | GET | Gateway local endpoint |
 

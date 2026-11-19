@@ -22,7 +22,7 @@
 
 - [ ] **投資與記帳串接**：將股票買賣、股利及相關現金流連動至記帳服務。第一版採同步 API，讓使用者能立即知道成功或失敗。
 - [ ] **重複執行保護**：為跨服務寫入定義 idempotency key、重試邊界與人工修復方式，避免重複記帳。
-- [ ] **可追查的業務鏈**：實作上述流程時，補齊 Browser／Agent → Gateway → backend 的 trace propagation，並建立對應 Grafana 操作視圖。
+- [ ] **可追查的業務鏈**：實作上述流程時，補齊 Gateway → backend 的 trace propagation，涵蓋網頁與 Agent 發出的 API 請求，並建立對應 Grafana 操作視圖。
 
 ## 🔵 需求出現後再評估
 

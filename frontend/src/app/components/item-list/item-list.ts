@@ -28,38 +28,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
-export function normalizeItemImageUrl(imageUrl?: string): string | undefined {
-  if (!imageUrl) {
-    return imageUrl;
-  }
-
-  const value = imageUrl.trim();
-  if (value.startsWith('/images/')) {
-    return value;
-  }
-  if (value.startsWith('/minio/')) {
-    return `/images${value.slice('/minio'.length)}`;
-  }
-  if (value.startsWith('/inventory-items/')) {
-    return `/images${value}`;
-  }
-
-  try {
-    const legacyUrl = new URL(value);
-    const isLegacyMinioUrl =
-      (legacyUrl.protocol === 'http:' || legacyUrl.protocol === 'https:') &&
-      legacyUrl.port === '9000' &&
-      legacyUrl.pathname.startsWith('/inventory-items/');
-    if (isLegacyMinioUrl) {
-      return `/images${legacyUrl.pathname}${legacyUrl.search}${legacyUrl.hash}`;
-    }
-  } catch {
-    // Preserve values that are not absolute URLs.
-  }
-
-  return imageUrl;
-}
-
 @Component({
   selector: 'app-item-list',
   imports: [
@@ -91,8 +59,6 @@ export class ItemListComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private shoppingListService = inject(ShoppingListService);
   private destroyRef = inject(DestroyRef);
-
-  readonly normalizeImageUrl = normalizeItemImageUrl;
 
   items = signal<ItemResponse[]>([]);
   history = signal<InventoryTransactionResponse[]>([]);

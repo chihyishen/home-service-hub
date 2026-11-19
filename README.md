@@ -59,6 +59,7 @@ graph TD
     Inventory -.-> Images
 
     %% 可觀測性流
+    Gateway -.->|OTLP| Collector
     Inventory -.->|OTLP| Collector
     Accounting -.->|OTLP| Collector
     Stock -.->|OTLP| Collector
@@ -68,7 +69,7 @@ graph TD
 
 ### 入口與閘道的分工
 
-- **nginx（唯一 LAN 入口）**：定義於相鄰 repo `~/projects/infra`，以純 HTTP 提供首頁 `http://<LAN-IP>/` 與 Angular 應用 `http://<LAN-IP>/hub/`（直接服務 `frontend/dist`），並將 `/api/*`、`/images/inventory-items/*`、`/otlp/*` 轉發到 `127.0.0.1:8088` 的 Gateway。
+- **nginx（唯一 LAN 入口）**：定義於相鄰 repo `~/projects/infra`，以純 HTTP 提供首頁 `http://<LAN-IP>/` 與 Angular 應用 `http://<LAN-IP>/hub/`（直接服務 `frontend/dist`），並將 `/api/*`、`/images/inventory-items/*` 轉發到 `127.0.0.1:8088` 的 Gateway。
 - **API Gateway（路由與限流）**：所有 API 請求的單一入口，依路徑前綴路由到後端並以 bucket4j 限流。
 - **後端服務**：僅綁定 `127.0.0.1`。系統不含登入與 token 驗證，存取邊界依賴 LAN/VPN。
 

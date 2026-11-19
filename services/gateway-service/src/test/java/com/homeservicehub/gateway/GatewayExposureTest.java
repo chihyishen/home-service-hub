@@ -30,6 +30,15 @@ class GatewayExposureTest {
 
     @Test void livenessIsUp() throws Exception { assertThat(get("/actuator/health/liveness")).isEqualTo(200); }
 
+    @Test void browserTraceIngestionIsNotExposed() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/otlp/v1/traces"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                .build();
+        assertThat(HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding()).statusCode())
+                .isEqualTo(404);
+    }
+
     @Test void apiRequestWithoutTokenIsNotRejected() throws Exception {
         assertThat(get("/api/accounting/transactions")).isNotIn(401, 403);
     }
