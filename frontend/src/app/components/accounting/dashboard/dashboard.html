@@ -21,7 +21,7 @@
           <div class="value">{{ report()?.summary?.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</div>
           <div class="meta">
             @if (compareReport()?.summary?.totalExpenseDelta; as delta) {
-              <span [class.up]="delta > 0" [class.down]="delta <= 0">
+              <span [class.danger]="delta > 0" [class.success]="delta <= 0">
                 <i class="pi" [class]="delta > 0 ? 'pi-arrow-up' : 'pi-arrow-down'"></i>
                 {{ (delta < 0 ? -delta : delta) | currency:'TWD':'symbol':'1.0-0' }} 較上月
               </span>
@@ -241,13 +241,17 @@
                   <p-chart type="line" [data]="annualCategoryChartData" [options]="annualCategoryChartOptions"></p-chart>
                 </div>
                 <div class="annual-top-category-list">
-                  @for (category of getAnnualTopCategories(); track category.category) {
+                  @for (category of getAnnualTopCategories(); track category.category; let i = $index) {
                     <div class="annual-top-category-item">
-                      <div>
-                        <div class="category-name">{{ category.category }}</div>
+                      <span class="category-dot" [style.background]="topCategoryColor(i)"></span>
+                      <div class="category-body">
+                        <div class="category-head">
+                          <span class="category-name">{{ category.category }}</span>
+                          <span class="category-total">{{ category.total | currency:'TWD':'symbol':'1.0-0' }}</span>
+                        </div>
+                        <div class="category-bar"><span [style.width.%]="topCategoryShare(category.total)" [style.background]="topCategoryColor(i)"></span></div>
                         <div class="category-meta">月均 {{ category.average | currency:'TWD':'symbol':'1.0-0' }}</div>
                       </div>
-                      <div class="category-total">{{ category.total | currency:'TWD':'symbol':'1.0-0' }}</div>
                     </div>
                   }
                 </div>

@@ -205,6 +205,16 @@ export class AccountingDashboardComponent implements OnInit {
     return (this.annualReport()?.categoryTrend ?? []).slice(0, 5);
   }
 
+  /** 與 Top 5 折線同色，讓清單和圖對得起來 */
+  topCategoryColor(index: number): string {
+    return MUTED_PALETTE[index % MUTED_PALETTE.length];
+  }
+
+  topCategoryShare(total: number): number {
+    const max = Math.max(...this.getAnnualTopCategories().map(c => c.total), 1);
+    return (total / max) * 100;
+  }
+
   formatAnnualMonth(month: string | null): string {
     if (!month) {
       return '無';
@@ -302,8 +312,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '收入',
           data: report.monthlyTrend.map(item => item.totalIncome),
-          borderColor: '#3f4a5c',
-          backgroundColor: 'rgba(63, 74, 92, 0.08)',
+          borderColor: '#5f7f98',
+          backgroundColor: 'rgba(95, 127, 152, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -311,8 +321,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '支出',
           data: report.monthlyTrend.map(item => item.totalExpense),
-          borderColor: '#a3adb9',
-          backgroundColor: 'rgba(163, 173, 185, 0.08)',
+          borderColor: '#7b6c9c',
+          backgroundColor: 'rgba(123, 108, 156, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -320,8 +330,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '結餘',
           data: report.monthlyTrend.map(item => item.surplus),
-          borderColor: '#6b7c8f',
-          backgroundColor: 'rgba(107, 124, 143, 0.08)',
+          borderColor: '#a3adb9',
+          backgroundColor: 'rgba(163, 173, 185, 0.08)',
           borderDash: [5, 4],
           tension: 0.3,
           pointRadius: 3,

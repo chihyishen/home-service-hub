@@ -105,11 +105,11 @@
           <h3 class="card-title">持股明細</h3>
           
           <div class="hub-holdings-list">
-            @for (stock of summary()?.holdings; track stock.symbol) {
+            @for (stock of summary()?.holdings; track stock.symbol; let i = $index) {
               <div class="hub-stock-row" (click)="toggleHoldingExpand(stock.symbol)">
                 <div class="stock-main-info">
                   <div class="stock-symbol-group">
-                    <span class="symbol">{{ stock.name || stock.symbol }}</span>
+                    <span class="symbol"><i class="holding-dot" [style.background]="holdingColor(i)"></i>{{ stock.name || stock.symbol }}</span>
                     <span class="name text-truncate">{{ stock.symbol }}</span>
                   </div>
                   <div class="stock-price-group">
@@ -141,7 +141,7 @@
                     </span>
                   </div>
                 </div>
-                <div class="weight-bar"><span [style.width.%]="holdingWeight(stock.market_value)"></span></div>
+                <div class="weight-bar"><span [style.width.%]="holdingWeight(stock.market_value)" [style.background]="holdingColor(i)"></span></div>
 
                 @if (isHoldingExpanded(stock.symbol)) {
                   <div class="stock-details-panel">

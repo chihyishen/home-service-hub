@@ -144,15 +144,15 @@
   .trend-info {
     display: flex;
     flex-direction: column;
-    .cat-name { font-weight: 600; font-size: 0.9rem; color: var(--app-text); }
+    .cat-name { font-weight: 500; font-size: 0.9rem; color: var(--app-text); }
     .cat-amounts { font-size: 0.7rem; color: var(--app-text-muted); }
   }
 
   .trend-badge {
     font-size: 0.8rem;
     font-weight: 600;
-    &.danger { color: var(--app-trend-positive); }
-    &.success { color: var(--app-trend-negative); }
+    &.danger { color: var(--app-danger); }   // 花更多 = 支出紫
+    &.success { color: var(--app-success); } // 花更少 = 收入藍
   }
 }
 
@@ -191,7 +191,7 @@
     color: var(--app-text);
 
     &.refund {
-      color: var(--app-trend-negative);
+      color: var(--app-success);
     }
   }
 
@@ -338,33 +338,27 @@
 
 .annual-top-category-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--app-border);
 
-  &:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
+  &:first-child { padding-top: 0; border-top: none; }
 
-  .category-name {
-    font-weight: 600;
-    color: var(--app-text);
+  .category-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 0.45rem; flex-shrink: 0; }
+  .category-body { flex: 1; min-width: 0; }
+  .category-head { display: flex; justify-content: space-between; gap: 1rem; }
+  .category-name { font-weight: 500; color: var(--app-text); }
+  .category-total { font-weight: 500; color: var(--app-text); }
+  .category-bar {
+    height: 3px;
+    margin: 0.4rem 0 0.3rem;
+    border-radius: 999px;
+    background: var(--app-surface-soft);
+    overflow: hidden;
+    span { display: block; height: 100%; border-radius: inherit; opacity: 0.75; }
   }
-
-  .category-meta {
-    margin-top: 0.2rem;
-    font-size: 0.8rem;
-    color: var(--app-text-muted);
-  }
-
-  .category-total {
-    font-weight: 600;
-    color: var(--app-text);
-    text-align: right;
-  }
+  .category-meta { font-size: 0.78rem; color: var(--app-text-muted); }
 }
 
 .hub-state-card {

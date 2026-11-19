@@ -151,6 +151,11 @@ export class PortfolioDashboardComponent implements OnInit {
     return cost > 0 ? ((Number(s.total_unrealized_pnl) + Number(s.total_dividends)) / cost) * 100 : 0;
   }
 
+  // ponytail: 與記帳 Top 5 同一組低彩度色，持股超過 6 檔會循環
+  holdingColor(index: number): string {
+    return ['#5f7f98', '#8a7aa0', '#b59a6a', '#6f9aa6', '#8496a9', '#c4a99a'][index % 6];
+  }
+
   holdingWeight(marketValue: number | string): number {
     const total = Number(this.summary()?.total_market_value ?? 0);
     return total > 0 ? (Number(marketValue) / total) * 100 : 0;
