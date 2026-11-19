@@ -45,7 +45,7 @@ def test_waits_for_close_then_catches_up(db_session):
     assert txn.quantity == 19
 
 
-def test_manual_edit_clears_estimated_flag(client, db_session):
+def test_manual_edit_clears_estimated_flag(client, db_session, fake_accounting):
     _plan(db_session)
     _close(db_session, date(2026, 9, 29), "111.30")
     db_session.commit()
@@ -56,6 +56,11 @@ def test_manual_edit_clears_estimated_flag(client, db_session):
     res = client.put(f"/api/portfolio/transactions/{txn.id}", json=body)
     assert res.status_code == 200, res.text
     assert res.json()["is_estimated"] is False
+    # 建立時同步一筆記帳（17 股 × 111.30 + 1 = 1893），修正後同步、刪除後移除
+    assert fake_accounting.calls[0] == ("create", "0050", 1893)
+    assert fake_accounting.calls[1] == ("sync", txn.accounting_transaction_id)
+    assert client.delete(f"/api/portfolio/transactions/{txn.id}").status_code in (200, 204)
+    assert fake_accounting.calls[-1] == ("remove", 901)
 
 
 def test_plan_crud(client):
@@ -71,3 +76,11 @@ def test_skips_month_without_the_day():
     from app.services.dca_service import target_date
     assert target_date(2026, 2, 30) is None
     assert target_date(2026, 3, 30).day == 30
+
+
+def test_accounting_amount_truncates_trade_value():
+    from types import SimpleNamespace
+
+    from app.services.accounting_link import amount_of
+    # 17 × 111.68 = 1898.56 → 價金 1898 + 手續費 1 = 1899（與國泰實際扣款一致）
+    assert amount_of(SimpleNamespace(quantity=17, price=Decimal("111.68"), fee=Decimal("1"), tax=0)) == 1899

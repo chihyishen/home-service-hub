@@ -17,8 +17,9 @@ from sqlalchemy.orm import Session
 from ..models import portfolio as models
 from ..models.dca_plan import DcaPlan
 from ..models.price_history import PriceHistory
+from ..models.symbol_map import SymbolMap
 from ..schemas import portfolio as schemas
-from . import portfolio_service
+from . import accounting_link, portfolio_service
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def run_plan(db: Session, plan: DcaPlan, today: date) -> models.Transaction | No
         .filter(models.Transaction.symbol == plan.symbol, models.Transaction.name.isnot(None))
         .order_by(models.Transaction.trade_date.desc())
         .first()
-    )
+    ) or db.query(SymbolMap.name).filter(SymbolMap.symbol == plan.symbol).first()
     txn = portfolio_service.create_transaction(
         db,
         schemas.TransactionCreate(
@@ -82,6 +83,7 @@ def run_plan(db: Session, plan: DcaPlan, today: date) -> models.Transaction | No
         ),
     )
     txn.is_estimated = True
+    txn.accounting_transaction_id = accounting_link.create_for(txn, txn.name or plan.symbol)
     db.commit()
     db.refresh(txn)
     logger.info("dca.executed", extra={"symbol": plan.symbol, "date": str(bar.date), "quantity": quantity})

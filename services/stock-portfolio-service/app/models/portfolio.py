@@ -64,6 +64,8 @@ class Transaction(Base, TimestampMixin):
         server_default=expression.false(),
     )
     import_fingerprint = Column(String(64), nullable=True)
+    # 對應記帳服務的交易 id（定期定額自動同步建立）；為 None 表示未連動。
+    accounting_transaction_id = Column(Integer, nullable=True)
     # 定期定額自動建立、尚未依券商實際成交更正的估算交易；手動編輯後轉為 False。
     is_estimated = Column(
         Boolean,

@@ -41,3 +41,32 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+class _FakeAccounting:
+    """記帳服務替身：測試不打真的 HTTP，並記錄呼叫供斷言。"""
+
+    def __init__(self):
+        self.calls = []
+
+    def create_for(self, txn, label):
+        self.calls.append(("create", label, __import__("app.services.accounting_link", fromlist=["x"]).amount_of(txn)))
+        return 900 + len(self.calls)
+
+    def sync(self, txn):
+        if txn.accounting_transaction_id:
+            self.calls.append(("sync", txn.accounting_transaction_id))
+
+    def remove(self, accounting_id):
+        if accounting_id:
+            self.calls.append(("remove", accounting_id))
+
+
+@pytest.fixture(autouse=True)
+def fake_accounting(monkeypatch):
+    from app.services import accounting_link
+
+    fake = _FakeAccounting()
+    for name in ("create_for", "sync", "remove"):
+        monkeypatch.setattr(accounting_link, name, getattr(fake, name))
+    return fake

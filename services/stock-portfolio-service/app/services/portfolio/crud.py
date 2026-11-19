@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ...models import portfolio as models
 from ...schemas import portfolio as schemas
-from .. import portfolio_recalc_service, symbol_map_service
+from .. import accounting_link, portfolio_recalc_service, symbol_map_service
 from .day_trade import _recompute_day_trade_flags, _validate_transaction_ledger
 from .helpers import _escape_like_prefix, _trade_calendar_date, sanitize_symbol
 from .history_backfill import (
@@ -216,6 +216,7 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
     )
     db.commit()
     db.refresh(db_transaction)
+    accounting_link.sync(db_transaction)
     return db_transaction
 
 def delete_transaction(db: Session, transaction_id: int):
@@ -225,6 +226,7 @@ def delete_transaction(db: Session, transaction_id: int):
 
     symbol = sanitize_symbol(db_transaction.symbol)
     calendar = _trade_calendar_date(db_transaction.trade_date)
+    accounting_id = db_transaction.accounting_transaction_id
 
     db.delete(db_transaction)
     db.flush()
@@ -233,6 +235,7 @@ def delete_transaction(db: Session, transaction_id: int):
         db, dates=[calendar], touched_symbols={symbol}
     )
     db.commit()
+    accounting_link.remove(accounting_id)
     return True
 
 
