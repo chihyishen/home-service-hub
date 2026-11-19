@@ -9,7 +9,7 @@
   --app-surface-glass: rgba(250, 252, 255, 0.8);
   --app-surface-soft: #edf1f6;
   --app-border: #d8dee7;
-  --app-text: #151821;
+  --app-text: #262c37;
   --app-text-muted: #6b7280;
 
   /* Accent and state tokens (modular color system) */
@@ -197,7 +197,10 @@
 body {
   background-color: var(--app-bg);
   color: var(--app-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
   transition: background-color 0.3s ease, color 0.3s ease;
   margin: 0;
 }
@@ -580,77 +583,70 @@ body {
 
   &:active {
     background-color: var(--app-surface-soft) !important;
-    transform: scale(0.98);
-    opacity: 0.85;
   }
 }
 
-/* ==========================================================================
-   Modern Card-based List Styles
-   ========================================================================== */
+/* 一張卡片裝一組列，列之間細線分隔（設定清單、股利、交易紀錄共用） */
 .hub-modern-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  overflow: hidden;
+
+  app-list-item + app-list-item .hub-list-item { border-top: 1px solid var(--app-border); }
 
   .hub-list-item {
-    background: var(--app-surface);
-    border: 1px solid var(--app-border);
-    border-radius: 16px;
-    padding: 1rem 1.25rem;
+    padding: 0.8rem 1.15rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    gap: 1rem;
+    transition: background-color 0.15s;
 
-    &:hover {
-      border-color: var(--app-accent-soft-strong);
-      box-shadow: var(--app-card-shadow);
-      transform: translateY(-2px);
-    }
+    &.clickable-row:hover { background: var(--app-surface-soft); }
 
     .item-left {
       min-width: 0;
       flex: 1;
-      .main-text { font-weight: 700; font-size: 1.1rem; color: var(--app-text); margin-bottom: 0.2rem; }
-      .sub-text { font-size: 0.8rem; font-weight: 600; color: var(--app-text-muted); }
+      .main-text { font-weight: 600; font-size: 0.98rem; color: var(--app-text); margin-bottom: 0.15rem; overflow-wrap: anywhere; }
+      .sub-text { font-size: 0.78rem; font-weight: 500; color: var(--app-text-muted); }
     }
 
     .item-right {
       flex-shrink: 0;
       display: flex;
-      flex-direction: column; /* 讓金額與下方文字垂直排 */
+      flex-direction: column;
       align-items: flex-end;
       justify-content: center;
-      .amount-text { 
-        font-size: 1.15rem; 
-        font-weight: 800; 
-        color: var(--app-text); /* 確保繼承高對比色 */
-      }
-      .sub-text { font-size: 0.75rem; font-weight: 600; color: var(--app-text-muted); text-align: right; }
+      .amount-text { font-size: 1rem; font-weight: 600; color: var(--app-text); white-space: nowrap; }
+      .sub-text { font-size: 0.75rem; font-weight: 500; color: var(--app-text-muted); text-align: right; }
     }
   }
+
+  > .empty-state { padding: 2rem 1rem; }
 }
 
-/* 手機版清單優化：防止資訊擠壓 */
+.hub-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hub-day-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 1.15rem;
+  background: var(--app-surface-soft);
+  border-bottom: 1px solid var(--app-border);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+
 @media (max-width: 576px) {
-  .hub-modern-list .hub-list-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-    
-    .item-right {
-      width: 100%;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: baseline;
-      padding-top: 0.5rem;
-      border-top: 1px solid var(--app-border);
-      opacity: 0.9;
-      
-      .amount-text { font-size: 1.1rem; }
-    }
-  }
+  .hub-modern-list .hub-list-item { padding: 0.75rem 0.9rem; }
 }
 
 .ui-sticky-table .p-datatable-thead > tr > th {

@@ -49,50 +49,35 @@
   </div>
 </div>
 
-<!-- 交易時間軸清單 -->
-<div class="hub-transaction-timeline">
-  @for (txn of filteredTransactions(); track txn.id; let idx = $index) {
-    <div class="timeline-item" [class.new-day]="isNewDay(idx)" (click)="showMenu($event, txn)">
-      <div class="item-date">
-        @if (isNewDay(idx)) {
-          <span class="day">{{ txn.date | date:'dd' }}</span>
-          <span class="month">{{ txn.date | date:'MMM' }}</span>
-        }
-      </div>
-      
-      <div class="item-card">
-        <div class="item-info">
-          <div class="name-row">
-            <div class="txn-title-group">
-              <span class="txn-name">{{ txn.item }}</span>
-              @if (txn.note) {
-                <span class="txn-note-inline">{{ txn.note }}</span>
+<!-- 交易清單：依日分組 -->
+<div class="hub-day-list">
+  @for (g of dayGroups(); track g.key) {
+    <section class="hub-modern-list">
+      <header class="hub-day-head">
+        <span>{{ g.label }}</span>
+        <span>{{ dayNet(g.items) | currency:'TWD':'symbol':'1.0-0' }}</span>
+      </header>
+      @for (txn of g.items; track txn.id) {
+        <app-list-item [clickable]="true" (itemClick)="showMenu($event, txn)">
+          <ng-container left>
+            <div class="main-text">{{ txn.item }}</div>
+            <div class="sub-text">
+              {{ txn.categoryName }} · {{ txn.cardName || txn.paymentMethod }}
+              @if (txn.relatedTransactionId) { <span class="refund-tag">退款</span> }
+              @if (txn.transactionAmount !== txn.paidAmount) {
+                <span class="reimburse-tag">代墊</span> 實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }}
               }
             </div>
-            <span class="txn-amount" [class.expense]="txn.transactionType === 'EXPENSE'" [class.income]="txn.transactionType === 'INCOME'">
+            @if (txn.note) { <div class="note-text">{{ txn.note }}</div> }
+          </ng-container>
+          <ng-container right>
+            <div class="amount-text" [class.expense]="txn.transactionType === 'EXPENSE'" [class.income]="txn.transactionType === 'INCOME'">
               {{ txn.transactionType === 'EXPENSE' ? '-' : '+' }}{{ txn.transactionAmount | currency:'TWD':'symbol':'1.0-0' }}
-            </span>
-          </div>
-          
-          <div class="meta-row">
-            <span class="cat">{{ txn.categoryName }}</span>
-            <span class="dot">•</span>
-            <span class="payment">{{ txn.cardName || txn.paymentMethod }}</span>
-            @if (txn.relatedTransactionId) {
-              <span class="reimburse-info">
-                <span class="refund-tag">退款</span>
-              </span>
-            }
-            @if (txn.transactionAmount !== txn.paidAmount) {
-              <span class="reimburse-info">
-                <span class="reimburse-tag">代墊</span>
-                <span class="paid-val">(實付 {{ txn.paidAmount | currency:'TWD':'symbol':'1.0-0' }})</span>
-              </span>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
+            </div>
+          </ng-container>
+        </app-list-item>
+      }
+    </section>
   } @empty {
     <div class="empty-state">
       <i class="pi pi-receipt"></i>

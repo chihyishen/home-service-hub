@@ -18,6 +18,8 @@ import { MenuModule } from 'primeng/menu';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { MessageService, MenuItem } from 'primeng/api';
+import { ListItemComponent } from '../../shared/list-item/list-item';
+import { groupByDay } from '../../shared/day-groups';
 import { Menu } from 'primeng/menu';
 
 @Component({
@@ -37,7 +39,8 @@ import { Menu } from 'primeng/menu';
     TooltipModule,
     MenuModule,
     RadioButtonModule,
-    SelectButtonModule
+    SelectButtonModule,
+    ListItemComponent
   ],
   providers: [MessageService],
   templateUrl: './transaction-list.html',
@@ -207,12 +210,12 @@ export class TransactionListComponent implements OnInit {
     this.selectedKeyword.set('');
   }
 
-  isNewDay(index: number): boolean {
-    if (index === 0) return true;
-    const current = this.filteredTransactions()[index];
-    const previous = this.filteredTransactions()[index - 1];
-    return current.date !== previous.date;
+  readonly dayGroups = computed(() => groupByDay(this.filteredTransactions(), t => t.date));
+
+  dayNet(items: Transaction[]): number {
+    return items.reduce((sum, t) => sum + (t.transactionType === 'EXPENSE' ? -t.transactionAmount : t.transactionAmount), 0);
   }
+
 
   loadData() {
     this.loadTransactions(this.selectedMonth());

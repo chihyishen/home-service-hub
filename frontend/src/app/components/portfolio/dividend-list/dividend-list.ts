@@ -90,7 +90,7 @@ export class PortfolioDividendListComponent implements OnInit, OnDestroy {
     const gross = qty * perShare;
     const fee = Number(this.newDividend.fee ?? 0);
     const tax = Number(this.newDividend.tax ?? 0);
-    const fmt = (v: number) => `NT$${v.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+    const fmt = (v: number) => `NT$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
     if (tax > 0 || fee > 0) {
       const parts: string[] = [];
       if (fee > 0) parts.push(`手續費 −${fmt(fee)}`);

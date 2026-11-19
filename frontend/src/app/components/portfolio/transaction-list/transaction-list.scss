@@ -1,3 +1,5 @@
+:host { display: block; max-width: 960px; margin-inline: auto; }
+
 .portfolio-form-page {
   .page-header {
     gap: 0.75rem;
@@ -23,11 +25,11 @@
 }
 
 .txn-type-buy {
-  color: var(--app-danger);
+  color: var(--app-danger) !important;
 }
 
 .txn-type-sell {
-  color: var(--app-success);
+  color: var(--app-success) !important;
 }
 
 .hub-result-meta {
@@ -45,7 +47,7 @@
   }
 }
 
-.hub-modern-list.is-loading {
+.hub-day-list.is-loading {
   opacity: 0.55;
   pointer-events: none;
   transition: opacity 0.15s;
@@ -120,7 +122,7 @@
   border-radius: 999px;
   color: var(--app-warning, #dc2626);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   margin-left: 0.4rem;
   padding: 0.18rem 0.4rem;

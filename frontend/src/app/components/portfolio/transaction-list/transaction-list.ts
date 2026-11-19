@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortfolioService } from '../../../services/portfolio.service';
 import { DcaPlan, Transaction, TransactionType, TransactionQuery } from '../../../models/portfolio.model';
@@ -19,6 +19,7 @@ import { ToastModule } from 'primeng/toast';
 import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
 import { ListItemComponent } from '../../shared/list-item/list-item';
+import { groupByDay } from '../../shared/day-groups';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 
@@ -57,6 +58,7 @@ export class PortfolioTransactionListComponent implements OnInit, OnDestroy {
   menuItems: MenuItem[] = [];
 
   transactions = signal<Transaction[]>([]);
+  readonly dayGroups = computed(() => groupByDay(this.transactions(), t => t.trade_date ?? 0));
   total = signal<number>(0);
   loading = signal<boolean>(false);
   showDialog = signal<boolean>(false);

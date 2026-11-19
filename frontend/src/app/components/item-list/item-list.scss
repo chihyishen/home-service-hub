@@ -36,14 +36,15 @@
   .item-icon-placeholder {
     width: 64px;
     height: 64px;
-    background: var(--app-accent-soft);
+    background: var(--app-surface-soft);
+    border: 1px solid var(--app-border);
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--app-text-muted);
+    font-weight: 600;
+    color: var(--app-text);
   }
 
   .stock-badge {
@@ -113,7 +114,7 @@
     align-items: baseline;
     gap: 0.25rem;
 
-    .current { font-size: 1.5rem; font-weight: 800; color: var(--app-text); }
+    .current { font-size: 1.5rem; font-weight: 700; color: var(--app-text); }
     .qty-unit { font-size: 0.85rem; color: var(--app-text-muted); font-weight: 600; }
   }
 
@@ -245,3 +246,7 @@
   }
 }
 
+
+/* 數量按鈕：出（−）用支出紫、入（+）用收入藍，與交易紀錄同一套語意 */
+:host ::ng-deep .qty-out.p-button { color: var(--app-danger); }
+:host ::ng-deep .qty-in.p-button { color: var(--app-success); }

@@ -10,7 +10,7 @@
 .section-title {
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--app-text);
   letter-spacing: -0.02em;
 }
@@ -25,7 +25,7 @@
 
 .hub-title {
   font-size: 1.75rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--app-text);
   letter-spacing: -0.03em;
   margin-bottom: 0.25rem;
@@ -88,7 +88,7 @@
     pointer-events: none;
     
     .l { display: block; font-size: 0.7rem; font-weight: 700; color: var(--app-text-muted); letter-spacing: 0.1em; }
-    .v { display: block; font-size: 1.35rem; font-weight: 800; color: var(--app-text); }
+    .v { display: block; font-size: 1.35rem; font-weight: 700; color: var(--app-text); }
   }
 }
 
@@ -149,8 +149,8 @@
   }
 
   .trend-badge {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 600;
     &.danger { color: var(--app-trend-positive); }
     &.success { color: var(--app-trend-negative); }
   }
@@ -174,7 +174,7 @@
     justify-content: space-between;
     margin-bottom: 0.5rem;
     .card-name { font-weight: 700; font-size: 0.85rem; color: var(--app-text); }
-    .usage-pct { font-weight: 800; font-size: 0.85rem; }
+    .usage-pct { font-weight: 700; font-size: 0.85rem; }
   }
 
   .widget-footer {
@@ -350,7 +350,7 @@
   }
 
   .category-name {
-    font-weight: 700;
+    font-weight: 600;
     color: var(--app-text);
   }
 
@@ -361,7 +361,7 @@
   }
 
   .category-total {
-    font-weight: 800;
+    font-weight: 600;
     color: var(--app-text);
     text-align: right;
   }

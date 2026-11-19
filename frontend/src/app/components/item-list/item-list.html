@@ -94,8 +94,8 @@
 
               <div class="item-actions">
                 <div class="action-group main-actions">
-                  <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="danger" (onClick)="consumeOne(item)" pTooltip="使用 -1"></p-button>
-                  <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="success" (onClick)="openQuickAction(item, 'RESTOCK')" pTooltip="快速補貨"></p-button>
+                  <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="secondary" styleClass="qty-out" (onClick)="consumeOne(item)" pTooltip="使用 -1"></p-button>
+                  <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="secondary" styleClass="qty-in" (onClick)="openQuickAction(item, 'RESTOCK')" pTooltip="快速補貨"></p-button>
                 </div>
                 <div class="action-group more-actions">
                   <p-button icon="pi pi-history" [rounded]="true" [text]="true" severity="secondary" (onClick)="openHistory(item)" pTooltip="歷史紀錄"></p-button>

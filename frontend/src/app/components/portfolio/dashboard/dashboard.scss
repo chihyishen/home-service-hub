@@ -92,7 +92,7 @@
   .stock-symbol-group {
     display: flex;
     flex-direction: column;
-    .symbol { font-weight: 800; font-size: 1.1rem; color: var(--app-text); }
+    .symbol { font-weight: 600; font-size: 1.05rem; color: var(--app-text); }
     .name { font-size: 0.8rem; color: var(--app-text-muted); max-width: 120px; }
   }
 
@@ -100,7 +100,7 @@
     text-align: right;
     display: flex;
     flex-direction: column;
-    .current-price { font-weight: 700; font-size: 1.1rem; color: var(--app-text); }
+    .current-price { font-weight: 600; font-size: 1.1rem; color: var(--app-text); }
     .day-change { 
       font-size: 0.85rem; font-weight: 600; 
       &.up { color: var(--app-trend-positive); }
@@ -116,7 +116,7 @@
       display: flex;
       flex-direction: column;
       .l { font-size: 0.7rem; color: var(--app-text-muted); font-weight: 600; }
-      .v { font-weight: 700; font-size: 0.9rem; color: var(--app-text); }
+      .v { font-weight: 600; font-size: 0.9rem; color: var(--app-text); }
     }
   }
 }
@@ -149,7 +149,7 @@
   
   .d-item {
     small { color: var(--app-text-muted); font-size: 0.75rem; }
-    div { font-weight: 700; font-size: 0.95rem; color: var(--app-text); }
+    div { font-weight: 600; font-size: 0.95rem; color: var(--app-text); }
     .up { color: var(--app-trend-positive); }
     .down { color: var(--app-trend-negative); }
   }
