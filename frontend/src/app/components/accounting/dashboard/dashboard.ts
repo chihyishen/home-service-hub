@@ -19,6 +19,12 @@ import { TableModule } from 'primeng/table';
 import { RouterLink } from '@angular/router';
 import { SelectModule } from 'primeng/select';
 
+// 低飽和色票，配合黑灰白主調（深→淺排列，最大分類最深）
+const MUTED_PALETTE = [
+  '#4a5568', '#8496a9', '#a8645e', '#5f8672', '#b59a6a', '#8a7aa0', '#6f9aa6', '#c4a99a',
+  '#9aa3ad', '#6b7c8f', '#c99a95', '#92b3a1', '#cdbf9c', '#b0a5c4', '#a7c3cb', '#d3d8de',
+];
+
 @Component({
   selector: 'app-accounting-dashboard',
   imports: [CommonModule, ChartModule, DatePickerModule, FormsModule, CardModule, ProgressBarModule, ButtonModule, TableModule, RouterLink, SelectModule],
@@ -239,10 +245,7 @@ export class AccountingDashboardComponent implements OnInit {
     const data = report.expenseBreakdown.map(item => item.amount);
     
     // 擴充色票，確保分類多時不會沒顏色
-    const modernPalette = [
-      '#42A5F5', '#66BB6A', '#FFA726', '#AB47BC', '#EF5350', '#26A69A', '#EC407A', '#78909C',
-      '#5C6BC0', '#8D6E63', '#26C6DA', '#D4E157', '#FF7043', '#9CCC65', '#29B6F6', '#FFEE58'
-    ];
+    const modernPalette = MUTED_PALETTE;
     
     // 根據分類數量循環生成背景色
     const backgroundColors = labels.map((_, i) => modernPalette[i % modernPalette.length]);
@@ -273,9 +276,7 @@ export class AccountingDashboardComponent implements OnInit {
       datasets: [
         {
           data: data,
-          backgroundColor: [
-            '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#C9CBCF'
-          ]
+          backgroundColor: MUTED_PALETTE
         }
       ]
     };
@@ -294,8 +295,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '收入',
           data: report.monthlyTrend.map(item => item.totalIncome),
-          borderColor: '#16a34a',
-          backgroundColor: 'rgba(22, 163, 74, 0.16)',
+          borderColor: '#5f8672',
+          backgroundColor: 'rgba(95, 134, 114, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -303,8 +304,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '支出',
           data: report.monthlyTrend.map(item => item.totalExpense),
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.16)',
+          borderColor: '#a8645e',
+          backgroundColor: 'rgba(168, 100, 94, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -312,8 +313,8 @@ export class AccountingDashboardComponent implements OnInit {
         {
           label: '結餘',
           data: report.monthlyTrend.map(item => item.surplus),
-          borderColor: '#0ea5e9',
-          backgroundColor: 'rgba(14, 165, 233, 0.16)',
+          borderColor: '#5b6b7f',
+          backgroundColor: 'rgba(91, 107, 127, 0.08)',
           tension: 0.3,
           pointRadius: 3,
           pointHoverRadius: 5
@@ -330,7 +331,7 @@ export class AccountingDashboardComponent implements OnInit {
     }
 
     const labels = report.monthlyTrend.map(item => `${Number(item.month.split('-')[1])}月`);
-    const palette = ['#f97316', '#8b5cf6', '#14b8a6', '#eab308', '#ec4899'];
+    const palette = MUTED_PALETTE;
 
     this.annualCategoryChartData = {
       labels,
