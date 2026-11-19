@@ -69,7 +69,7 @@
    - `set-env.js` 拿掉 oidc 相關欄位。
    - `angular.json` 的 `serve` 拿掉 ssl 設定。`ng serve` 之後只給本機開發用，host 改回預設（localhost）。`proxy.conf.js` 保留給本機開發用。
 5. **前門：nginx 容器。**
-   - 在 `docker-compose.yml` 新增一個 nginx service，使用非 root 映像，跟其他 service 一樣用 digest 固定版本。
+   - nginx 放在新的獨立 repo `~/projects/infra`（跨專案共用的基礎設施，依使用者 2026-11-19 的資料夾分類決定），自己一份 `docker-compose.yml`，使用非 root 映像、用 digest 固定版本。home-service-hub 的 compose 不放 nginx。
    - 唯讀掛載 `frontend/dist/.../browser`，對區網開放 HTTP。port 由建置者決定，預設建議 80。
    - 網址配置：
      - `/` 是一頁手寫的靜態首頁，列出各服務的連結（第一階段只有 hub）。
@@ -123,3 +123,7 @@
 | `/rec/` | streamer-rec 專案的網頁入口：streamer-dvr（含 `/review` 標註頁，現綁 `*:8787`） | 位於 streamer-rec repo；需讓它支援掛在子路徑下並改綁 `127.0.0.1`。舊的 `label_server.py`（`*:8137`，只剩轉址）收掉 |
 
 最後打開 macOS 防火牆，確認區網上只剩 nginx 的 port（加上 Apple 系統服務）。
+
+## 之後：共用基礎設施搬到 `~/projects/infra`
+
+OTel Collector、Tempo、Loki、Grafana 同時服務 hub 和 streamer-rec，屬於跨專案基礎設施，之後從 hub 的 compose 搬到 `~/projects/infra`。PostgreSQL 只有 hub 用，留在 hub。注意 docker named volume 帶 compose 專案名前綴（`home-service-hub_loki_data`、`home-service-hub_grafana_data`），搬家時要把 volume 宣告成 `external` 並指定原名稱，或先遷移資料，否則 Loki／Grafana 資料會「消失」。這一步另開計畫。
