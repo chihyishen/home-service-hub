@@ -64,6 +64,13 @@ class Transaction(Base, TimestampMixin):
         server_default=expression.false(),
     )
     import_fingerprint = Column(String(64), nullable=True)
+    # 定期定額自動建立、尚未依券商實際成交更正的估算交易；手動編輯後轉為 False。
+    is_estimated = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=expression.false(),
+    )
 
 class Dividend(Base, TimestampMixin):
     __tablename__ = "dividends"

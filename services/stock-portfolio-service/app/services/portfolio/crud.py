@@ -198,6 +198,8 @@ def update_transaction(db: Session, transaction_id: int, transaction_update: sch
 
     for key, value in update_data.items():
         setattr(db_transaction, key, value)
+    # 使用者手動編輯即視為已依實際成交更正。
+    db_transaction.is_estimated = False
 
     db.flush()
 

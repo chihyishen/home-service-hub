@@ -41,6 +41,7 @@ def test_build_scheduler_registers_three_jobs():
         "portfolio_recalc_recovery",
         "symbol_map_refresh",
         "dividend_auto_record",
+        "dca",
     }
 
 

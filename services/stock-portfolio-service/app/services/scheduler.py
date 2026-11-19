@@ -32,6 +32,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from . import (
+    dca_service,
     dividend_auto_record_service,
     dividend_event_service,
     market_data_service,
@@ -214,6 +215,18 @@ def run_symbol_map_refresh(session_factory: Callable[[], AbstractContextManager]
     return {"status": "ok", **result}
 
 
+def run_dca(session_factory: Callable[[], AbstractContextManager]) -> dict:
+    """Create estimated DCA buys once the day's close is in (after tw_daily_prices)."""
+    try:
+        with session_factory() as db:
+            created = dca_service.run_due(db, _today_tw())
+    except Exception as exc:
+        logger.exception("scheduler.dca.failed", extra={"error": str(exc)})
+        return {"status": "failed", "error": str(exc)}
+    logger.info("scheduler.dca.done", extra={"created": len(created)})
+    return {"status": "ok", "created": len(created)}
+
+
 def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> BackgroundScheduler:
     """Construct a configured ``BackgroundScheduler``; caller starts it."""
     scheduler = BackgroundScheduler(timezone=TW_TIMEZONE)
@@ -257,6 +270,13 @@ def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> Ba
         run_dividend_auto_record,
         CronTrigger(hour=18, minute=0, day_of_week="mon-fri", timezone=TW_TIMEZONE),
         id="dividend_auto_record",
+        kwargs={"session_factory": session_factory},
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_dca,
+        CronTrigger(hour=17, minute=30, day_of_week="mon-fri", timezone=TW_TIMEZONE),
+        id="dca",
         kwargs={"session_factory": session_factory},
         replace_existing=True,
     )
