@@ -178,3 +178,15 @@ def test_is_enabled_env_parsing(monkeypatch, value, expected):
     else:
         monkeypatch.setenv("SCHEDULER_ENABLED", value)
     assert sched.is_enabled() is expected
+
+
+def test_record_job_status_writes_failure(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("JOB_STATUS_DIR", str(tmp_path))
+    sched.record_job_status(SimpleNamespace(job_id="dca", exception=None, retval={"status": "failed", "error": "x"}))
+    sched.record_job_status(SimpleNamespace(job_id="quote_refresh", exception=None, retval={}))  # 高頻 job 不記
+    data = json.loads((tmp_path / "portfolio.dca.json").read_text())
+    assert data["ok"] is False
+    assert [p.name for p in tmp_path.iterdir()] == ["portfolio.dca.json"]

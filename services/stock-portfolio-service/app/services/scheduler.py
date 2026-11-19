@@ -20,13 +20,16 @@ never boots inside the test process.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import date, datetime, time, timedelta, timezone
 from datetime import timedelta as _timedelta
+from pathlib import Path
 
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -227,6 +230,32 @@ def run_dca(session_factory: Callable[[], AbstractContextManager]) -> dict:
     return {"status": "ok", "created": len(created)}
 
 
+# 每日/每週的排程把結果寫成 status 檔，早報讀它回報「昨日排程」是否正常。
+# 每分鐘、每 15 分鐘的高頻 job 不記，避免噪音。
+_REPORTED_JOBS = {"tw_daily_prices", "portfolio_snapshot", "symbol_map_refresh", "dividend_auto_record", "dca"}
+
+
+def _status_dir() -> Path:
+    return Path(os.getenv("JOB_STATUS_DIR", str(Path.home() / "Library/Logs/home-service-hub/status")))
+
+
+def record_job_status(event) -> None:
+    if event.job_id not in _REPORTED_JOBS:
+        return
+    retval = getattr(event, "retval", None)
+    failed = event.exception is not None or (isinstance(retval, dict) and retval.get("status") == "failed")
+    detail = str(event.exception) if event.exception else json.dumps(retval, ensure_ascii=False, default=str)
+    try:
+        directory = _status_dir()
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / f"portfolio.{event.job_id}.json").write_text(json.dumps(
+            {"job": f"portfolio.{event.job_id}", "ok": not failed, "at": _now_tw().isoformat(), "detail": detail[:300]},
+            ensure_ascii=False,
+        ))
+    except OSError:
+        logger.warning("scheduler.status_write_failed", extra={"job": event.job_id})
+
+
 def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> BackgroundScheduler:
     """Construct a configured ``BackgroundScheduler``; caller starts it."""
     scheduler = BackgroundScheduler(timezone=TW_TIMEZONE)
@@ -280,6 +309,7 @@ def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> Ba
         kwargs={"session_factory": session_factory},
         replace_existing=True,
     )
+    scheduler.add_listener(record_job_status, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
     return scheduler
 
 
