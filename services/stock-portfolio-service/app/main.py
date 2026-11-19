@@ -69,5 +69,4 @@ app = create_app(
     otel_service_name_env="OTEL_SERVICE_NAME_STOCK",
     otel_strict=False,
     lifespan=_lifespan,
-    auth_service="portfolio",
 )

@@ -25,7 +25,7 @@ class SharedSettings(BaseSettings):
     )
 
     # CORS
-    allowed_origins: str = "http://localhost:4200"
+    allowed_origins: str = "http://localhost:4200,http://localhost,http://192.168.0.100"
 
     # OpenTelemetry (optional — services that don't need tracing can skip)
     otel_collector_endpoint_grpc: str | None = None

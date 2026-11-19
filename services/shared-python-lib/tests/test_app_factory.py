@@ -1,3 +1,4 @@
+import inspect
 from unittest.mock import MagicMock
 
 import pytest
@@ -90,3 +91,16 @@ def test_create_app_error_handler_shapes_response(dummy_router, mock_get_db):
     resp = client.get("/fail")
     assert resp.status_code == 500
     assert resp.json()["code"] == 500
+
+
+def test_requests_need_no_token_even_with_enforcement_env(monkeypatch, mock_get_db):
+    monkeypatch.setenv("AUTH_ENFORCEMENT_ENABLED", "true")
+    router = APIRouter()
+
+    @router.get("/api/accounting/ping")
+    def ping():
+        return {"ok": True}
+
+    app = create_app(title="t", version="1", routers=[router], get_db=mock_get_db)
+    assert TestClient(app).get("/api/accounting/ping").status_code == 200
+    assert "auth_service" not in inspect.signature(create_app).parameters

@@ -7,7 +7,6 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
-from .auth import install_resource_server
 from .config import SharedSettings
 from .errors import register_error_handlers
 from .health import create_health_router
@@ -26,15 +25,12 @@ def create_app(
     otel_strict: bool = False,
     settings: SharedSettings | None = None,
     lifespan: Callable[[FastAPI], AbstractAsyncContextManager[None]] | None = None,
-    auth_service: str | None = None,
 ) -> FastAPI:
     """Bootstrap a FastAPI app with CORS, error handling, tracing, and health routes."""
     if settings is None:
         settings = SharedSettings()
 
     app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
-    if auth_service:
-        install_resource_server(app, service=auth_service)
 
     # CORS
     app.add_middleware(
