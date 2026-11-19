@@ -18,7 +18,7 @@
 
 - 完全移除 Keycloak／OIDC／JWT：包括 compose、realm、登入主題、gateway 和三個後端的驗證，以及前端的 keycloak-js。
 - 前端改為 production build 出來的靜態檔，由 nginx 容器提供，並把 API 反向代理到 gateway。
-- 這個 nginx 是整台 Mac mini 上所有自架服務的唯一區網入口，網址統一是 `http://<ip>/<服務名>/`，方便查找和管理。本次（第一階段）只接 home-service-hub；第二階段把 Grafana、Jellyfin、streamer-dvr 接進來（見文末）。Apple 內建服務（AirPlay、螢幕共享等）不在範圍內，交給系統自己控管。
+- 這個 nginx 是整台 Mac mini 上所有自架服務的唯一區網入口，網址統一是 `http://<ip>/<服務名>/`，方便查找和管理。本次（第一階段）只接 home-service-hub；第二階段把 Grafana、Jellyfin、streamer-rec（`/rec/`）接進來（見文末）。Apple 內建服務（AirPlay、螢幕共享等）不在範圍內，交給系統自己控管。
 - 前端改用 HTTP，不再需要自簽憑證；預期 iPhone 主畫面圖示的問題會跟著解決。
 - 刪除跟驗證有關的設定、文件和那份未完成的 openspec change。
 
@@ -120,6 +120,6 @@
 |---|---|---|
 | `/grafana/` | Grafana（容器，現綁 `127.0.0.1:3000` 與 LAN IP `:3000`） | 設 `GF_SERVER_ROOT_URL` + `GF_SERVER_SERVE_FROM_SUB_PATH`；拿掉 `GRAFANA_VPN_BIND_HOST` 的 LAN 綁定 |
 | `/jellyfin/` | Jellyfin（macOS 原生 app，現綁 `*:8096`） | 後台 Networking 設 Base URL `/jellyfin`、綁定位址改 `127.0.0.1`；PC／手機／平板的 Jellyfin app 伺服器網址改成 `http://<ip>/jellyfin`。客戶端只有這三類，沒有 IoT 網段的電視 |
-| `/streamer-dvr/` | streamer-dvr（含 `/review` 標註頁，現綁 `*:8787`） | 位於另一個 repo（streamer-rec）；需讓它支援掛在子路徑下並改綁 `127.0.0.1`。舊的 `label_server.py`（`*:8137`，只剩轉址）收掉 |
+| `/rec/` | streamer-rec 專案的網頁入口：streamer-dvr（含 `/review` 標註頁，現綁 `*:8787`） | 位於 streamer-rec repo；需讓它支援掛在子路徑下並改綁 `127.0.0.1`。舊的 `label_server.py`（`*:8137`，只剩轉址）收掉 |
 
 最後打開 macOS 防火牆，確認區網上只剩 nginx 的 port（加上 Apple 系統服務）。
