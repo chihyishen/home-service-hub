@@ -8,19 +8,17 @@
 }
 
 .realized-summary-card {
-  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-positive-soft) 100%);
+  background: var(--app-surface);
   border: 1px solid var(--app-border);
-  border-left: 6px solid var(--app-trend-positive);
   border-radius: 16px;
-  box-shadow: var(--app-card-shadow);
   flex: 1 1 260px;
   min-width: 0;
   padding: 1.1rem 1.25rem;
 
   .label {
     color: var(--app-text-muted);
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 500;
     margin-bottom: 0.45rem;
   }
 
@@ -33,15 +31,12 @@
 
   .meta {
     color: var(--app-text-muted);
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 500;
     margin-top: 0.45rem;
   }
 
   &.is-loss {
-    background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-negative-soft) 100%);
-    border-left-color: var(--app-trend-negative);
-
     .value {
       color: var(--app-trend-negative);
     }

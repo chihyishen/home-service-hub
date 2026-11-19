@@ -45,10 +45,6 @@
   gap: 1rem;
 }
 
-/* 極簡卡片修飾 - 僅保留側邊細線 */
-.expense-card { border-left: 4px solid var(--app-warning); }
-.income-card { border-left: 4px solid var(--app-success); }
-.surplus-card { border-left: 4px solid var(--app-accent); }
 
 .chart-card {
   padding: 1.5rem !important;

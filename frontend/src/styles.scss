@@ -32,7 +32,7 @@
   --app-trend-negative: var(--app-danger);
   --app-trend-positive-soft: rgba(95, 127, 152, 0.07);
   --app-trend-negative-soft: rgba(123, 108, 156, 0.07);
-  --app-card-shadow: 0 10px 30px rgba(18, 26, 40, 0.045);
+  --app-card-shadow: none; // 全站扁平卡片：只靠 1px 邊框分層
   --app-raised-shadow: 0 16px 36px rgba(18, 26, 40, 0.09);
   --app-inset-line: rgba(255, 255, 255, 0.62);
 
@@ -67,7 +67,7 @@
   --app-trend-negative: var(--app-danger);
   --app-trend-positive-soft: rgba(141, 174, 199, 0.08);
   --app-trend-negative-soft: rgba(164, 148, 198, 0.08);
-  --app-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  --app-card-shadow: none;
   --app-raised-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   --app-inset-line: rgba(255, 255, 255, 0.05);
 

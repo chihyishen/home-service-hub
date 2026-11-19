@@ -1,8 +1,5 @@
 <div class="hub-dashboard-container">
-  <div class="hub-page-header justify-content-between align-items-center">
-    <div class="page-copy">
-      <h2 class="hub-section-title">記帳分析</h2>
-    </div>
+  <div class="hub-page-header justify-content-end align-items-center">
     <div class="header-actions">
       <p-datepicker [(ngModel)]="selectedMonth" view="month" dateFormat="yy/mm" 
                   (onSelect)="loadReport()" placeholder="選擇月份" appendTo="body"
@@ -18,7 +15,7 @@
       <div class="bento-item bento-hero expense-card">
         <div class="bento-content">
           <div class="label">本月總支出</div>
-          <div class="value">{{ report()?.summary?.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</div>
+          <div class="value expense">{{ report()?.summary?.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</div>
           <div class="meta">
             @if (compareReport()?.summary?.totalExpenseDelta; as delta) {
               <span [class.danger]="delta > 0" [class.success]="delta <= 0">
@@ -49,7 +46,7 @@
       <div class="bento-item bento-normal income-card">
         <div class="bento-content">
           <div class="label">本月總收入</div>
-          <div class="value">{{ report()?.summary?.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</div>
+          <div class="value income">{{ report()?.summary?.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</div>
         </div>
         <div class="bento-bg-icon-small">
           <i class="pi pi-wallet"></i>
@@ -181,7 +178,7 @@
         <div class="bento-item annual-summary-card income-card">
           <div class="bento-content">
             <div class="label">全年收入</div>
-            <div class="value">{{ annual.summary.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</div>
+            <div class="value income">{{ annual.summary.totalIncome | currency:'TWD':'symbol':'1.0-0' }}</div>
             <div class="meta">{{ annual.year }} 年累計入帳</div>
           </div>
         </div>
@@ -189,7 +186,7 @@
         <div class="bento-item annual-summary-card expense-card">
           <div class="bento-content">
             <div class="label">全年支出</div>
-            <div class="value">{{ annual.summary.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</div>
+            <div class="value expense">{{ annual.summary.totalExpense | currency:'TWD':'symbol':'1.0-0' }}</div>
             <div class="meta">支出峰值 {{ formatAnnualMonth(annual.summary.highestExpenseMonth) }}</div>
           </div>
         </div>

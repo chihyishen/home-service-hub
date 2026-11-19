@@ -6,24 +6,15 @@
 
 .hub-inventory-card {
   background-color: var(--app-surface);
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid var(--app-border);
-  box-shadow: var(--app-card-shadow);
   display: flex;
   flex-direction: column;
   padding: 1.25rem;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.15s;
   position: relative;
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--app-raised-shadow);
-    border-color: var(--app-accent);
-  }
-
-  &.low-stock {
-    border-left: 5px solid var(--app-danger);
-  }
+  &:hover { border-color: var(--app-text-muted); }
 }
 
 /* Item Visual (Left/Top part) */
@@ -248,5 +239,5 @@
 
 
 /* 數量按鈕：出（−）用支出紫、入（+）用收入藍，與交易紀錄同一套語意 */
-:host ::ng-deep .qty-out.p-button { color: var(--app-danger); }
-:host ::ng-deep .qty-in.p-button { color: var(--app-success); }
+:host ::ng-deep .qty-out.p-button { color: var(--app-danger) !important; }
+:host ::ng-deep .qty-in.p-button { color: var(--app-success) !important; }

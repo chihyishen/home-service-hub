@@ -2,62 +2,34 @@
 
 /* 繼承 Bento Grid 基本樣式並客製化 */
 
-.market-value-card {
-  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-accent-soft) 100%);
-  border-left: 6px solid var(--app-accent);
-  .value { 
-    color: var(--app-text); 
-    text-shadow: none;
-  }
-}
+.market-value-card .value { color: var(--app-text); }
 
 .pnl-card, .day-pnl-card, .xirr-card {
-  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-positive-soft) 100%);
-  border-left: 6px solid var(--app-trend-positive);
-  .value { 
-    color: var(--app-trend-positive); 
-    text-shadow: none;
-  }
-  
-  &.is-loss {
-    background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-trend-negative-soft) 100%);
-    border-left-color: var(--app-trend-negative);
-    .value { 
-      color: var(--app-trend-negative);
-      text-shadow: none;
-    }
-  }
+  .value { color: var(--app-trend-positive); }
+  &.is-loss .value { color: var(--app-trend-negative); }
 }
 
 .market-value-card {
   .total-return { margin-top: 0.5rem; font-size: 1rem; color: var(--app-text-muted); &.up { color: var(--app-trend-positive); } &.down { color: var(--app-trend-negative); } }
-  .sub-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 0.5rem; color: var(--app-text-muted); font-weight: 600; }
+  .sub-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 0.5rem; color: var(--app-text-muted); font-weight: 500; }
 }
 
-.dividend-card {
-  background: linear-gradient(145deg, var(--app-surface) 0%, var(--app-state-dividend-bg) 100%);
-  border-left: 6px solid color-mix(in srgb, var(--app-dividend) 72%, var(--app-border));
-
-  .value {
-    color: var(--app-dividend) !important;
-  }
-
-  .meta {
-    color: var(--app-text-muted);
-  }
-}
+.dividend-card .value { color: var(--app-dividend) !important; }
 
 .pct-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.65rem;
   background: var(--app-trend-positive-soft);
+  color: var(--app-trend-positive);
   border-radius: 999px;
   margin-top: 0.5rem;
-  font-weight: 700;
+  font-weight: 600;
+  align-self: flex-start;
 }
 
 .is-loss .pct-badge {
   background: var(--app-trend-negative-soft);
+  color: var(--app-trend-negative);
 }
 
 /* Holdings List V2 */
@@ -68,19 +40,14 @@
 }
 
 .hub-stock-row {
-  background: linear-gradient(180deg, var(--app-surface-soft) 0%, var(--app-surface) 100%);
+  background: var(--app-surface);
   border-radius: 16px;
-  padding: 1rem;
+  padding: 1rem 1.15rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
   border: 1px solid var(--app-border);
-  box-shadow: var(--app-card-shadow);
 
-  &:hover {
-    background: linear-gradient(180deg, var(--app-surface) 0%, var(--app-surface-soft) 100%);
-    border-color: var(--app-accent-soft-strong);
-    box-shadow: var(--app-raised-shadow);
-  }
+  &:hover { background: var(--app-surface-soft); }
 
   .stock-main-info {
     display: flex;
@@ -161,3 +128,12 @@
 }
 
 .holding-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem; vertical-align: middle; }
+
+/* 子元件自帶 p-card：攤平成單層，外框交給 bento-item，避免卡片包卡片 */
+:host ::ng-deep {
+  .networth-chart-card .p-card,
+  .corporate-actions-card .p-card { background: transparent; border: none; box-shadow: none; }
+  .networth-chart-card .p-card-body,
+  .corporate-actions-card .p-card-body { padding: 0; }
+  .corporate-actions-card .p-card-title { font-size: 1rem; font-weight: 600; color: var(--app-text); margin-bottom: 1rem; }
+}

@@ -26,17 +26,11 @@
 
 .bento-item {
   background-color: var(--app-surface);
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 1.5rem;
   position: relative;
   overflow: hidden;
   border: 1px solid var(--app-border);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    border-color: var(--app-text-muted);
-    transform: translateY(-2px);
-  }
 }
 
 /* Content Styles */
@@ -49,11 +43,10 @@
   justify-content: center;
 
   .label {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 500;
     color: var(--app-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.02em;
     margin-bottom: 0.5rem;
   }
 
@@ -67,12 +60,17 @@
     &.down { color: var(--app-trend-negative); }
     &.gain { color: var(--app-trend-positive); }
     &.loss { color: var(--app-trend-negative); }
+    // 全站同一套：收入藍、支出紫、股利淡紫，其餘數字用主字色
+    &.income { color: var(--app-success); }
+    &.expense { color: var(--app-danger); }
+    &.dividend { color: var(--app-dividend); }
   }
 
   .meta {
     margin-top: 0.75rem;
     font-size: 0.8rem;
-    font-weight: 700;
+    font-weight: 500;
+    color: var(--app-text-muted);
 
     .up { color: var(--app-trend-positive); }
     .down { color: var(--app-trend-negative); }
@@ -86,11 +84,9 @@
 /* Charts & Lists */
 .card-title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 1.25rem;
   color: var(--app-text);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 @media (max-width: 768px) {
