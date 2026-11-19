@@ -49,13 +49,26 @@ class _FakeAccounting:
     def __init__(self):
         self.calls = []
 
-    def create_for(self, txn, label):
-        self.calls.append(("create", label, __import__("app.services.accounting_link", fromlist=["x"]).amount_of(txn)))
+    def _next_id(self):
         return 900 + len(self.calls)
+
+    def create_for(self, txn, label):
+        from app.services.accounting_link import amount_of
+        self.calls.append(("create", label, amount_of(txn)))
+        return self._next_id()
 
     def sync(self, txn):
         if txn.accounting_transaction_id:
             self.calls.append(("sync", txn.accounting_transaction_id))
+
+    def create_for_dividend(self, div, name):
+        from app.services.accounting_link import dividend_amount_of
+        self.calls.append(("create_dividend", f"{name} 配息", dividend_amount_of(div)))
+        return self._next_id()
+
+    def sync_dividend(self, div):
+        if div.accounting_transaction_id:
+            self.calls.append(("sync_dividend", div.accounting_transaction_id))
 
     def remove(self, accounting_id):
         if accounting_id:
@@ -67,6 +80,6 @@ def fake_accounting(monkeypatch):
     from app.services import accounting_link
 
     fake = _FakeAccounting()
-    for name in ("create_for", "sync", "remove"):
+    for name in ("create_for", "sync", "remove", "create_for_dividend", "sync_dividend"):
         monkeypatch.setattr(accounting_link, name, getattr(fake, name))
     return fake

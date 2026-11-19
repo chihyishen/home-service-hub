@@ -83,7 +83,7 @@ def run_plan(db: Session, plan: DcaPlan, today: date) -> models.Transaction | No
         ),
     )
     txn.is_estimated = True
-    txn.accounting_transaction_id = accounting_link.create_for(txn, txn.name or plan.symbol)
+    txn.accounting_transaction_id = accounting_link.create_for(txn, f"{txn.name or plan.symbol} 定期定額")
     db.commit()
     db.refresh(txn)
     logger.info("dca.executed", extra={"symbol": plan.symbol, "date": str(bar.date), "quantity": quantity})

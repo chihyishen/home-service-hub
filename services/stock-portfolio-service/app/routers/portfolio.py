@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..schemas import portfolio as schemas
-from ..services import portfolio_service
+from ..services import accounting_link, portfolio_service
 
 router = APIRouter(
     prefix="/api/portfolio",
@@ -20,9 +20,11 @@ def get_summary(db: Session = Depends(get_db)):
 @router.post("/transactions", response_model=schemas.Transaction)
 def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
     try:
-        return portfolio_service.create_transaction(db, transaction)
+        created = portfolio_service.create_transaction(db, transaction)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    accounting_link.link_new_transaction(db, created)
+    return created
 
 @router.put("/transactions/{transaction_id}", response_model=schemas.Transaction)
 def update_transaction(transaction_id: int, transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
@@ -75,7 +77,9 @@ def get_transactions(
 
 @router.post("/dividends", response_model=schemas.Dividend)
 def create_dividend(dividend: schemas.DividendCreate, db: Session = Depends(get_db)):
-    return portfolio_service.create_dividend(db, dividend)
+    created = portfolio_service.create_dividend(db, dividend)
+    accounting_link.link_dividend(db, created)
+    return created
 
 @router.put("/dividends/{dividend_id}", response_model=schemas.Dividend)
 def update_dividend(dividend_id: int, dividend: schemas.DividendCreate, db: Session = Depends(get_db)):

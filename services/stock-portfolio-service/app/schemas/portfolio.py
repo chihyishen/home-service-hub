@@ -62,6 +62,7 @@ class Transaction(TransactionBase):
     id: int
     is_day_trade: bool = False
     is_estimated: bool = False
+    accounting_transaction_id: int | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -97,6 +98,7 @@ class DividendCreate(DividendBase):
 
 class Dividend(DividendBase):
     id: int
+    accounting_transaction_id: int | None = None
     created_at: datetime
     updated_at: datetime
 

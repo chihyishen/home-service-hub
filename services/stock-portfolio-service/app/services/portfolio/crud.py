@@ -310,6 +310,11 @@ def update_dividend(db: Session, dividend_id: int, dividend_update: schemas.Divi
     )
     db.commit()
     db.refresh(db_dividend)
+    if db_dividend.accounting_transaction_id:
+        accounting_link.sync_dividend(db_dividend)
+    elif update_data.get("received_date") is not None:
+        # 自動入帳的股利，使用者填上實際入帳日才算「錢到了」，此時才記帳。
+        accounting_link.link_dividend(db, db_dividend)
     return db_dividend
 
 def delete_dividend(db: Session, dividend_id: int):
@@ -321,6 +326,8 @@ def delete_dividend(db: Session, dividend_id: int):
         dates=[db_dividend.ex_dividend_date.date()],
         touched_symbols={sanitize_symbol(db_dividend.symbol)},
     )
+    accounting_id = db_dividend.accounting_transaction_id
     db.delete(db_dividend)
     db.commit()
+    accounting_link.remove(accounting_id)
     return True

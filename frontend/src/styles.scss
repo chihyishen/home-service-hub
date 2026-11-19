@@ -20,11 +20,11 @@
   --app-success: #5f7f98;
   --app-warning: #7b87a8;
   --app-danger: #7b6c9c;
-  --app-dividend: #7e78a8;
+  --app-dividend: #a3824f; // 暖金：股利是好事，不與虧損紫混淆
   --app-state-success-bg: rgba(95, 127, 152, 0.12);
   --app-state-warning-bg: rgba(123, 135, 168, 0.12);
   --app-state-danger-bg: rgba(123, 108, 156, 0.12);
-  --app-state-dividend-bg: rgba(126, 120, 168, 0.08);
+  --app-state-dividend-bg: rgba(163, 130, 79, 0.08);
 
   /* Taiwan convention (red up / green down), desaturated to sit in the grey palette */
   // 不用紅綠：賺／錢進來 = 藍（同收入），虧／錢出去 = 紫（同支出）
@@ -58,11 +58,11 @@
   --app-success: #8daec7;
   --app-warning: #96a5c5;
   --app-danger: #a494c6;
-  --app-dividend: #aba6d0;
+  --app-dividend: #cdb184;
   --app-state-success-bg: rgba(141, 174, 199, 0.15);
   --app-state-warning-bg: rgba(150, 165, 197, 0.15);
   --app-state-danger-bg: rgba(164, 148, 198, 0.16);
-  --app-state-dividend-bg: rgba(171, 166, 208, 0.12);
+  --app-state-dividend-bg: rgba(205, 177, 132, 0.12);
   --app-trend-positive: var(--app-success);
   --app-trend-negative: var(--app-danger);
   --app-trend-positive-soft: rgba(141, 174, 199, 0.08);

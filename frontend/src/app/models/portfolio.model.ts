@@ -122,6 +122,7 @@ export interface Dividend {
   stock_dividend_shares?: number;
   source?: string;
   quantity_at_record_date?: number;
+  accounting_transaction_id?: number | null;
   created_at?: string;
   updated_at?: string;
 }

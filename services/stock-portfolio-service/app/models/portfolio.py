@@ -96,3 +96,4 @@ class Dividend(Base, TimestampMixin):
     stock_dividend_shares = Column(Integer, nullable=False, default=0)               # 配股股數 (floor(qty * per_thousand / 1000))
     source = Column(String(32), nullable=True)                                       # 'auto:TWT49U' / 'manual' / 'csv'
     quantity_at_record_date = Column(Numeric(18, 4), nullable=True)                  # 計算 amount 所用的持股數
+    accounting_transaction_id = Column(Integer, nullable=True)                       # 對應記帳收入；None = 未同步

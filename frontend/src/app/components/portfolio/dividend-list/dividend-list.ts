@@ -213,15 +213,20 @@ export class PortfolioDividendListComponent implements OnInit, OnDestroy {
     this.menu.toggle(event);
   }
 
+  /** 實際入帳日：填了才同步成記帳收入；自動入帳且未記帳的股利預設留空。 */
+  receivedDate: Date | null = null;
+
   openNew() {
     this.isEdit.set(false);
     this.newDividend = { amount: 0, fee: 0, tax: 0 };
+    this.receivedDate = new Date();
     this.showDialog.set(true);
   }
 
   editDividend(dividend: Dividend) {
     this.isEdit.set(true);
     this.newDividend = { ...dividend, ex_dividend_date: dividend.ex_dividend_date ? new Date(dividend.ex_dividend_date) : undefined };
+    this.receivedDate = dividend.accounting_transaction_id && dividend.received_date ? new Date(dividend.received_date) : null;
     this.showDialog.set(true);
   }
 
@@ -245,8 +250,11 @@ export class PortfolioDividendListComponent implements OnInit, OnDestroy {
   }
 
   saveDividend() {
+    // 只送使用者確認過的入帳日；系統預填的入帳時間不能拿來記帳。
+    const { received_date: _ignored, accounting_transaction_id: _link, ...rest } = this.newDividend;
+    const payload: Partial<Dividend> = this.receivedDate ? { ...rest, received_date: this.receivedDate } : rest;
     if (this.isEdit() && this.newDividend.id) {
-      this.portfolioService.updateDividend(this.newDividend.id, this.newDividend).subscribe({
+      this.portfolioService.updateDividend(this.newDividend.id, payload).subscribe({
         next: () => {
           this.showDialog.set(false);
           this.fetch();
@@ -257,7 +265,7 @@ export class PortfolioDividendListComponent implements OnInit, OnDestroy {
         },
       });
     } else {
-      this.portfolioService.createDividend(this.newDividend).subscribe({
+      this.portfolioService.createDividend(payload).subscribe({
         next: () => {
           this.showDialog.set(false);
           this.fetch();

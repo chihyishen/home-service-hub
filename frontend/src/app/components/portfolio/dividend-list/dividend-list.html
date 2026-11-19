@@ -122,6 +122,11 @@
       <p-datepicker [(ngModel)]="newDividend.ex_dividend_date" [fluid]="true" appendTo="body" dateFormat="yy-mm-dd"></p-datepicker>
     </div>
     <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">入帳日</label>
+      <p-datepicker [(ngModel)]="receivedDate" [fluid]="true" appendTo="body" dateFormat="yy-mm-dd" [showClear]="true" placeholder="錢實際進帳那天"></p-datepicker>
+      <small class="text-muted">填上後會同步一筆「配息」收入到記帳</small>
+    </div>
+    <div class="col-6">
       <label class="d-block mb-1 small fw-bold">手續費</label>
       <p-inputNumber [(ngModel)]="newDividend.fee" [min]="0" mode="decimal" [fluid]="true"></p-inputNumber>
     </div>

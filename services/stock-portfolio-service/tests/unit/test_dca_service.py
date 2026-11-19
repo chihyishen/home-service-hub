@@ -57,7 +57,7 @@ def test_manual_edit_clears_estimated_flag(client, db_session, fake_accounting):
     assert res.status_code == 200, res.text
     assert res.json()["is_estimated"] is False
     # 建立時同步一筆記帳（17 股 × 111.30 + 1 = 1893），修正後同步、刪除後移除
-    assert fake_accounting.calls[0] == ("create", "0050", 1893)
+    assert fake_accounting.calls[0] == ("create", "0050 定期定額", 1893)
     assert fake_accounting.calls[1] == ("sync", txn.accounting_transaction_id)
     assert client.delete(f"/api/portfolio/transactions/{txn.id}").status_code in (200, 204)
     assert fake_accounting.calls[-1] == ("remove", 901)
@@ -83,4 +83,4 @@ def test_accounting_amount_truncates_trade_value():
 
     from app.services.accounting_link import amount_of
     # 17 × 111.68 = 1898.56 → 價金 1898 + 手續費 1 = 1899（與國泰實際扣款一致）
-    assert amount_of(SimpleNamespace(quantity=17, price=Decimal("111.68"), fee=Decimal("1"), tax=0)) == 1899
+    assert amount_of(SimpleNamespace(type="BUY", quantity=17, price=Decimal("111.68"), fee=Decimal("1"), tax=0)) == 1899
