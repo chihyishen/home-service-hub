@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
+  DcaPlan,
   PortfolioSummary,
   Transaction,
   Dividend,
@@ -68,6 +69,20 @@ export class PortfolioService {
 
   deleteTransaction(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  getDcaPlans(): Observable<DcaPlan[]> {
+    return this.http.get<DcaPlan[]>(`${this.apiUrl}/dca-plans`);
+  }
+
+  saveDcaPlan(plan: DcaPlan): Observable<DcaPlan> {
+    return plan.id
+      ? this.http.put<DcaPlan>(`${this.apiUrl}/dca-plans/${plan.id}`, plan)
+      : this.http.post<DcaPlan>(`${this.apiUrl}/dca-plans`, plan);
+  }
+
+  deleteDcaPlan(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/dca-plans/${id}`);
   }
 
   getDividends(query: DividendQuery = {}): Observable<Paged<Dividend>> {

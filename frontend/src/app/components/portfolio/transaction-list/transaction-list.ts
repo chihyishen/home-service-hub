@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, inject, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortfolioService } from '../../../services/portfolio.service';
-import { Transaction, TransactionType, TransactionQuery } from '../../../models/portfolio.model';
+import { DcaPlan, Transaction, TransactionType, TransactionQuery } from '../../../models/portfolio.model';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -19,6 +19,8 @@ import { ToastModule } from 'primeng/toast';
 import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
 import { ListItemComponent } from '../../shared/list-item/list-item';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TooltipModule } from 'primeng/tooltip';
 
 const SORT_OPTIONS = [
   { value: 'trade_date:desc', label: '日期 新→舊' },
@@ -39,6 +41,7 @@ const SIDE_OPTIONS = [
     InputTextModule, InputNumberModule, SelectButtonModule, SelectModule,
     DatePickerModule, PaginatorModule, ProgressSpinnerModule,
     ConfirmDialogModule, ToastModule, MenuModule, ListItemComponent,
+    ToggleSwitchModule, TooltipModule,
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './transaction-list.html',
@@ -84,9 +87,47 @@ export class PortfolioTransactionListComponent implements OnInit, OnDestroy {
     { label: '賣出', value: TransactionType.SELL },
   ];
 
+  dcaPlans = signal<DcaPlan[]>([]);
+  showDcaDialog = signal<boolean>(false);
+  dcaForm: DcaPlan = this.blankDca();
+
   ngOnInit() {
     this.portfolioService.getSymbolNames().subscribe(map => this.symbolNames.set(map));
+    this.loadDcaPlans();
     this.fetch();
+  }
+
+  private blankDca(): DcaPlan {
+    return { symbol: '', amount: 2000, day_of_month: 25, fee: 1, active: true };
+  }
+
+  loadDcaPlans() {
+    this.portfolioService.getDcaPlans().subscribe(plans => this.dcaPlans.set(plans));
+  }
+
+  openDca(plan?: DcaPlan) {
+    this.dcaForm = plan ? { ...plan, fee: Number(plan.fee) } : this.blankDca();
+    this.showDcaDialog.set(true);
+  }
+
+  saveDca() {
+    this.portfolioService.saveDcaPlan(this.dcaForm).subscribe({
+      next: () => {
+        this.showDcaDialog.set(false);
+        this.loadDcaPlans();
+        this.messageService.add({ severity: 'success', summary: '已儲存定期定額' });
+      },
+      error: err => this.messageService.add({ severity: 'error', summary: '儲存失敗', detail: err?.error?.detail ?? '' }),
+    });
+  }
+
+  deleteDca() {
+    const id = this.dcaForm.id;
+    if (!id) return;
+    this.portfolioService.deleteDcaPlan(id).subscribe(() => {
+      this.showDcaDialog.set(false);
+      this.loadDcaPlans();
+    });
   }
 
   ngOnDestroy() {

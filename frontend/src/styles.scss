@@ -26,11 +26,11 @@
   --app-state-danger-bg: rgba(123, 108, 156, 0.12);
   --app-state-dividend-bg: rgba(126, 120, 168, 0.08);
 
-  /* Trend colors are intentionally non red/green */
-  --app-trend-positive: #5f7f98;
-  --app-trend-negative: #7b87a8;
-  --app-trend-positive-soft: rgba(95, 127, 152, 0.12);
-  --app-trend-negative-soft: rgba(123, 135, 168, 0.12);
+  /* Taiwan convention: red = up / gain, green = down / loss */
+  --app-trend-positive: #c2453f;
+  --app-trend-negative: #2f8f5b;
+  --app-trend-positive-soft: rgba(194, 69, 63, 0.12);
+  --app-trend-negative-soft: rgba(47, 143, 91, 0.12);
   --app-card-shadow: 0 10px 30px rgba(18, 26, 40, 0.045);
   --app-raised-shadow: 0 16px 36px rgba(18, 26, 40, 0.09);
   --app-inset-line: rgba(255, 255, 255, 0.62);
@@ -62,10 +62,10 @@
   --app-state-warning-bg: rgba(150, 165, 197, 0.15);
   --app-state-danger-bg: rgba(164, 148, 198, 0.16);
   --app-state-dividend-bg: rgba(171, 166, 208, 0.12);
-  --app-trend-positive: #8daec7;
-  --app-trend-negative: #96a5c5;
-  --app-trend-positive-soft: rgba(141, 174, 199, 0.16);
-  --app-trend-negative-soft: rgba(150, 165, 197, 0.16);
+  --app-trend-positive: #ee7b73;
+  --app-trend-negative: #5fbf8a;
+  --app-trend-positive-soft: rgba(238, 123, 115, 0.16);
+  --app-trend-negative-soft: rgba(95, 191, 138, 0.16);
   --app-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
   --app-raised-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   --app-inset-line: rgba(255, 255, 255, 0.05);

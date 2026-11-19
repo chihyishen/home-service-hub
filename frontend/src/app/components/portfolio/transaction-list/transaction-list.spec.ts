@@ -20,6 +20,7 @@ describe('PortfolioTransactionListComponent', () => {
       tax: 0,
     };
     const portfolioService = {
+      getDcaPlans: vi.fn().mockReturnValue(of([])),
       getSymbolNames: vi.fn().mockReturnValue(of({})),
       getTransactions: vi.fn().mockReturnValue(of({ items: [transaction], total: 1 })),
     };

@@ -37,7 +37,7 @@
       <div class="bento-item bento-normal surplus-card">
         <div class="bento-content">
           <div class="label">本月結餘</div>
-          <div class="value">{{ report()?.summary?.surplus | currency:'TWD':'symbol':'1.0-0' }}</div>
+          <div class="value" [class.gain]="(report()?.summary?.surplus ?? 0) > 0" [class.loss]="(report()?.summary?.surplus ?? 0) < 0">{{ report()?.summary?.surplus | currency:'TWD':'symbol':'1.0-0' }}</div>
           <div class="progress-mini">
             <div class="progress-bar" [style.width.%]="report()?.summary?.savingsRate"></div>
           </div>
@@ -197,7 +197,7 @@
         <div class="bento-item annual-summary-card surplus-card">
           <div class="bento-content">
             <div class="label">全年結餘</div>
-            <div class="value">{{ annual.summary.surplus | currency:'TWD':'symbol':'1.0-0' }}</div>
+            <div class="value" [class.gain]="annual.summary.surplus > 0" [class.loss]="annual.summary.surplus < 0">{{ annual.summary.surplus | currency:'TWD':'symbol':'1.0-0' }}</div>
             <div class="meta">儲蓄率 {{ annual.summary.savingsRate | number:'1.1-1' }}%</div>
           </div>
         </div>

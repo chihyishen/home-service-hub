@@ -24,7 +24,7 @@
     <span class="l">收入</span>
     <div class="v">+{{ monthSummary().income | currency:'TWD':'symbol':'1.0-0' }}</div>
   </div>
-  <div class="summary-item net" [class.negative]="monthSummary().net < 0">
+  <div class="summary-item net" [class.positive]="monthSummary().net > 0" [class.negative]="monthSummary().net < 0">
     <span class="l">結餘</span>
     <div class="v">{{ monthSummary().net | currency:'TWD':'symbol':'1.0-0' }}</div>
   </div>

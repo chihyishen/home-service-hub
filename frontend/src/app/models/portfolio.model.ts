@@ -17,8 +17,19 @@ export interface Transaction {
   fee: number;
   tax: number;
   is_day_trade?: boolean;
+  is_estimated?: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface DcaPlan {
+  id?: number;
+  symbol: string;
+  amount: number;
+  day_of_month: number;
+  fee: number;
+  active: boolean;
+  last_executed_on?: string | null;
 }
 
 export type ImportKind = 'transactions' | 'dividends';

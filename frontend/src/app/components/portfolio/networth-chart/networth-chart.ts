@@ -61,6 +61,8 @@ export class NetworthChartComponent implements OnInit {
           label: '總市值',
           data: points.map(point => Number(point.total_market_value)),
           borderColor: '#2563eb',
+          pointRadius: 0,
+          pointHoverRadius: 4,
           backgroundColor: '#2563eb',
           tension: 0.25,
           fill: false,
@@ -69,6 +71,8 @@ export class NetworthChartComponent implements OnInit {
           label: '總成本',
           data: points.map(point => Number(point.total_cost)),
           borderColor: '#94a3b8',
+          pointRadius: 0,
+          pointHoverRadius: 4,
           backgroundColor: '#94a3b8',
           borderDash: [6, 4],
           tension: 0.25,
@@ -86,6 +90,8 @@ export class NetworthChartComponent implements OnInit {
             return (mv - cost) + realized + div;
           }),
           borderColor: '#16a34a',
+          pointRadius: 0,
+          pointHoverRadius: 4,
           backgroundColor: '#16a34a',
           tension: 0.25,
           fill: false,
@@ -110,6 +116,14 @@ export class NetworthChartComponent implements OnInit {
       x: {
         grid: {
           display: false,
+        },
+        ticks: {
+          maxTicksLimit: 8,
+          maxRotation: 0,
+          // 軸標籤只顯示 MM-DD，tooltip 保留完整日期
+          callback(this: { getLabelForValue(value: number): string }, value: number | string) {
+            return this.getLabelForValue(Number(value)).slice(5);
+          },
         },
       },
       y: {

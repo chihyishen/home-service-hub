@@ -63,13 +63,13 @@
                 @if (item.imageUrl) {
                   <p-image [src]="item.imageUrl" [preview]="true" width="64" height="64" styleClass="hub-item-image" loading="lazy"></p-image>
                 } @else {
-                  <div class="item-icon-placeholder">
-                    <i class="pi pi-box"></i>
+                  <div class="item-icon-placeholder">{{ item.name.charAt(0) }}</div>
+                }
+                @if (item.stockStatus === 'LOW' || item.stockStatus === 'OUT') {
+                  <div class="stock-badge" [class]="getStockStatusSeverity(item)">
+                    {{ getStockStatusLabel(item) }}
                   </div>
                 }
-                <div class="stock-badge" [class]="getStockStatusSeverity(item)">
-                  {{ getStockStatusLabel(item) }}
-                </div>
               </div>
 
               <div class="item-body">

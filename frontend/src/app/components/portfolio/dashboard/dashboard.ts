@@ -146,6 +146,16 @@ export class PortfolioDashboardComponent implements OnInit {
     return 'info';
   }
 
+  totalReturnPercent(s: PortfolioSummary): number {
+    const cost = Number(s.total_cost);
+    return cost > 0 ? ((Number(s.total_unrealized_pnl) + Number(s.total_dividends)) / cost) * 100 : 0;
+  }
+
+  holdingWeight(marketValue: number | string): number {
+    const total = Number(this.summary()?.total_market_value ?? 0);
+    return total > 0 ? (Number(marketValue) / total) * 100 : 0;
+  }
+
   formatCurrency(value: number | string): string {
     return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(Number(value));
   }

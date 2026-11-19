@@ -47,6 +47,8 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
+  max-width: 960px;
+  margin-inline: auto;
 
   .summary-item {
     background: var(--app-surface);
@@ -60,7 +62,9 @@
 
     &.expense .v { color: var(--app-danger); }
     &.income .v { color: var(--app-success); }
-    &.net.negative .v { color: var(--app-danger); }
+    // 記帳結餘：正 = 綠（好）、負 = 紅；與股市紅漲綠跌相反
+    &.net.positive .v { color: var(--app-trend-negative); }
+    &.net.negative .v { color: var(--app-trend-positive); }
   }
 }
 
@@ -69,6 +73,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem; /* 縮小同組間距 */
+  max-width: 960px;
+  margin-inline: auto;
 }
 
 .timeline-item {
@@ -215,4 +221,9 @@
 @media (max-width: 768px) {
   .hub-summary-row { grid-template-columns: 1fr; }
   .timeline-item .item-date { width: 32px; .day { font-size: 1rem; } }
+}
+
+.hub-filter-bar {
+  max-width: 960px;
+  margin-inline: auto;
 }

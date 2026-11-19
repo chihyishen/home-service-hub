@@ -1,6 +1,4 @@
-.hub-dashboard-container {
-  padding-bottom: 2rem;
-}
+@use "./bento";
 
 .page-copy {
   display: flex;
@@ -47,105 +45,10 @@
   gap: 1rem;
 }
 
-/* ==========================================================================
-   Bento Grid Core
-   ========================================================================== */
-.hub-bento-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-auto-rows: minmax(140px, auto);
-  gap: 1.25rem;
-}
-
-.bento-hero { grid-column: span 3; grid-row: span 2; }
-.bento-normal { grid-column: span 3; grid-row: span 1; }
-.bento-wide { grid-column: span 4; grid-row: span 2; }
-.bento-tall { grid-column: span 2; grid-row: span 2; }
-.bento-full { grid-column: span 6; }
-
-@media (max-width: 1200px) {
-  .hub-bento-grid { grid-template-columns: repeat(4, 1fr); }
-  .bento-hero { grid-column: span 4; }
-  .bento-normal { grid-column: span 2; }
-  .bento-wide { grid-column: span 4; }
-  .bento-tall { grid-column: span 4; }
-  .bento-full { grid-column: span 4; }
-}
-
-.bento-item {
-  background-color: var(--app-surface);
-  border-radius: 20px;
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--app-border);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    border-color: var(--app-text-muted);
-    transform: translateY(-2px);
-  }
-}
-
-/* Content Styles */
-.bento-content {
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  .label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--app-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.5rem;
-  }
-
-  .value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--app-text);
-    line-height: 1.1;
-  }
-
-  .meta {
-    margin-top: 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-
-    .up { color: var(--app-trend-positive); }
-    .down { color: var(--app-trend-negative); }
-  }
-}
-
 /* 極簡卡片修飾 - 僅保留側邊細線 */
-.expense-card { border-left: 4px solid var(--app-trend-negative); }
-.income-card { border-left: 4px solid var(--app-trend-positive); }
+.expense-card { border-left: 4px solid var(--app-warning); }
+.income-card { border-left: 4px solid var(--app-success); }
 .surplus-card { border-left: 4px solid var(--app-accent); }
-.market-value-card { border-left: 4px solid var(--app-accent); }
-
-.pnl-card, .day-pnl-card {
-  border-left: 4px solid var(--app-trend-positive);
-  &.is-loss { border-left-color: var(--app-trend-negative); }
-}
-
-.bento-bg-icon, .bento-bg-icon-small {
-  display: none; /* 移除背景大圖示，回歸純淨 */
-}
-
-/* Charts & Lists */
-.card-title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 1.25rem;
-  color: var(--app-text);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 
 .chart-card {
   padding: 1.5rem !important;
@@ -383,8 +286,8 @@
 }
 
 .annual-trend-card .annual-chart-wrap {
-  min-height: 380px;
-  height: 380px;
+  min-height: 320px;
+  height: 320px;
 }
 
 .annual-chart-header {
@@ -397,12 +300,17 @@
 
 .annual-chart-wrap {
   position: relative;
-  flex: 1;
+  flex: none;
   min-height: 340px;
   height: 340px;
   overflow: visible;
 
-  p-chart,
+  p-chart {
+    display: block;
+    height: 100%;
+    > div { height: 100%; }
+  }
+
   canvas {
     width: 100% !important;
     height: 100% !important;
@@ -506,22 +414,7 @@
   margin-top: 0.5rem;
 }
 
-/* Dark Mode Adjustments */
-:host-context(.app-dark-mode) {
-  .bento-item {
-    background-color: var(--app-surface);
-    border-color: var(--app-border);
-    &:hover { border-color: var(--app-text-muted); }
-  }
-}
-
-/* Responsive */
 @media (max-width: 1200px) {
-  .hub-dashboard-container {
-    padding-bottom: calc(8rem + env(safe-area-inset-bottom));
-  }
-  .hub-bento-grid { grid-template-columns: repeat(2, 1fr); }
-  .bento-full { grid-column: span 2; }
   .annual-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .annual-category-layout { grid-template-columns: 1fr; }
 }
@@ -535,13 +428,6 @@
   .annual-category-layout {
     grid-template-columns: 1fr;
     gap: 1rem;
-  }
-  .hub-bento-grid { 
-    grid-template-columns: 1fr; 
-    grid-auto-rows: auto;
-  }
-  .bento-hero, .bento-normal, .bento-wide, .bento-tall, .bento-full {
-    grid-column: span 1;
   }
   .hub-title { font-size: 1.5rem; }
   .section-heading {

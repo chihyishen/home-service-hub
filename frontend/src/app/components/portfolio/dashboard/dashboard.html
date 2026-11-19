@@ -24,8 +24,12 @@
           <div class="bento-content">
             <div class="label">當前總市值</div>
             <div class="value">{{ formatCurrency(summary()!.total_market_value) }}</div>
-            <div class="meta">
+            <div class="meta total-return" [class.up]="totalReturnPercent(summary()!) > 0" [class.down]="totalReturnPercent(summary()!) < 0">
+              含息總報酬 {{ totalReturnPercent(summary()!) > 0 ? '+' : '' }}{{ totalReturnPercent(summary()!) | number:'1.2-2' }}%
+            </div>
+            <div class="meta sub-meta">
               <span>總成本 {{ formatCurrency(summary()!.total_cost) }}</span>
+              <span>持股 {{ summary()!.holdings.length }} 檔</span>
             </div>
           </div>
           <div class="bento-bg-icon">
@@ -74,7 +78,7 @@
         </div>
 
         <!-- 投資組合年化報酬率 -->
-        <div class="bento-item bento-normal xirr-card">
+        <div class="bento-item bento-normal xirr-card" [class.is-loss]="(summary()!.portfolio_xirr ?? 0) < 0">
           <div class="bento-content">
             <div class="label">年化報酬率 (XIRR)</div>
             <div class="value" [class.up]="(summary()!.portfolio_xirr ?? 0) > 0"
@@ -119,6 +123,14 @@
                 
                 <div class="stock-stats">
                   <div class="stat-item">
+                    <span class="l">市值</span>
+                    <span class="v">{{ formatCurrency(stock.market_value) }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="l">占比</span>
+                    <span class="v">{{ holdingWeight(stock.market_value) | number:'1.1-1' }}%</span>
+                  </div>
+                  <div class="stat-item">
                     <span class="l">股數</span>
                     <span class="v">{{ stock.total_quantity | number }}</span>
                   </div>
@@ -129,6 +141,7 @@
                     </span>
                   </div>
                 </div>
+                <div class="weight-bar"><span [style.width.%]="holdingWeight(stock.market_value)"></span></div>
 
                 @if (isHoldingExpanded(stock.symbol)) {
                   <div class="stock-details-panel">

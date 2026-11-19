@@ -7,6 +7,18 @@
   </div>
 </div>
 
+<div class="dca-bar">
+  <span class="dca-title"><i class="pi pi-calendar-clock"></i> 定期定額</span>
+  @for (p of dcaPlans(); track p.id) {
+    <button type="button" class="dca-chip" [class.is-paused]="!p.active" (click)="openDca(p)"
+            pTooltip="扣款日遇假日順延至下一交易日；收盤後以收盤價建立估算交易">
+      {{ symbolNames()[p.symbol] || p.symbol }} · 每月 {{ p.day_of_month }} 日 · {{ p.amount | currency:'TWD':'symbol':'1.0-0' }}
+      @if (!p.active) { <small>（暫停）</small> }
+    </button>
+  }
+  <p-button icon="pi pi-plus" [text]="true" size="small" label="新增" (onClick)="openDca()"></p-button>
+</div>
+
 <div class="hub-filter-bar">
   <div class="search-wrap">
     <i class="pi pi-search"></i>
@@ -68,6 +80,9 @@
           {{ symbolDisplay(t) }}
           @if (t.position_side === 'SHORT') {
             <span class="short-badge">融券</span>
+          }
+          @if (t.is_estimated) {
+            <span class="estimated-badge" pTooltip="定期定額以收盤價估算，請依券商實際成交修改">估算</span>
           }
         </div>
         <div class="sub-text">
@@ -149,5 +164,46 @@
   <ng-template pTemplate="footer">
     <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="showDialog.set(false)"></p-button>
     <p-button label="儲存交易" (onClick)="saveTransaction()" styleClass="hub-btn-primary"></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [header]="dcaForm.id ? '修改定期定額' : '新增定期定額'"
+  [(visible)]="showDcaDialog"
+  [modal]="true"
+  [dismissableMask]="true"
+  appendTo="body"
+  styleClass="hub-dialog-md">
+  <div class="row g-2 mt-1 hub-form-grid">
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">股票代碼</label>
+      <input pInputText [(ngModel)]="dcaForm.symbol" placeholder="例如: 0050" class="w-100" />
+    </div>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">每月扣款日</label>
+      <p-inputNumber [(ngModel)]="dcaForm.day_of_month" [min]="1" [max]="31" [fluid]="true"></p-inputNumber>
+    </div>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">每期金額（含手續費）</label>
+      <p-inputNumber [(ngModel)]="dcaForm.amount" [min]="1" [fluid]="true"></p-inputNumber>
+    </div>
+    <div class="col-6">
+      <label class="d-block mb-1 small fw-bold">手續費</label>
+      <p-inputNumber [(ngModel)]="dcaForm.fee" [min]="0" [fluid]="true"></p-inputNumber>
+    </div>
+    <div class="col-12 d-flex align-items-center gap-2">
+      <p-toggleswitch [(ngModel)]="dcaForm.active"></p-toggleswitch>
+      <span class="small">啟用</span>
+    </div>
+    <div class="col-12 small text-muted">
+      扣款日遇非交易日順延；當日收盤後以收盤價、股數 = ⌊(金額 − 手續費) ÷ 價格⌋ 建立「估算」交易，看到實際成交後修改該筆即可。
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    @if (dcaForm.id) {
+      <p-button label="刪除" icon="pi pi-trash" severity="danger" [text]="true" (onClick)="deleteDca()"></p-button>
+    }
+    <p-button label="取消" [text]="true" (onClick)="showDcaDialog.set(false)"></p-button>
+    <p-button label="儲存" (onClick)="saveDca()" styleClass="hub-btn-primary"></p-button>
   </ng-template>
 </p-dialog>
