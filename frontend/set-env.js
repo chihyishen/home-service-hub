@@ -34,10 +34,7 @@ required.forEach(v => {
 
 const envConfigFile = `export const environment = {
   production: false,
-  apiUrl: '${envConfig.FRONTEND_API_URL}',
-  oidcUrl: '${envConfig.KEYCLOAK_PUBLIC_URL || 'http://localhost:8180'}',
-  oidcRealm: 'home-service-hub',
-  oidcClientId: 'home-service-ui'
+  apiUrl: '${envConfig.FRONTEND_API_URL}'
 };
 `;
 
@@ -46,21 +43,3 @@ if (!fs.existsSync(path.dirname(targetPath))) {
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 }
 fs.writeFileSync(targetPath, envConfigFile);
-
-// 更新 angular.json
-const angularJsonPath = path.resolve(__dirname, './angular.json');
-if (fs.existsSync(angularJsonPath) && envConfig.ALLOWED_HOSTS) {
-  console.log('Updating angular.json allowedHosts...');
-  const angularJson = JSON.parse(fs.readFileSync(angularJsonPath, 'utf8'));
-  const hosts = envConfig.ALLOWED_HOSTS.split(',').map(h => h.trim()).filter(h => h);
-  
-  if (angularJson.projects && angularJson.projects['inventory-ui'] && 
-      angularJson.projects['inventory-ui'].architect && 
-      angularJson.projects['inventory-ui'].architect.serve && 
-      angularJson.projects['inventory-ui'].architect.serve.options) {
-    
-    angularJson.projects['inventory-ui'].architect.serve.options.allowedHosts = hosts;
-    fs.writeFileSync(angularJsonPath, JSON.stringify(angularJson, null, 2) + '\n');
-    console.log('angular.json updated successfully.');
-  }
-}

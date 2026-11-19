@@ -1,8 +1,7 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
-  { path: '', canActivate: [authGuard], loadComponent: () => import('./components/item-list/item-list').then(m => m.ItemListComponent) },
+  { path: '', loadComponent: () => import('./components/item-list/item-list').then(m => m.ItemListComponent) },
   { path: 'shopping-list', loadComponent: () => import('./components/shopping-list/shopping-list').then(m => m.ShoppingListComponent) },
   
   // Portfolio routes
