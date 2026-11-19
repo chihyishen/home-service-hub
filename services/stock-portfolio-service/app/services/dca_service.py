@@ -30,8 +30,11 @@ def today_tw() -> date:
     return datetime.now(_TW).date()
 
 
-def target_date(year: int, month: int, day_of_month: int) -> date:
-    return date(year, month, min(day_of_month, calendar.monthrange(year, month)[1]))
+def target_date(year: int, month: int, day_of_month: int) -> date | None:
+    """國泰規則：當月沒有這個日期（如 2/30）該月不執行；遇休市則由 _execution_day 順延。"""
+    if day_of_month > calendar.monthrange(year, month)[1]:
+        return None
+    return date(year, month, day_of_month)
 
 
 def _execution_day(db: Session, symbol: str, target: date, today: date) -> PriceHistory | None:
@@ -46,7 +49,7 @@ def _execution_day(db: Session, symbol: str, target: date, today: date) -> Price
 
 def run_plan(db: Session, plan: DcaPlan, today: date) -> models.Transaction | None:
     target = target_date(today.year, today.month, plan.day_of_month)
-    if today < target or (plan.last_executed_on and plan.last_executed_on >= target):
+    if target is None or today < target or (plan.last_executed_on and plan.last_executed_on >= target):
         return None
     bar = _execution_day(db, plan.symbol, target, today)
     if bar is None:

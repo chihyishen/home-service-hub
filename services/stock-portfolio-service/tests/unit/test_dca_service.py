@@ -65,3 +65,9 @@ def test_plan_crud(client):
     assert plan["symbol"] == "0050" and Decimal(plan["fee"]) == 1
     assert client.get("/api/portfolio/dca-plans").json()[0]["id"] == plan["id"]
     assert client.delete(f"/api/portfolio/dca-plans/{plan['id']}").status_code == 200
+
+
+def test_skips_month_without_the_day():
+    from app.services.dca_service import target_date
+    assert target_date(2026, 2, 30) is None
+    assert target_date(2026, 3, 30).day == 30
