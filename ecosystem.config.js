@@ -7,9 +7,6 @@ module.exports = {
       args: ':item-service:bootRun',
       interpreter: 'sh',
       // .env 由 inventory-api 的 build.gradle.kts 載入（pm2 沒有 env_file 這種欄位）
-      env: {
-        AUTH_ENFORCEMENT_ENABLED: 'true',
-      },
     },
     {
       name: 'accounting-service',
@@ -20,7 +17,6 @@ module.exports = {
       // .env 由 shared_lib database.py 的 load_dotenv 載入（pm2 沒有 env_file 這種欄位）
       env: {
         PYTHONUNBUFFERED: '1',
-        AUTH_ENFORCEMENT_ENABLED: 'true',
       },
     },
     {
@@ -32,7 +28,6 @@ module.exports = {
       // .env 由 shared_lib database.py 的 load_dotenv 載入（pm2 沒有 env_file 這種欄位）
       env: {
         PYTHONUNBUFFERED: '1',
-        AUTH_ENFORCEMENT_ENABLED: 'true',
       },
     },
     {
@@ -42,15 +37,6 @@ module.exports = {
       args: '--no-daemon -p . bootRun',
       interpreter: 'sh',
       // .env 由 gateway 的 build.gradle.kts 載入（pm2 沒有 env_file 這種欄位）
-    },
-    {
-      name: 'frontend',
-      cwd: './frontend',
-      script: 'npm',
-      args: 'start',
-      env: {
-        NODE_ENV: 'development',
-      },
     },
   ],
 };

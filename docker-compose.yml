@@ -3,63 +3,6 @@ x-internal-no-proxy-env: &internal-no-proxy-env
   no_proxy: "localhost,127.0.0.1,127.0.0.0/8,::1,0.250.250.0/24,*.orb.internal,*.orb.local,vm.orb.internal,services.orb.internal,services2.orb.internal,proxyproxy.orb.internal,gateway.orb.internal,gateway.docker.internal,host.internal,host.orb.internal,host.docker.internal,host.lima.internal,docker.orb.internal,docker.orb.local,k8s.orb.local,docker.for.mac.localhost,docker.for.mac.host.internal,postgres,tempo,loki,grafana,otel-collector,inventory-postgres,inventory-tempo,inventory-loki,inventory-grafana,inventory-otel-collector"
 
 services:
-  keycloak-postgres:
-    image: postgres:17.5-alpine
-    profiles: ["identity"]
-    environment:
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      POSTGRES_DB: keycloak
-    volumes:
-      - keycloak_postgres_data:/var/lib/postgresql/data
-    networks:
-      - inventory-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.3.1
-    profiles: ["identity"]
-    command: ["start-dev", "--import-realm", "--health-enabled=true"]
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KEYCLOAK_SMOKE_AGENT_SECRET: ${KEYCLOAK_SMOKE_AGENT_SECRET}
-      KEYCLOAK_HERMES_AGENT_SECRET: ${KEYCLOAK_HERMES_AGENT_SECRET}
-      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
-      KC_HOSTNAME_STRICT: "true"
-      KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/certs/keycloak.pem
-      KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/certs/keycloak-key.pem
-      # With TLS configured the management interface (9000) turns HTTPS, which the
-      # plain /dev/tcp healthcheck cannot speak. Serve health on the main HTTP
-      # listener (8080) instead; deprecated flag but fine until KC offers http-management-scheme.
-      KC_LEGACY_OBSERVABILITY_INTERFACE: "true"
-    ports:
-      - "${IDENTITY_BIND_HOST:-127.0.0.1}:${KEYCLOAK_PORT:-8180}:8080"
-      - "${IDENTITY_BIND_HOST:-127.0.0.1}:${KEYCLOAK_HTTPS_PORT:-8443}:8443"
-    volumes:
-      - ./infra/keycloak/realm-home-service-hub.json:/opt/keycloak/data/import/realm-home-service-hub.json:ro
-      - ./infra/keycloak/certs:/opt/keycloak/certs:ro
-      - ./infra/keycloak/themes:/opt/keycloak/themes:ro
-    depends_on:
-      keycloak-postgres:
-        condition: service_healthy
-    networks:
-      - inventory-net
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-
   # --- 1. 資料庫 ---
   postgres:
     image: postgres@sha256:b3968e348b48f1198cc6de6611d055dbad91cd561b7990c406c3fc28d7095b21
@@ -151,6 +94,5 @@ networks:
 
 volumes:
   postgres_data:
-  keycloak_postgres_data:
   loki_data:
   grafana_data:

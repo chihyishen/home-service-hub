@@ -83,7 +83,6 @@ jobs:
       DB_HOST: 127.0.0.1
       POSTGRES_PORT: "5432"
       ACCOUNTING_DB: audit
-      AUTH_ENFORCEMENT_ENABLED: "false"
       OTEL_SERVICE_NAME_ACCOUNTING: accounting-ci
       OTEL_COLLECTOR_ENDPOINT_GRPC: http://localhost:4317
       OTEL_SDK_DISABLED: "true"
@@ -142,7 +141,6 @@ jobs:
     name: gateway-service (gradle test)
     runs-on: ubuntu-latest
     env:
-      OIDC_ISSUER_URI: https://issuer.example/realms/home-service-hub
       OTEL_COLLECTOR_ENDPOINT_HTTP: http://localhost:4318
     steps:
       - uses: actions/checkout@v4
