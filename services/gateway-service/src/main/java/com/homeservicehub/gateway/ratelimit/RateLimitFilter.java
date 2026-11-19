@@ -62,7 +62,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     String routeClass(String path) {
         if (path.startsWith("/otlp/")) return "telemetry";
-        if (path.startsWith("/minio/")) return "image";
+        if (path.startsWith("/images/")) return "image";
         if (path.startsWith("/api/")) return "business";
         return "unknown";
     }

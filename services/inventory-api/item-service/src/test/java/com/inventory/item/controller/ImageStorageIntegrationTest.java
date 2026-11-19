@@ -27,7 +27,7 @@ class ImageStorageIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        storageService = new StorageService(tempDir.toString(), "/minio", "inventory-items");
+        storageService = new StorageService(tempDir.toString(), "/images", "inventory-items");
         mockMvc = MockMvcBuilders.standaloneSetup(new ImageController(storageService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

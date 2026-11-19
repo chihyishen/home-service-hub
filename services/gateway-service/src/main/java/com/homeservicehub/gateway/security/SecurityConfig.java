@@ -46,7 +46,7 @@ public class SecurityConfig {
     SecurityFilterChain security(HttpSecurity http, RateLimitFilter rateLimitFilter) throws Exception {
         http.csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/minio/inventory-items/**", "/otlp/v1/traces").permitAll()
+                .requestMatchers("/images/inventory-items/**", "/otlp/v1/traces").permitAll()
                 .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness").permitAll()
                 .requestMatchers("/api/items/**", "/api/shopping-list/**").access((authentication, context) ->
                     new org.springframework.security.authorization.AuthorizationDecision(hasScopeForMethod(authentication.get(), context.getRequest().getMethod(), "inventory")))

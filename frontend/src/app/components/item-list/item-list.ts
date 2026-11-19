@@ -34,11 +34,14 @@ export function normalizeItemImageUrl(imageUrl?: string): string | undefined {
   }
 
   const value = imageUrl.trim();
-  if (value.startsWith('/minio/')) {
+  if (value.startsWith('/images/')) {
     return value;
   }
+  if (value.startsWith('/minio/')) {
+    return `/images${value.slice('/minio'.length)}`;
+  }
   if (value.startsWith('/inventory-items/')) {
-    return `/minio${value}`;
+    return `/images${value}`;
   }
 
   try {
@@ -48,7 +51,7 @@ export function normalizeItemImageUrl(imageUrl?: string): string | undefined {
       legacyUrl.port === '9000' &&
       legacyUrl.pathname.startsWith('/inventory-items/');
     if (isLegacyMinioUrl) {
-      return `/minio${legacyUrl.pathname}${legacyUrl.search}${legacyUrl.hash}`;
+      return `/images${legacyUrl.pathname}${legacyUrl.search}${legacyUrl.hash}`;
     }
   } catch {
     // Preserve values that are not absolute URLs.

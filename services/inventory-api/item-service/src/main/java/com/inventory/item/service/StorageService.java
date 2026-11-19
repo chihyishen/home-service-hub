@@ -25,7 +25,7 @@ public class StorageService {
 
     public StorageService(
             @Value("${storage.images.directory}") String storageDirectory,
-            @Value("${storage.images.public-endpoint:/minio}") String publicEndpoint,
+            @Value("${storage.images.public-endpoint:/images}") String publicEndpoint,
             @Value("${storage.images.public-prefix:inventory-items}") String publicPrefix) {
         this.storageDirectory = Path.of(storageDirectory).toAbsolutePath().normalize();
         this.publicEndpoint = publicEndpoint.endsWith("/")

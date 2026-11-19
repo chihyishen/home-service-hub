@@ -127,7 +127,7 @@ graph TD
 - Inventory 的 OpenAPI 與 Swagger UI 預設關閉；維護端點或要提供 API 清單給 agent 時，設 `INVENTORY_API_DOCS_ENABLED=true`，再從 `/v3/api-docs` 匯出 `api.json`。只在受信任環境短暫開啟。
 - SQL query text、parameter values 與 query arguments 預設不進入觀測資料。除錯時可分別使用 `INVENTORY_SQL_QUERY_TEXT_ENABLED`、`INVENTORY_SQL_PARAMETER_VALUES_ENABLED`、`INVENTORY_SQL_QUERY_ARGUMENTS_ENABLED` 顯式開啟；Hibernate SQL logger 另由 `INVENTORY_HIBERNATE_SQL_LOG_LEVEL` 控制，預設 `OFF`。這些內容可能包含敏感資料。
 - HTTP query string 與 request payload logging 預設關閉。僅在受信任的短期除錯環境分別使用 `INVENTORY_HTTP_QUERY_LOGGING_ENABLED=true` 或 `INVENTORY_HTTP_PAYLOAD_LOGGING_ENABLED=true`；完成後應立即恢復安全預設。
-- `INVENTORY_IMAGE_STORAGE_DIR` 是 Inventory 寫入圖片的本機目錄。`INVENTORY_IMAGE_PUBLIC_ENDPOINT=/minio` 是瀏覽器同源路徑（保留舊 URL），由 Frontend proxy 轉到 Gateway，再轉到 inventory-api 的 `/inventory-items/**`。
+- `INVENTORY_IMAGE_STORAGE_DIR` 是 Inventory 寫入圖片的本機目錄。瀏覽器以同源路徑 `/images/inventory-items/**` 存取圖片，由 Frontend proxy 轉到 Gateway，再轉到 inventory-api 的 `/inventory-items/**`。
 - `.env.example` 只提供 placeholder。請在未納入版本控制的 `.env` 中自行設定實際密碼；修改 template 不會輪替現有 PostgreSQL 或 Grafana 帳密。
 
 ## 🗺 發展路線 (Roadmap)
@@ -137,7 +137,7 @@ graph TD
 - [x] **後端強制驗證 cutover**: 三個後端已逐服務開啟 `AUTH_ENFORCEMENT_ENABLED`，與 gateway 形成雙層防禦。
 - [ ] **Python 觀測性優化**: 完善 Python 服務的 Trace 欄位與 Context 傳遞。
 - [x] **後端精細化驗證**: `jakarta.validation` 已用於 Java 端 DTO 與 Controller 驗證。
-- [x] **庫存圖片儲存**: 圖片上傳已實作。物件存本機目錄，瀏覽器走同源 `/minio` proxy；縮圖由前端上傳前壓縮。
+- [x] **庫存圖片儲存**: 圖片上傳已實作。物件存本機目錄，瀏覽器走同源 `/images` proxy；縮圖由前端上傳前壓縮。
 
 ### 🟣 Phase 3: 跨服務業務整合 (Planned)
 - [ ] **投資與記帳串接**: 將投資交易產生的現金流與既有記帳規則串接；第一版採同步 API，讓使用者能立即看見成功或失敗。

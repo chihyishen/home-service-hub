@@ -7,7 +7,7 @@
 - [x] **核心服務**：庫存、記帳與台股投資組合各自提供 API 與資料模型。
 - [x] **統一入口**：Angular frontend 與 Spring Cloud Gateway 提供瀏覽器及 AI Agent 的單一入口。
 - [x] **認證與授權**：Keycloak、OIDC/JWT、PKCE、service account、scope 路由及後端雙層驗證。
-- [x] **資料與物件儲存**：PostgreSQL 儲存業務資料；庫存圖片存本機目錄，瀏覽器經同源 `/minio` 路徑存取。
+- [x] **資料與物件儲存**：PostgreSQL 儲存業務資料；庫存圖片存本機目錄，瀏覽器經同源 `/images` 路徑存取。
 - [x] **排程與短期快取**：台股服務以 APScheduler 執行行情、股利與快照工作，並以 in-process cache 降低外部 API 請求。
 - [x] **診斷基礎**：OpenTelemetry Collector 將 logs 送至 Loki、traces 送至 Tempo，並由 Grafana 統一查閱。
 

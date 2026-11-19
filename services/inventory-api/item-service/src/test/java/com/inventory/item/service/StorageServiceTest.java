@@ -21,7 +21,7 @@ class StorageServiceTest {
 
     @BeforeEach
     void setUp() {
-        storageService = new StorageService(tempDir.toString(), "/minio", "inventory-items");
+        storageService = new StorageService(tempDir.toString(), "/images", "inventory-items");
     }
 
     @Test
@@ -35,7 +35,7 @@ class StorageServiceTest {
 
         String imageUrl = storageService.uploadFile(file);
 
-        assertThat(imageUrl).matches("/minio/inventory-items/[0-9a-f-]+\\.jpg");
+        assertThat(imageUrl).matches("/images/inventory-items/[0-9a-f-]+\\.jpg");
         String filename = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
         assertThat(tempDir.resolve(filename)).exists().hasBinaryContent(new byte[]{1, 2, 3});
     }

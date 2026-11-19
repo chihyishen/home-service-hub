@@ -44,7 +44,7 @@ module.exports = {
     "changeOrigin": true,
     "logLevel": "debug"
   },
-  "/minio/inventory-items": {
+  "/images/inventory-items": {
     "target": GATEWAY_TARGET,
     "secure": false,
     "changeOrigin": true,

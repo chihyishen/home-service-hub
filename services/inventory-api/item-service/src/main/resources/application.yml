@@ -56,7 +56,7 @@ storage:
   images:
     # Relative paths resolve from the item-service Gradle project directory.
     directory: ${INVENTORY_IMAGE_STORAGE_DIR:../../infra/inventory-images}
-    public-endpoint: ${INVENTORY_IMAGE_PUBLIC_ENDPOINT:/minio}
+    public-endpoint: /images
     public-prefix: ${INVENTORY_IMAGE_PUBLIC_PREFIX:inventory-items}
 
 management:

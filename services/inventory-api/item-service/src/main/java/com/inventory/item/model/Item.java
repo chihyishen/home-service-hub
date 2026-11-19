@@ -41,7 +41,7 @@ public class Item {
 
     private String note;        // 備註
 
-    private String imageUrl;    // 瀏覽器同源路徑，例如 /minio/inventory-items/{uuid}.jpg
+    private String imageUrl;    // 瀏覽器同源路徑，例如 /images/inventory-items/{uuid}.jpg
 
     @CreatedDate
     @Column(updatable = false)

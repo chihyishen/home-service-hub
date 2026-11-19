@@ -166,14 +166,19 @@ describe('ItemListComponent', () => {
 describe('normalizeItemImageUrl', () => {
   it('rewrites a legacy absolute MinIO URL to the same-origin proxy', () => {
     expect(normalizeItemImageUrl('http://192.168.0.100:9000/inventory-items/photo.jpg'))
-      .toBe('/minio/inventory-items/photo.jpg');
+      .toBe('/images/inventory-items/photo.jpg');
   });
 
   it('rewrites a bucket-relative URL and keeps a new proxy URL unchanged', () => {
     expect(normalizeItemImageUrl('/inventory-items/photo.jpg'))
-      .toBe('/minio/inventory-items/photo.jpg');
+      .toBe('/images/inventory-items/photo.jpg');
+    expect(normalizeItemImageUrl('/images/inventory-items/photo.jpg'))
+      .toBe('/images/inventory-items/photo.jpg');
+  });
+
+  it('rewrites a legacy /minio proxy URL to /images', () => {
     expect(normalizeItemImageUrl('/minio/inventory-items/photo.jpg'))
-      .toBe('/minio/inventory-items/photo.jpg');
+      .toBe('/images/inventory-items/photo.jpg');
   });
 
   it('keeps unrelated image URLs unchanged', () => {

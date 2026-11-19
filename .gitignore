@@ -1,5 +1,4 @@
 # Data directories
-infra/minio-data
 infra/inventory-images
 infra/tempo-data
 
