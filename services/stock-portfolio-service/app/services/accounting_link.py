@@ -1,6 +1,7 @@
 """把股票現金流同步成記帳服務的收支（記帳是使用者的現金流帳）。
 
 - 買進 / 定期定額 → 支出；賣出、股利 → 收入；分類一律「投資」、付款「現金」。
+- 記帳是現金紀錄：買賣用交割日（T+2 營業日），股利用實際入帳日。
 - 交易金額 = 成交價金無條件捨去到整數（台股交割慣例），買進加、賣出減手續費與稅。
 - 只同步使用者在 App 內建立的交易；CSV／券商歷史匯入不同步，以免與手記重複。
 - 記帳服務掛掉時不讓股票資料寫入失敗：失敗的新增／修改／刪除進 accounting_retries，
@@ -9,10 +10,13 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
+from functools import cache
+from pathlib import Path
 
 import requests
 from sqlalchemy.orm import Session, object_session
@@ -45,6 +49,26 @@ def _is_sell(txn) -> bool:
 
 def _tw_date(value: datetime) -> str:
     return value.astimezone(_TW).date().isoformat()
+
+
+@cache
+def _holidays() -> dict[str, set[str]]:
+    """台股休市日，{年: {YYYY-MM-DD}}；每年底要補下一年（與 home-cron 的 flags 資料同源）。"""
+    raw = json.loads((Path(__file__).with_name("twse_holidays.json")).read_text(encoding="utf-8"))
+    return {year: set(days) for year, days in raw.items()}
+
+
+def settlement_date(trade_day: date) -> date:
+    """T+2 營業日。休市資料缺那一年時只跳週末並記警告。"""
+    day, left = trade_day, 2
+    while left:
+        day += timedelta(days=1)
+        year = _holidays().get(str(day.year))
+        if year is None:
+            logger.warning("accounting_link.holidays_missing", extra={"year": day.year})
+        if day.weekday() < 5 and day.isoformat() not in (year or ()):
+            left -= 1
+    return day
 
 
 def display_name(db: Session, symbol: str, name: str | None = None) -> str:
@@ -132,7 +156,8 @@ def remove(accounting_id: int | None, db: Session) -> None:
 # ---------------------------------------------------------------- transactions
 
 def _txn_fields(txn) -> dict:
-    return {"date": _tw_date(txn.trade_date), "amount": amount_of(txn), "kind": "INCOME" if _is_sell(txn) else "EXPENSE"}
+    settle = settlement_date(txn.trade_date.astimezone(_TW).date()).isoformat()
+    return {"date": settle, "amount": amount_of(txn), "kind": "INCOME" if _is_sell(txn) else "EXPENSE"}
 
 
 def _create_txn(txn, label: str) -> int | None:

@@ -87,3 +87,13 @@ def test_failed_syncs_are_queued_and_retried(client, db_session, monkeypatch):
     assert created == [f"portfolio:txn:{txn_id}"]
     assert db_session.get(models.Transaction, txn_id).accounting_transaction_id == 701
     assert db_session.query(AccountingRetry).count() == 0
+
+
+def test_settlement_date_skips_weekends_and_holidays():
+    from datetime import date
+
+    from app.services.accounting_link import settlement_date
+
+    assert settlement_date(date(2026, 11, 19)) == date(2026, 11, 23)  # 週四 → 下週一
+    # 9/24 週四；9/25、9/28 休市，中間是週末 → 9/30
+    assert settlement_date(date(2026, 9, 24)) == date(2026, 9, 30)
