@@ -2,7 +2,7 @@
 
 Date: 2026-05-05
 Source: Internal review of `improve-stock-portfolio-service-reliability` after implementation
-Status: Items 1–6 and 8 resolved on 2026-05-05; item 7 (frontend `quotes_status`) remains open.
+Status: Items 1–6 and 8 resolved on 2026-05-05; item 7 resolved on 2026-11-20.
 
 This document captures issues found while reviewing the landed implementation against `docs/stock-portfolio-service-improvement-plan.md`.
 
@@ -194,7 +194,7 @@ Use the URL itself (or a tuple of `(span_name, url)`) as the cache key. Trivial 
 
 No code change.
 
-## 7. Frontend has not yet consumed `PortfolioSummary.quotes_status` (LOW)
+## 7. Frontend has not yet consumed `PortfolioSummary.quotes_status` (LOW) — RESOLVED 2026-11-20
 
 ### Observation
 

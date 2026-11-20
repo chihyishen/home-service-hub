@@ -166,6 +166,7 @@ export interface PortfolioSummary {
   total_realized_pnl: number;     // 累積已實現損益（含當沖）
   holdings: StockHolding[];
   portfolio_xirr?: number;    // 整體投資組合年化報酬率
+  quotes_status?: 'ok' | 'partial' | 'unavailable';  // 即時報價抓取狀況
 }
 
 export interface NetworthPoint {

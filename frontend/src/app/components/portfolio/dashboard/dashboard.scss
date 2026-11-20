@@ -137,3 +137,16 @@
   .corporate-actions-card .p-card-body { padding: 0; }
   .corporate-actions-card .p-card-title { font-size: 1rem; font-weight: 600; color: var(--app-text); margin-bottom: 1rem; }
 }
+
+.quotes-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  background: var(--app-state-warning-bg);
+  color: var(--app-text);
+  font-size: 0.9rem;
+}

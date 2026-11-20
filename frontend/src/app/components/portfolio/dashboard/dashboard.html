@@ -16,6 +16,11 @@
       }
     </div>
   } @else {
+    @if (summary()?.quotes_status === 'unavailable') {
+      <div class="quotes-notice" role="status"><i class="pi pi-info-circle"></i>暫時抓不到即時報價，市值與損益先顯示為 0，稍後按「刷新行情」再試</div>
+    } @else if (summary()?.quotes_status === 'partial') {
+      <div class="quotes-notice" role="status"><i class="pi pi-info-circle"></i>部分股票抓不到即時報價，這些持股的市值與損益先顯示為 0</div>
+    }
     @if (summary() && summary()!.holdings.length > 0) {
       <div class="hub-bento-grid">
         
