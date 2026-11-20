@@ -25,21 +25,11 @@
 
 <div class="hub-inventory-container">
   @if (isLoading()) {
-    <div class="hub-inventory-grid mb-4">
-      @for (i of [1, 2, 3]; track i) {
-        <div class="hub-inventory-card skeleton-card">
-          <div class="item-visual">
-            <p-skeleton width="64px" height="64px" borderRadius="16px"></p-skeleton>
-            <p-skeleton width="60px" height="24px" borderRadius="999px"></p-skeleton>
-          </div>
-          <div class="item-body">
-            <p-skeleton width="60%" height="1.5rem" styleClass="mb-2"></p-skeleton>
-            <div class="item-tags mb-3">
-              <p-skeleton width="80px" height="1.2rem"></p-skeleton>
-              <p-skeleton width="90px" height="1.2rem"></p-skeleton>
-            </div>
-            <p-skeleton width="40px" height="2rem"></p-skeleton>
-          </div>
+    <div class="inv-list">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="inv-row">
+          <p-skeleton width="40px" height="40px" borderRadius="10px"></p-skeleton>
+          <p-skeleton width="45%" height="1rem"></p-skeleton>
         </div>
       }
     </div>
@@ -52,61 +42,42 @@
     </div>
   } @else {
     @for (group of groupedItems(); track group.location) {
-      <div class="location-group-container mb-4">
-        <h3 class="location-group-title">
-          <i class="pi pi-map-marker text-primary"></i> {{ group.location }}
-        </h3>
-        <div class="hub-inventory-grid">
-          @for (item of group.items; track item.id) {
-            <div class="hub-inventory-card" [class.low-stock]="item.stockStatus === 'LOW' || item.stockStatus === 'OUT'">
-              <div class="item-visual">
-                @if (item.imageUrl) {
-                  <p-image [src]="item.imageUrl" [preview]="true" width="64" height="64" styleClass="hub-item-image" loading="lazy"></p-image>
-                } @else {
-                  <div class="item-icon-placeholder">{{ item.name.charAt(0) }}</div>
-                }
-                @if (item.stockStatus === 'LOW' || item.stockStatus === 'OUT') {
-                  <div class="stock-badge" [class]="getStockStatusSeverity(item)">
-                    {{ getStockStatusLabel(item) }}
-                  </div>
-                }
-              </div>
-
-              <div class="item-body">
-                <div class="item-main">
-                  <h3 class="item-name">{{ item.name }}</h3>
-                  <div class="item-tags">
-                    <span class="hub-tag secondary"><i class="pi pi-tag"></i> {{ item.category || '未分類' }}</span>
-                    <span class="hub-tag secondary"><i class="pi pi-map-marker"></i> {{ item.location || '未知位置' }}</span>
-                  </div>
-                </div>
-
-                <div class="item-stock-info">
-                  <div class="qty-display">
-                    <span class="current">{{ item.quantity }}</span>
-                    <span class="qty-unit">件</span>
-                  </div>
-                  @if (item.minQuantity != null) {
-                    <span class="qty-threshold"><i class="pi pi-exclamation-triangle"></i> 低於 {{ item.minQuantity }} 提醒</span>
+      <section class="inv-group">
+        <button type="button" class="inv-group-title" (click)="toggleGroup(group.location)"
+                [attr.aria-expanded]="!collapsed().has(group.location)">
+          <span>{{ group.location }} <span class="inv-count">{{ group.items.length }}</span></span>
+          <i class="pi" [class.pi-chevron-down]="!collapsed().has(group.location)" [class.pi-chevron-right]="collapsed().has(group.location)"></i>
+        </button>
+        @if (!collapsed().has(group.location)) {
+          <div class="inv-list">
+            @for (item of group.items; track item.id) {
+              <div class="inv-row">
+                <button type="button" class="inv-main" (click)="editItem(item)">
+                  @if (item.imageUrl) {
+                    <img class="inv-thumb" [src]="item.imageUrl" alt="" loading="lazy" />
+                  } @else {
+                    <span class="inv-thumb inv-thumb-text">{{ item.name.charAt(0) }}</span>
                   }
+                  <span class="inv-text">
+                    <span class="inv-name">{{ item.name }}</span>
+                    <span class="inv-meta">
+                      {{ item.category || '未分類' }}
+                      @if (item.stockStatus === 'LOW' || item.stockStatus === 'OUT') {
+                        <span class="stock-badge" [class]="getStockStatusSeverity(item)">{{ getStockStatusLabel(item) }}</span>
+                      }
+                    </span>
+                  </span>
+                </button>
+                <div class="inv-qty">
+                  <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="secondary" styleClass="qty-out" (onClick)="consumeOne(item)" ariaLabel="使用 -1"></p-button>
+                  <span class="inv-qty-num">{{ item.quantity }}</span>
+                  <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="secondary" styleClass="qty-in" (onClick)="openQuickAction(item, 'RESTOCK')" ariaLabel="補貨"></p-button>
                 </div>
               </div>
-
-              <div class="item-actions">
-                <div class="action-group main-actions">
-                  <p-button icon="pi pi-minus" [rounded]="true" [text]="true" severity="secondary" styleClass="qty-out" (onClick)="consumeOne(item)" pTooltip="使用 -1"></p-button>
-                  <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="secondary" styleClass="qty-in" (onClick)="openQuickAction(item, 'RESTOCK')" pTooltip="快速補貨"></p-button>
-                </div>
-                <div class="action-group more-actions">
-                  <p-button icon="pi pi-history" [rounded]="true" [text]="true" severity="secondary" (onClick)="openHistory(item)" pTooltip="歷史紀錄"></p-button>
-                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="secondary" (onClick)="editItem(item)" pTooltip="編輯"></p-button>
-                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="secondary" (onClick)="deleteItem(item.id)" pTooltip="刪除"></p-button>
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
+            }
+          </div>
+        }
+      </section>
     } @empty {
       <div class="empty-state full-width">
         <i class="pi pi-box"></i>
@@ -160,6 +131,10 @@
   </div>
 
   <ng-template pTemplate="footer">
+    @if (isEdit && editingItem) {
+      <p-button icon="pi pi-trash" [text]="true" severity="secondary" ariaLabel="刪除" (onClick)="displayDialog = false; deleteItem(editingItem.id)"></p-button>
+      <p-button icon="pi pi-history" [text]="true" severity="secondary" ariaLabel="異動歷史" (onClick)="openHistory(editingItem)"></p-button>
+    }
     <p-button label="取消" icon="pi pi-times" [text]="true" (onClick)="displayDialog = false"></p-button>
     <p-button label="儲存" icon="pi pi-check" (onClick)="saveItem()" [disabled]="!canSaveItem()"></p-button>
   </ng-template>

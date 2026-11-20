@@ -68,6 +68,8 @@ export class ItemListComponent implements OnInit {
   displayActionDialog = false;
   displayHistoryDialog = false;
   isEdit = false;
+  editingItem: ItemResponse | null = null;
+  collapsed = signal<Set<string>>(new Set());
   lowStockOnly = false;
 
   selectedItem: ItemResponse | null = null;
@@ -187,7 +189,14 @@ export class ItemListComponent implements OnInit {
     this.displayDialog = true;
   }
 
+  toggleGroup(location: string) {
+    const next = new Set(this.collapsed());
+    if (!next.delete(location)) next.add(location);
+    this.collapsed.set(next);
+  }
+
   editItem(item: ItemResponse) {
+    this.editingItem = item;
     this.newItem = { ...item };
     this.isEdit = true;
     this.cleanupImageSelection();
