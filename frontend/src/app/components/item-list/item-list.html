@@ -61,7 +61,7 @@
                   <span class="inv-text">
                     <span class="inv-name">{{ item.name }}</span>
                     <span class="inv-meta">
-                      {{ item.category || '未分類' }}
+                      {{ item.category || '未分類' }} · {{ item.minQuantity == null ? '等用完' : '會補貨' }}
                       @if (item.isLowStock) {
                         <span class="stock-badge" [class]="getStockStatusSeverity(item)">{{ getStockStatusLabel(item) }}</span>
                       }
