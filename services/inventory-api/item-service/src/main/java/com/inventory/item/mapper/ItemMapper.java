@@ -23,6 +23,8 @@ public interface ItemMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
+    // 清空門檻 = 改成「等用完」，空值也要寫回去
+    @Mapping(target = "minQuantity", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     void updateEntityFromRequest(ItemRequest request, @MappingTarget Item item);
 
     default Boolean isLowStock(Item item) {
