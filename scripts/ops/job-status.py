@@ -22,6 +22,7 @@ JOBS = {
     "portfolio.dividend_auto_record": ("股利入帳", 100),
     "portfolio.dca": ("定期定額", 100),
     "portfolio.symbol_map_refresh": ("股票代號表", 8 * 24),
+    "portfolio.accounting_retry": ("記帳同步補送", 30),
 }
 
 

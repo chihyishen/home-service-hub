@@ -235,7 +235,7 @@ def delete_transaction(db: Session, transaction_id: int):
         db, dates=[calendar], touched_symbols={symbol}
     )
     db.commit()
-    accounting_link.remove(accounting_id)
+    accounting_link.remove(accounting_id, db)
     return True
 
 
@@ -329,5 +329,5 @@ def delete_dividend(db: Session, dividend_id: int):
     accounting_id = db_dividend.accounting_transaction_id
     db.delete(db_dividend)
     db.commit()
-    accounting_link.remove(accounting_id)
+    accounting_link.remove(accounting_id, db)
     return True

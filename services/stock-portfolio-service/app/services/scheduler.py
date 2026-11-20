@@ -230,9 +230,23 @@ def run_dca(session_factory: Callable[[], AbstractContextManager]) -> dict:
     return {"status": "ok", "created": len(created)}
 
 
+def run_accounting_retry(session_factory: Callable[[], AbstractContextManager]) -> dict:
+    """補送失敗的記帳同步；還有補不上的就回 failed，讓早報看到。"""
+    from . import accounting_link
+
+    try:
+        with session_factory() as db:
+            result = accounting_link.retry_pending(db)
+    except Exception as exc:
+        logger.exception("scheduler.accounting_retry.failed", extra={"error": str(exc)})
+        return {"status": "failed", "error": str(exc)}
+    logger.info("scheduler.accounting_retry.done", extra=result)
+    return {"status": "failed" if result["remaining"] else "ok", **result}
+
+
 # 每日/每週的排程把結果寫成 status 檔，早報讀它回報「昨日排程」是否正常。
 # 每分鐘、每 15 分鐘的高頻 job 不記，避免噪音。
-_REPORTED_JOBS = {"tw_daily_prices", "portfolio_snapshot", "symbol_map_refresh", "dividend_auto_record", "dca"}
+_REPORTED_JOBS = {"tw_daily_prices", "portfolio_snapshot", "symbol_map_refresh", "dividend_auto_record", "dca", "accounting_retry"}
 
 
 def _status_dir() -> Path:
@@ -306,6 +320,13 @@ def build_scheduler(session_factory: Callable[[], AbstractContextManager]) -> Ba
         run_dca,
         CronTrigger(hour=17, minute=30, day_of_week="mon-fri", timezone=TW_TIMEZONE),
         id="dca",
+        kwargs={"session_factory": session_factory},
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_accounting_retry,
+        CronTrigger(hour=18, minute=30, timezone=TW_TIMEZONE),
+        id="accounting_retry",
         kwargs={"session_factory": session_factory},
         replace_existing=True,
     )

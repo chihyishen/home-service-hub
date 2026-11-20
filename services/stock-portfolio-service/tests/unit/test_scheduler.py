@@ -42,6 +42,7 @@ def test_build_scheduler_registers_three_jobs():
         "symbol_map_refresh",
         "dividend_auto_record",
         "dca",
+        "accounting_retry",
     }
 
 

@@ -19,6 +19,8 @@ class Transaction(Base, TimestampMixin):
     transaction_type = Column(String, default="EXPENSE")
     note = Column(String, nullable=True)
     tags = Column(JSON, nullable=True)
+    # 其他服務同步進來的冪等鍵，例如 portfolio:txn:12；重送同一鍵回傳既有那筆
+    external_ref = Column(String(64), unique=True, nullable=True)
     
     # 沖銷與連結
     related_transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)

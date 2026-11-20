@@ -686,3 +686,17 @@ def test_openapi_delete_summaries_do_not_mention_soft_delete(client: TestClient)
     assert "/api/accounting/transactions/report/annual/{year}" in spec["paths"]
     annual_report_schema = spec["paths"]["/api/accounting/transactions/report/annual/{year}"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert annual_report_schema["$ref"] == "#/components/schemas/AnnualReport"
+
+
+def test_create_with_same_external_ref_is_idempotent(client: TestClient, db_session):
+    category = _get_or_create_category(db_session, "投資")
+    if not db_session.query(models.PaymentMethod).filter_by(name="現金").first():
+        db_session.add(models.PaymentMethod(name="現金"))
+    db_session.commit()
+    body = {"categoryId": category.id, "item": "0050 買進", "paidAmount": 1000, "transactionAmount": 1000,
+            "paymentMethod": "現金", "externalRef": "portfolio:txn:1"}
+    first = client.post("/api/accounting/transactions", json=body)
+    second = client.post("/api/accounting/transactions", json=body)
+    assert first.status_code == second.status_code == 200, second.text
+    assert first.json()["id"] == second.json()["id"]
+    assert db_session.query(models.Transaction).count() == 1

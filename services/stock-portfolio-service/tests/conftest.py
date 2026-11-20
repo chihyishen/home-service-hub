@@ -70,7 +70,7 @@ class _FakeAccounting:
         if div.accounting_transaction_id:
             self.calls.append(("sync_dividend", div.accounting_transaction_id))
 
-    def remove(self, accounting_id):
+    def remove(self, accounting_id, db=None):
         if accounting_id:
             self.calls.append(("remove", accounting_id))
 

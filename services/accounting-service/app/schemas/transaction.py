@@ -24,6 +24,7 @@ class TransactionBase(BaseSchema):
     transaction_type: str = Field(default="EXPENSE", description="交易類型 (INCOME, EXPENSE)", examples=["EXPENSE"])
     note: str | None = Field(default=None, description="備註")
     tags: list[str] | None = Field(default=None, description="標籤")
+    external_ref: str | None = Field(default=None, max_length=64, description="來源服務的冪等鍵；同一鍵重送回傳既有紀錄")
 
 class TransactionCreate(TransactionBase):
     model_config = ConfigDict(extra="forbid")

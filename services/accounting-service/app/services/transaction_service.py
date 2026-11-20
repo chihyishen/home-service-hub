@@ -166,6 +166,14 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
         # 3. 校驗付款工具 (必須存在於支付方式字典表中)
         ensure_payment_method_exists(db, transaction.payment_method)
 
+        # 同一 external_ref 重送（例如逾時後補送）回傳既有那筆，不重複記帳
+        if transaction.external_ref:
+            existing = db.query(models.Transaction.id).filter(
+                models.Transaction.external_ref == transaction.external_ref
+            ).first()
+            if existing:
+                return get_transaction(db, existing.id)
+
         # 1. 建立新紀錄
         db_transaction = models.Transaction(**transaction.model_dump())
         db.add(db_transaction)

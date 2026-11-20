@@ -51,3 +51,39 @@ def test_auto_dividend_waits_for_received_date(client, db_session, fake_accounti
     assert fake_accounting.calls[-1] == ("create_dividend", "0050 配息", 776)
     client.delete(f"/api/portfolio/dividends/{div.id}")
     assert fake_accounting.calls[-1][0] == "remove"
+
+
+def test_failed_syncs_are_queued_and_retried(client, db_session, monkeypatch):
+    """記帳服務掛掉：新增／修改／刪除都進補送表，恢復後 retry_pending 補齊。"""
+    from app.models import portfolio as models
+    from app.models.accounting_retry import AccountingRetry
+    from app.services import accounting_link
+
+    monkeypatch.undo()  # 拿掉 autouse 的整組替身，只換最底層 HTTP
+    up = {"ok": False}
+    created = []
+
+    def fake_create(**kw):
+        if not up["ok"]:
+            return None
+        created.append(kw["ref"])
+        return 700 + len(created)
+
+    monkeypatch.setattr(accounting_link, "_create", fake_create)
+    monkeypatch.setattr(accounting_link, "_update", lambda *a, **k: up["ok"])
+    monkeypatch.setattr(accounting_link, "_delete", lambda _id: up["ok"])
+
+    buy = {"symbol": "0050", "name": "元大台灣50", "type": "BUY", "quantity": 10, "price": "100",
+           "trade_date": "2026-11-18T05:30:00Z"}
+    txn_id = client.post("/api/portfolio/transactions", json=buy).json()["id"]
+    accounting_link.remove(555, db_session)  # 刪除失敗
+    assert [(r.action, r.source_id, r.accounting_id) for r in db_session.query(AccountingRetry)] == [
+        ("create", txn_id, None), ("delete", None, 555)]
+
+    assert accounting_link.retry_pending(db_session) == {"retried": 0, "remaining": 2}
+
+    up["ok"] = True
+    assert accounting_link.retry_pending(db_session) == {"retried": 2, "remaining": 0}
+    assert created == [f"portfolio:txn:{txn_id}"]
+    assert db_session.get(models.Transaction, txn_id).accounting_transaction_id == 701
+    assert db_session.query(AccountingRetry).count() == 0

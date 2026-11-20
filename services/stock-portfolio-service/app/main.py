@@ -6,6 +6,7 @@ from shared_lib import create_app
 
 from .database import SessionLocal, engine, get_db
 from .models import (  # noqa: F401  (register tables with Base.metadata)
+    accounting_retry,
     corporate_action,
     dca_plan,
     portfolio_recalc_state,
