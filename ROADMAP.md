@@ -22,7 +22,7 @@
 
 - [x] **投資與記帳串接**（2026-11-20 完成：App 內的買進、賣出、定期定額與股利皆同步為「投資」收支，含修正/刪除連動；CSV 匯入與融券不同步）：將股票買賣、股利及相關現金流連動至記帳服務。第一版採同步 API，讓使用者能立即知道成功或失敗。
 - [x] **重複執行保護**（2026-11-20：記帳 `external_ref` 唯一鍵，同鍵重送回傳既有紀錄；新增／修改／刪除失敗進 `accounting_retries`，每日 18:30 補送，補不上時早報顯示「記帳同步補送失敗」，人工修復查該表）：為跨服務寫入定義 idempotency key、重試邊界與人工修復方式，避免重複記帳。
-- [ ] **可追查的業務鏈**：實作上述流程時，補齊 Gateway → backend 的 trace propagation，涵蓋網頁與 Agent 發出的 API 請求，並建立對應 Grafana 操作視圖。
+- [x] **可追查的業務鏈**（2026-11-20 驗證：帶 traceparent 經 Gateway 新增／刪除股票交易，Tempo 同一條 trace 內含 gateway → portfolio → accounting 與各自 DB span；既有 OTel instrumentation 已足夠，未另建視圖，用 Grafana Explore 查 Tempo 即可）：實作上述流程時，補齊 Gateway → backend 的 trace propagation，涵蓋網頁與 Agent 發出的 API 請求，並建立對應 Grafana 操作視圖。
 
 ## 🔵 需求出現後再評估
 
