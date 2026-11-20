@@ -97,9 +97,20 @@ describe('ItemListComponent', () => {
     expect(loadSpy).not.toHaveBeenCalled();
   });
 
+  it('offers to delete a use-up item (no restock threshold) when the last one is consumed', () => {
+    const item = { id: 1, name: '小樣', quantity: 1, minQuantity: null, location: '浴室', stockStatus: 'LOW' } as unknown as ItemResponse;
+    const tx = vi.spyOn(itemService, 'createTransaction');
+    const del = vi.spyOn(component, 'deleteItem').mockImplementation(() => {});
+
+    component.consumeOne(item);
+
+    expect(tx).not.toHaveBeenCalled();
+    expect(del).toHaveBeenCalledWith(1, expect.stringContaining('用完了'));
+  });
+
   it('removes an item that leaves low stock after a quick consume', () => {
-    const original = { id: 1, name: '肥皂', quantity: 1, location: '浴室', stockStatus: 'LOW' } as ItemResponse;
-    const updated = { ...original, quantity: 2, stockStatus: 'NORMAL' };
+    const original = { id: 1, name: '肥皂', quantity: 1, minQuantity: 1, isLowStock: true, location: '浴室', stockStatus: 'LOW' } as ItemResponse;
+    const updated = { ...original, quantity: 2, isLowStock: false, stockStatus: 'NORMAL' };
     component.lowStockOnly = true;
     component.items.set([original]);
     const loadSpy = vi.spyOn(component, 'loadItems');

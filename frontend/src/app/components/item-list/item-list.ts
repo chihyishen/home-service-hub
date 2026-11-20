@@ -287,6 +287,11 @@ export class ItemListComponent implements OnInit {
   }
 
   consumeOne(item: ItemResponse) {
+    // 沒設補貨門檻 = 待用完型：最後一個用掉就是該刪了，不是缺貨
+    if (item.minQuantity == null && item.quantity <= 1) {
+      this.deleteItem(item.id, `「${item.name}」用完了，要從清單刪掉嗎？`);
+      return;
+    }
     const payload: InventoryTransactionRequest = {
       type: 'CONSUME',
       source: 'MANUAL',
@@ -341,9 +346,9 @@ export class ItemListComponent implements OnInit {
     });
   }
 
-  deleteItem(id: number): void {
+  deleteItem(id: number, message = '確定要刪除此物品嗎？'): void {
     this.confirmationService.confirm({
-      message: '確定要刪除此物品嗎？',
+      message,
       header: '確認刪除',
       icon: 'pi pi-exclamation-triangle',
       acceptIcon: 'none',
@@ -415,7 +420,7 @@ export class ItemListComponent implements OnInit {
       next: result => {
         this.items.update(items => items
           .map(item => item.id === itemId ? result.item : item)
-          .filter(item => !this.lowStockOnly || item.stockStatus === 'LOW' || item.stockStatus === 'OUT')
+          .filter(item => !this.lowStockOnly || item.isLowStock)
         );
         this.messageService.add({ severity: 'success', summary: '成功', detail: successMessage });
         callback?.();
