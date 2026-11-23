@@ -226,7 +226,7 @@ def run_dca(session_factory: Callable[[], AbstractContextManager]) -> dict:
     except Exception as exc:
         logger.exception("scheduler.dca.failed", extra={"error": str(exc)})
         return {"status": "failed", "error": str(exc)}
-    logger.info("scheduler.dca.done", extra={"created": len(created)})
+    logger.info("scheduler.dca.done", extra={"created_count": len(created)})
     return {"status": "ok", "created": len(created)}
 
 
