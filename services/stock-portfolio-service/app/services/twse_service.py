@@ -90,10 +90,16 @@ def parse_twse_msg_array(msg_array: list[dict], target_symbols: list[str]) -> di
         if price_val == 0:
             # 鎖漲停：無成交、無賣盤，買盤堆在漲停價 u（第一檔常是 0.0000 市價單）
             limit_up = _to_decimal(item.get("u"))
-            bids = [_to_decimal(x) for x in str(b or "").split("_") if x]
-            if limit_up > 0 and not _to_decimal(a) and bids and max(bids) == limit_up:
+            limit_down = _to_decimal(item.get("w"))
+            asks = [v for v in (_to_decimal(x) for x in str(a or "").split("_") if x) if v > 0]
+            bids = [v for v in (_to_decimal(x) for x in str(b or "").split("_") if x) if v > 0]
+            if limit_up > 0 and not asks and bids and max(bids) == limit_up:
                 price_val = limit_up
                 source = "u (漲停)"
+            # 鎖跌停：無成交、無買盤，賣盤堆在跌停價 w
+            elif limit_down > 0 and not bids and asks and min(asks) == limit_down:
+                price_val = limit_down
+                source = "w (跌停)"
         if price_val == 0:
             price_val = _to_decimal(a)
             source = "a (最佳買入)"

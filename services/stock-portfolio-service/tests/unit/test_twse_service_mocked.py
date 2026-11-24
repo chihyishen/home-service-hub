@@ -53,6 +53,15 @@ class TestTWSEServiceMocked(unittest.TestCase):
         self.assertEqual(parsed["0050"]["current_price"], Decimal("95.7000"))
         self.assertEqual(parsed["00919"]["current_price"], Decimal("29.7500"))  # not locked: unchanged path
 
+    def test_parse_locked_limit_down_uses_limit_price(self):
+        # mirror of limit-up: no trade, no bid, asks stacked at limit-down (first ask 0.0000 = market sell)
+        msg_array = [
+            {"c": "0050", "z": "-", "pz": "-", "b": "-", "y": "87.0000", "u": "95.7000", "w": "78.3000",
+             "a": "0.0000_78.3000_78.3500_78.4000_78.4500_"},
+        ]
+        parsed = parse_twse_msg_array(msg_array, ["0050"])
+        self.assertEqual(parsed["0050"]["current_price"], Decimal("78.3000"))
+
     @patch("app.services.twse_client.requests.get")
     def test_get_stock_quotes(self, mock_get):
         mock_get.return_value = _FakeResponse("callback(" + SAMPLE_TWSE_JSON + ");")
